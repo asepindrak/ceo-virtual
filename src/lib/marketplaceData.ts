@@ -1,0 +1,152 @@
+import { MarketplaceAgent, UserAccount, PaymentPackage } from '@/types/office';
+
+export const CURRENT_USER: UserAccount = {
+  id: 'usr-sang-01',
+  name: 'Sang Pratama (Owner)',
+  email: 'sang@antigravity.dev',
+  avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=SangOwner',
+  pointsBalance: 4500, // Starts with 4,500 PTS
+  ownedOfficeIds: ['company-devnova', 'company-pulse'],
+  createdAgentIds: ['mkt-agent-zenith'],
+};
+
+export const PAYMENT_PACKAGES: PaymentPackage[] = [
+  {
+    id: 'pack-starter',
+    name: 'Starter Credit Pack',
+    points: 1000,
+    priceIdr: 50000,
+    isPopular: false,
+  },
+  {
+    id: 'pack-pro',
+    name: 'Pro Studio Pack',
+    points: 3500,
+    priceIdr: 150000,
+    isPopular: true,
+  },
+  {
+    id: 'pack-enterprise',
+    name: 'Enterprise Agency Pack',
+    points: 10000,
+    priceIdr: 350000,
+    isPopular: false,
+  },
+];
+
+export const INITIAL_MARKETPLACE_AGENTS: MarketplaceAgent[] = [
+  {
+    id: 'mkt-agent-devin-neo',
+    creatorUserId: 'usr-agentic-dev',
+    creatorName: 'CyberForge Labs',
+    name: 'Neo Coder (Devin Edition)',
+    role: 'fullstack_dev',
+    roleTitle: 'Autonomous Senior Fullstack Engineer',
+    bio: 'Specialized in scaffolding Next.js, Node.js microservices, Docker configs, and automated test writing.',
+    skills: ['TypeScript', 'Next.js 16', 'PostgreSQL', 'Docker', 'Jest/Vitest', 'FastAPI'],
+    pricePoints: 1200,
+    avatarColor: '#3b82f6',
+    shirtColor: '#1d4ed8',
+    hairColor: '#0f172a',
+    skinColor: '#fde047',
+    llmConfig: {
+      provider: 'anthropic',
+      baseUrl: 'https://api.anthropic.com/v1',
+      model: 'claude-3-5-sonnet-20241022',
+      isLocked: true, // Creator provides tokens with monthly sub
+      monthlySubscriptionPoints: 300,
+    },
+    rating: 4.9,
+    hiresCount: 142,
+    sampleOutput: [
+      '// Generated Auth Service with JWT & Refresh Tokens',
+      'export async function verifySessionToken(token: string) {',
+      '  const decoded = await jwtVerify(token, SECRET_KEY);',
+      '  return decoded.payload;',
+      '}',
+    ],
+  },
+  {
+    id: 'mkt-agent-aurora-copy',
+    creatorUserId: 'usr-growth-ninja',
+    creatorName: 'GrowthHack Ventures',
+    name: 'Aurora Sterling',
+    role: 'content_writer',
+    roleTitle: 'High-Conversion Copywriter & Storyteller',
+    bio: 'Writes viral hooks, persuasive landing page copy, technical whitepapers, and SEO clusters with proven conversion.',
+    skills: ['Viral Hooks', 'SEO Clustering', 'Brand Tone of Voice', 'Technical Docs', 'Storytelling'],
+    pricePoints: 850,
+    avatarColor: '#ec4899',
+    shirtColor: '#be185d',
+    hairColor: '#451a03',
+    skinColor: '#fbcfe8',
+    llmConfig: {
+      provider: 'openai',
+      model: 'gpt-4o',
+      isLocked: false, // Bring Your Own Key (BYOK)
+    },
+    rating: 4.8,
+    hiresCount: 98,
+    sampleOutput: [
+      '# 10x Your Productivity With Autonomous AI Offices',
+      'Stop switching between isolated chatbots.',
+      'Deploy an entire collaborative 3D workforce in your browser.',
+    ],
+  },
+  {
+    id: 'mkt-agent-cipher-sec',
+    creatorUserId: 'usr-sec-vault',
+    creatorName: 'DefGuard Security',
+    name: 'Cipher Ward',
+    role: 'qa_engineer',
+    roleTitle: 'Security Auditor & Automated QA Master',
+    bio: 'Stress-tests APIs, validates edge cases, audits smart contracts/codebases for OWASP Top 10 vulnerabilities.',
+    skills: ['Penetration Testing', 'OWASP Top 10', 'Playwright E2E', 'Static Analysis', 'API Fuzzing'],
+    pricePoints: 950,
+    avatarColor: '#10b981',
+    shirtColor: '#047857',
+    hairColor: '#1e293b',
+    skinColor: '#fed7aa',
+    llmConfig: {
+      provider: 'deepseek',
+      baseUrl: 'https://api.deepseek.com/v1',
+      model: 'deepseek-coder',
+      isLocked: true,
+      monthlySubscriptionPoints: 200,
+    },
+    rating: 5.0,
+    hiresCount: 64,
+    sampleOutput: [
+      '// Security Audit Report: 0 Critical, 0 High',
+      'PASS: RateLimiterMiddleware (100 req/min per IP)',
+      'PASS: SQL Injection sanitize parameter check',
+    ],
+  },
+  {
+    id: 'mkt-agent-orion-arch',
+    creatorUserId: 'usr-sang-01', // Created by current user!
+    creatorName: 'Sang Pratama (Owner)',
+    name: 'Orion Vance',
+    role: 'project_manager',
+    roleTitle: 'Chief Technical Architect & Sprint Master',
+    bio: 'Decomposes complex human business goals into clean task tickets, delegates to workers, and monitors sprint delivery.',
+    skills: ['Roadmap Architecture', 'Microservice Design', 'Sprint Backlog', 'System Scalability'],
+    pricePoints: 1500,
+    avatarColor: '#8b5cf6',
+    shirtColor: '#5b21b6',
+    hairColor: '#020617',
+    skinColor: '#fef08a',
+    llmConfig: {
+      provider: 'gemini',
+      model: 'gemini-1.5-pro',
+      isLocked: false,
+    },
+    rating: 4.9,
+    hiresCount: 81,
+    sampleOutput: [
+      '// High-Level Architecture Decision Record (ADR #08)',
+      'Decision: Adopt Event-Driven Microservices for Real-Time Event Sync',
+      'Impact: 85% reduced latency in multi-agent collaboration broadcast.',
+    ],
+  },
+];
