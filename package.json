@@ -1,15 +1,18 @@
 {
-  "name": "real-agent-3d",
+  "name": "vigent",
   "version": "0.1.0",
+  "description": "Vigent - Virtual Office Agent with Autonomous Multi-Agent Workplace",
   "private": true,
   "bin": {
-    "realagent": "./bin/realagent.js"
+    "vigent": "./bin/vigent.js",
+    "realagent": "./bin/vigent.js"
   },
   "scripts": {
     "dev": "next dev -p 28483",
     "build": "next build",
     "start": "next start -p 28483",
-    "realagent": "node ./bin/realagent.js",
+    "vigent": "node ./bin/vigent.js",
+    "realagent": "node ./bin/vigent.js",
     "lint": "eslint"
   },
   "dependencies": {

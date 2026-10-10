@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🤖 Vigent - Virtual Office Agent
 
-## Getting Started
+<p align="center">
+  <b>Simulasi Kantor Virtual Multi-Agent Otonom dengan CLI & Generator Kode Nyata di Disk</b><br>
+  <i>Virtual Office Agent (Vigent) — Autonomous Multi-Agent Workplace</i>
+</p>
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## ⚡ 1-Click Installation (Seperti AGY CLI / Hermes)
+
+Install dan jalankan Vigent dalam 1 baris perintah langsung dari GitHub:
+
+### **Windows (PowerShell)**
+```powershell
+irm https://raw.githubusercontent.com/asepindrak/vigent/main/install.ps1 | iex
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### **Linux / macOS / WSL**
+```bash
+curl -fsSL https://raw.githubusercontent.com/asepindrak/vigent/main/install.sh | bash
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 💻 Vigent CLI (`vigent`)
 
-## Learn More
+Setelah diinstall, Anda dapat mengontrol Vigent langsung dari terminal Anda:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Menjalankan Vigent pada port 28483 & otomatis buka browser
+vigent start
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Cek status server, PID, port, dan jumlah project di disk
+vigent status
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Hentikan server Vigent yang sedang aktif
+vigent stop
 
-## Deploy on Vercel
+# Langsung buka folder workspace (~/.vigent/workspaces) di File Explorer
+vigent workspace
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Aktifkan autorun otomatis saat komputer dinyalakan (boot)
+vigent autorun enable
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Non-aktifkan autorun
+vigent autorun disable
+
+# Buat folder proyek baru langsung via CLI
+vigent create <nama-proyek>
+```
+
+---
+
+## 📁 Dedicated Home Directory (`~/.vigent`)
+
+Semua file dan proyek yang dikerjakan oleh agent disimpan di folder terisolasi pada direktori home pengguna:
+
+- **Home Folder**: `~/.vigent` (`C:\Users\<user>\.vigent`)
+- **Workspaces**: `~/.vigent/workspaces`
+  - Setiap task coding akan otomatis men-generate file kode nyata di disk:
+    - `package.json`
+    - `README.md`
+    - `src/index.js`
+    - `src/config.js`
+- **Konfigurasi**: `~/.vigent/config.json`
+- **Dedicated Port**: `28483` (Uncommon dedicated port agar tidak bentrok dengan dev server lain)
+
+---
+
+## 🛠️ Menjalankan Secara Manual (Development)
+
+```bash
+# Clone repository
+git clone https://github.com/asepindrak/vigent.git
+cd vigent
+
+# Install dependencies
+npm install
+
+# Jalankan dev server pada port 28483
+npm run dev
+
+# Atau jalankan via CLI
+node ./bin/vigent.js start
+```
+
+Buka browser di: **http://localhost:28483**
+
+---
+
+## ✨ Fitur Utama
+
+1. **Dual Engine Viewport**:
+   - **2.5D Isometric Mode (Default)**: Rendering instan 60 FPS, ultra-ringan, stabil, dan ramah resource.
+   - **3D WebGL Three.js Mode**: Tampilan 3D full canvas interaktif.
+2. **Autonomous Multi-Agent Simulation**:
+   - Agent berjalan secara fisik ke meja rekan kerja untuk berkolaborasi.
+   - Indikator dialog visual 3-titik gelombang suara yang tenang dan terfokus.
+3. **Human-in-the-Loop Decision**:
+   - Agent berjalan ke meja pimpinan (Owner) ketika butuh persetujuan keputusan penting (arsitektur, deployment, budget).
+4. **Marketplace AI Worker (Hire & Fire)**:
+   - Rekrut atau pecat agent karyawan kantor virtual.
+   - Kustomisasi LLM provider per agent (OpenAI, Anthropic, Gemini, Groq, DeepSeek, Custom BYOK).
+5. **Real Disk Code Generation**:
+   - AI agent benar-benar membuat folder proyek dan menulis kode di `~/.vigent/workspaces/` yang dapat dibuka langsung di Windows Explorer.

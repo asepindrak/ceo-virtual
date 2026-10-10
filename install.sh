@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-# Real Agent 3D local installer wrapper
+# Vigent (Virtual Office Agent) local installer wrapper
 exec bash public/install.sh "$@"

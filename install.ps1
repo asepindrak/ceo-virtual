@@ -1,2 +1,2 @@
-# Real Agent 3D Windows PowerShell Installer
+# Vigent (Virtual Office Agent) Windows PowerShell Installer
 & "$PSScriptRoot\public\install.ps1"

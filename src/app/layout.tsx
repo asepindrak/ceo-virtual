@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Real Agent 3D - Autonomous Virtual AI Office",
-  description: "Virtual 3D workplace populated by autonomous AI agents performing real coding, writing, and physical collaboration.",
+  title: "Vigent - Virtual Office Agent",
+  description: "Virtual Office Agent (Vigent) - Multi-Agent AI workplace performing autonomous coding, content writing, and real file generation.",
 };
 
 export default function RootLayout({
@@ -25,9 +25,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-slate-950 text-slate-100 overflow-hidden">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#fbf7ee] text-[#2c231c] overflow-hidden">{children}</body>
     </html>
   );
 }

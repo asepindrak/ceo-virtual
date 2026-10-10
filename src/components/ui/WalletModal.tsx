@@ -39,56 +39,56 @@ export const WalletModal: React.FC<WalletModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden text-slate-100 flex flex-col">
+    <div className="fixed inset-0 bg-[#2c231c]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+      <div className="bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden text-[#2c231c] flex flex-col">
         {/* Header */}
-        <div className="p-5 border-b border-slate-800 bg-slate-950/70 flex items-center justify-between">
+        <div className="p-5 border-b border-[#d6c5ad] bg-[#f4ebe1] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <div className="p-2.5 rounded-2xl bg-[#fdeed9] text-[#c85a2b] border border-[#f0c8a5]">
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Dompet & Top Up Poin</h2>
-              <p className="text-xs text-slate-400">Gunakan poin untuk merekrut AI Agent & langganan token</p>
+              <h2 className="text-lg font-bold text-[#2c231c]">Dompet & Top Up Poin</h2>
+              <p className="text-xs text-[#786653]">Gunakan poin untuk merekrut AI Agent & langganan token</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-1.5 text-[#786653] hover:text-[#2c231c] hover:bg-[#ede2d1] rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Current Balance Banner */}
-        <div className="p-5 bg-gradient-to-r from-amber-950/40 via-slate-950 to-indigo-950/40 border-b border-slate-800 flex items-center justify-between">
+        <div className="p-5 bg-[#fffdf9] border-b border-[#d6c5ad] flex items-center justify-between">
           <div>
-            <div className="text-xs text-slate-400">Saldo Poin Akun Anda</div>
-            <div className="text-2xl font-black font-mono text-amber-300 flex items-center gap-2">
+            <div className="text-xs text-[#786653] font-semibold">Saldo Poin Akun Anda</div>
+            <div className="text-2xl font-black font-mono text-[#ab7a1a] flex items-center gap-2">
               <span suppressHydrationWarning>🪙 {formatNumber(userAccount.pointsBalance)}</span>
-              <span className="text-xs font-normal text-slate-400">PTS</span>
+              <span className="text-xs font-bold text-[#786653]">PTS</span>
             </div>
           </div>
-          <div className="text-right text-xs text-slate-400 font-mono">
-            <div>{userAccount.name}</div>
-            <div className="text-[10px] text-slate-500">{userAccount.email}</div>
+          <div className="text-right text-xs text-[#786653] font-mono">
+            <div className="font-bold text-[#2c231c]">{userAccount.name}</div>
+            <div className="text-[10px] text-[#9c8976]">{userAccount.email}</div>
           </div>
         </div>
 
         {successMsg ? (
           <div className="p-8 text-center space-y-3">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto text-2xl">
+            <div className="w-14 h-14 rounded-full bg-[#e6f4f2] text-[#1f6860] border border-[#a2d8d0] flex items-center justify-center mx-auto text-2xl font-bold">
               ✓
             </div>
-            <h3 className="text-lg font-bold text-white">Top Up Berhasil!</h3>
-            <p className="text-xs text-emerald-300 font-medium">{successMsg}</p>
+            <h3 className="text-lg font-bold text-[#2c231c]">Top Up Berhasil!</h3>
+            <p className="text-xs text-[#1f6860] font-semibold">{successMsg}</p>
           </div>
         ) : (
           <div className="p-6 space-y-5 text-xs overflow-y-auto">
             {/* Packages */}
             <div>
-              <div className="font-semibold text-slate-200 mb-2.5 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-amber-400" />
+              <div className="font-semibold text-[#2c231c] mb-2.5 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-[#c85a2b]" />
                 Pilih Paket Poin:
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -100,22 +100,22 @@ export const WalletModal: React.FC<WalletModalProps> = ({
                       onClick={() => setSelectedPackage(pkg)}
                       className={`p-3.5 rounded-2xl border cursor-pointer transition-all relative flex flex-col justify-between ${
                         isSelected
-                          ? 'bg-amber-500/15 border-amber-500 ring-2 ring-amber-500/30'
-                          : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                          ? 'bg-[#fdeed9] border-2 border-[#c85a2b] shadow-xs'
+                          : 'bg-[#fffdf9] border-[#d6c5ad] hover:border-[#c85a2b]'
                       }`}
                     >
                       {pkg.isPopular && (
-                        <span className="absolute -top-2.5 right-3 bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
+                        <span className="absolute -top-2.5 right-3 bg-[#c85a2b] text-white font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                           Populer
                         </span>
                       )}
                       <div>
-                        <div className="font-bold text-slate-100 text-sm mb-1">{pkg.name}</div>
-                        <div className="text-lg font-black font-mono text-amber-300" suppressHydrationWarning>
+                        <div className="font-bold text-[#2c231c] text-sm mb-1">{pkg.name}</div>
+                        <div className="text-lg font-black font-mono text-[#ab7a1a]" suppressHydrationWarning>
                           +{formatNumber(pkg.points)} PTS
                         </div>
                       </div>
-                      <div className="pt-3 mt-2 border-t border-slate-800/80 font-semibold text-white">
+                      <div className="pt-3 mt-2 border-t border-[#d6c5ad] font-bold text-[#2c231c]">
                         Rp {formatNumber(pkg.priceIdr)}
                       </div>
                     </div>
@@ -126,63 +126,63 @@ export const WalletModal: React.FC<WalletModalProps> = ({
 
             {/* Payment Method Selector */}
             <div>
-              <div className="font-semibold text-slate-200 mb-2">Metode Pembayaran:</div>
+              <div className="font-semibold text-[#2c231c] mb-2">Metode Pembayaran:</div>
               <div className="grid grid-cols-2 gap-2">
                 <label
                   onClick={() => setPaymentMethod('qris')}
                   className={`p-2.5 rounded-xl border cursor-pointer flex items-center gap-2.5 transition-colors ${
                     paymentMethod === 'qris'
-                      ? 'bg-indigo-500/20 border-indigo-500 text-white'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                      ? 'bg-[#fdeed9] border-2 border-[#c85a2b] text-[#2c231c] font-bold'
+                      : 'bg-[#fffdf9] border-[#d6c5ad] text-[#615042] hover:border-[#c85a2b]'
                   }`}
                 >
-                  <QrCode className="w-4 h-4 text-emerald-400" />
-                  <span className="font-medium text-xs">QRIS (Gopay / OVO / Dana)</span>
+                  <QrCode className="w-4 h-4 text-[#288279]" />
+                  <span className="text-xs">QRIS (Gopay / OVO / Dana)</span>
                 </label>
 
                 <label
                   onClick={() => setPaymentMethod('bca_va')}
                   className={`p-2.5 rounded-xl border cursor-pointer flex items-center gap-2.5 transition-colors ${
                     paymentMethod === 'bca_va'
-                      ? 'bg-indigo-500/20 border-indigo-500 text-white'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                      ? 'bg-[#fdeed9] border-2 border-[#c85a2b] text-[#2c231c] font-bold'
+                      : 'bg-[#fffdf9] border-[#d6c5ad] text-[#615042] hover:border-[#c85a2b]'
                   }`}
                 >
-                  <Building className="w-4 h-4 text-blue-400" />
-                  <span className="font-medium text-xs">BCA Virtual Account</span>
+                  <Building className="w-4 h-4 text-[#2d4263]" />
+                  <span className="text-xs">BCA Virtual Account</span>
                 </label>
 
                 <label
                   onClick={() => setPaymentMethod('mandiri')}
                   className={`p-2.5 rounded-xl border cursor-pointer flex items-center gap-2.5 transition-colors ${
                     paymentMethod === 'mandiri'
-                      ? 'bg-indigo-500/20 border-indigo-500 text-white'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                      ? 'bg-[#fdeed9] border-2 border-[#c85a2b] text-[#2c231c] font-bold'
+                      : 'bg-[#fffdf9] border-[#d6c5ad] text-[#615042] hover:border-[#c85a2b]'
                   }`}
                 >
-                  <Building className="w-4 h-4 text-amber-400" />
-                  <span className="font-medium text-xs">Mandiri Livin</span>
+                  <Building className="w-4 h-4 text-[#ab7a1a]" />
+                  <span className="text-xs">Mandiri Livin</span>
                 </label>
 
                 <label
                   onClick={() => setPaymentMethod('cc')}
                   className={`p-2.5 rounded-xl border cursor-pointer flex items-center gap-2.5 transition-colors ${
                     paymentMethod === 'cc'
-                      ? 'bg-indigo-500/20 border-indigo-500 text-white'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                      ? 'bg-[#fdeed9] border-2 border-[#c85a2b] text-[#2c231c] font-bold'
+                      : 'bg-[#fffdf9] border-[#d6c5ad] text-[#615042] hover:border-[#c85a2b]'
                   }`}
                 >
-                  <CreditCard className="w-4 h-4 text-purple-400" />
-                  <span className="font-medium text-xs">Kartu Debit / Kredit</span>
+                  <CreditCard className="w-4 h-4 text-[#7d3b8f]" />
+                  <span className="text-xs">Kartu Debit / Kredit</span>
                 </label>
               </div>
             </div>
 
             {/* Total & Checkout */}
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+            <div className="pt-2 border-t border-[#d6c5ad] flex items-center justify-between">
               <div>
-                <div className="text-[11px] text-slate-400">Total Pembayaran</div>
-                <div className="text-base font-bold text-white" suppressHydrationWarning>
+                <div className="text-[11px] text-[#786653]">Total Pembayaran</div>
+                <div className="text-base font-bold text-[#2c231c]" suppressHydrationWarning>
                   Rp {formatNumber(selectedPackage.priceIdr)}
                 </div>
               </div>
@@ -190,11 +190,11 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               <button
                 onClick={handlePay}
                 disabled={isProcessing}
-                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-bold rounded-xl transition-all shadow-lg shadow-amber-500/20 flex items-center gap-2 disabled:opacity-50"
+                className="px-6 py-2.5 bg-[#c85a2b] hover:bg-[#b54d22] text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
               >
                 {isProcessing ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     <span>Memproses Transaksi...</span>
                   </>
                 ) : (

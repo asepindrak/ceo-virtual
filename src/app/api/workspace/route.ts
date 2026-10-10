@@ -95,7 +95,7 @@ export async function POST(req: Request) {
       const baseDir = createProjectDirectory(safeProject);
 
       // Generate realistic project files
-      const readmeContent = `# ${taskTitle}\n\n> 🤖 Dikerjakan secara otomatis oleh Agent: **${agentName || 'Real Agent'}**\n> 📁 Lokasi Proyek: \`${baseDir}\`\n> ⏰ Waktu Eksekusi: ${new Date().toLocaleString()}\n\n## Deskripsi Task\nTask: ${taskTitle}\nTipe: ${taskType}\nStatus: Completed & Artifacts Generated\n\n## Cara Menjalankan\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\`\n`;
+      const readmeContent = `# ${taskTitle}\n\n> 🤖 Dikerjakan secara otomatis oleh Agent: **${agentName || 'Vigent Agent'}**\n> 📁 Lokasi Proyek: \`${baseDir}\`\n> ⏰ Waktu Eksekusi: ${new Date().toLocaleString()}\n\n## Deskripsi Task\nTask: ${taskTitle}\nTipe: ${taskType}\nStatus: Completed & Artifacts Generated\n\n## Cara Menjalankan\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\`\n`;
       writeProjectFile(safeProject, 'README.md', readmeContent);
 
       if (taskType === 'coding') {
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
           name: safeProject,
           version: '1.0.0',
           private: true,
-          description: `Auto-generated code project for ${taskTitle}`,
+          description: `Auto-generated code project for ${taskTitle} by Vigent`,
           scripts: {
             dev: 'node src/index.js',
             start: 'node src/index.js',
@@ -115,13 +115,13 @@ export async function POST(req: Request) {
         };
         writeProjectFile(safeProject, 'package.json', JSON.stringify(packageJson, null, 2));
 
-        const indexJs = `// 🚀 Real Agent 3D - Generated Implementation\n// Task: ${taskTitle}\n// Agent: ${agentName || 'Autonomous Dev'}\n\nasync function main() {\n  console.log("==========================================");\n  console.log("⚡ Executing: ${taskTitle}");\n  console.log("🤖 Agent In Charge: ${agentName || 'Autonomous Dev'}");\n  console.log("==========================================");\n  \n  // Business logic implementation\n  const timestamp = new Date().toISOString();\n  console.log(\`[RealAgent] Service initialized at: \${timestamp}\`);\n  console.log("[RealAgent] Connecting to database pool... OK");\n  console.log("[RealAgent] Initializing API route handlers... OK");\n  console.log("[RealAgent] Sprint deliverables ready for deployment.");\n}\n\nmain().catch(console.error);\n`;
+        const indexJs = `// 🚀 Vigent (Virtual Office Agent) - Generated Implementation\n// Task: ${taskTitle}\n// Agent: ${agentName || 'Autonomous Dev'}\n\nasync function main() {\n  console.log("==========================================");\n  console.log("⚡ Executing: ${taskTitle}");\n  console.log("🤖 Agent In Charge: ${agentName || 'Autonomous Dev'}");\n  console.log("==========================================");\n  \n  // Business logic implementation\n  const timestamp = new Date().toISOString();\n  console.log(\`[Vigent] Service initialized at: \${timestamp}\`);\n  console.log("[Vigent] Connecting to database pool... OK");\n  console.log("[Vigent] Initializing API route handlers... OK");\n  console.log("[Vigent] Sprint deliverables ready for deployment.");\n}\n\nmain().catch(console.error);\n`;
         writeProjectFile(safeProject, 'src/index.js', indexJs);
 
         const configJs = `module.exports = {\n  projectName: "${safeProject}",\n  environment: process.env.NODE_ENV || "development",\n  version: "1.0.0",\n  agentOwner: "${agentName || 'Agent'}",\n};\n`;
         writeProjectFile(safeProject, 'src/config.js', configJs);
       } else if (taskType === 'content') {
-        const articleMd = `# Dokumentasi & Panduan: ${taskTitle}\n\nPenulis: ${agentName || 'Lead Writer'}\nTanggal: ${new Date().toLocaleDateString()}\n\n## 1. Pendahuluan\nDokumen ini disusun untuk memberikan gambaran lengkap mengenai implementasi arsitektur sistem dan panduan operasional pengguna.\n\n## 2. Poin Kunci\n- Skalabilitas sistem berbasis microservices\n- Human-in-the-Loop decision framework\n- Desentralisasi AI Agent di workspace terisolasi\n\n## 3. Kesimpulan\nSemua modul telah divalidasi dan siap untuk deployment.\n`;
+        const articleMd = `# Dokumentasi & Panduan: ${taskTitle}\n\nPenulis: ${agentName || 'Lead Writer'}\nTanggal: ${new Date().toLocaleDateString()}\n\n## 1. Pendahuluan\nDokumen ini disusun untuk memberikan gambaran lengkap mengenai implementasi arsitektur sistem dan panduan operasional pengguna.\n\n## 2. Poin Kunci\n- Skalabilitas sistem berbasis microservices\n- Human-in-the-Loop decision framework\n- Desentralisasi AI Agent di workspace terisolasi Vigent\n\n## 3. Kesimpulan\nSemua modul telah divalidasi dan siap untuk deployment.\n`;
         writeProjectFile(safeProject, 'docs/ARTICLE.md', articleMd);
       }
 

@@ -2,7 +2,29 @@
 
 import React, { useState } from 'react';
 import { Agent, TaskTicket, LLMConfig } from '@/types/office';
-import { X, MessageSquare, Coffee, ArrowLeft, Terminal, ShieldAlert, Cpu, Lock, Unlock, UserCheck, UserMinus, Save, Folder, ExternalLink } from 'lucide-react';
+import {
+  X,
+  MessageSquare,
+  Coffee,
+  ArrowLeft,
+  Terminal,
+  ShieldAlert,
+  Cpu,
+  Lock,
+  Unlock,
+  UserCheck,
+  UserMinus,
+  Save,
+  Folder,
+  Send,
+  Image as ImageIcon,
+  Check,
+  AlertCircle,
+  Loader2,
+  Sparkles,
+  Bot,
+  Wrench,
+} from 'lucide-react';
 
 interface AgentInspectorProps {
   agent: Agent;
@@ -15,6 +37,13 @@ interface AgentInspectorProps {
   onTriggerHumanDecision: (agentId: string) => void;
   onFireAgent: (agentId: string) => void;
   onUpdateLLMConfig: (agentId: string, updatedConfig: LLMConfig) => void;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  image?: string;
+  toolResults?: Array<{ toolName: string; args: any; result: any; success: boolean }>;
 }
 
 export const AgentInspector: React.FC<AgentInspectorProps> = ({
@@ -32,7 +61,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
   const [selectedColleagueId, setSelectedColleagueId] = useState<string>(
     allAgents.find((a) => a.id !== agent.id)?.id || ''
   );
-  const [activeTab, setActiveTab] = useState<'screen' | 'llm' | 'bio'>('screen');
+  const [activeTab, setActiveTab] = useState<'screen' | 'chat' | 'llm' | 'bio'>('screen');
   const [confirmFire, setConfirmFire] = useState(false);
 
   // Editable LLM Config state
@@ -43,6 +72,23 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
   const [apiKey, setApiKey] = useState(agent.llmConfig?.apiKey || '');
   const [model, setModel] = useState(agent.llmConfig?.model || 'gpt-4o');
   const [savedLLMMsg, setSavedLLMMsg] = useState(false);
+
+  // Connection testing state
+  const [testState, setTestState] = useState<{
+    status: 'idle' | 'testing' | 'success' | 'error';
+    message?: string;
+  }>({ status: 'idle' });
+
+  // Live Chat & Vision state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      role: 'assistant',
+      content: `Halo Boss! Saya ${agent.name} (${agent.roleTitle}). Siap mengerjakan tugas koding, menulis konten, atau analisis arsitektur. Anda juga bisa mengunggah screenshot gambar untuk saya review.`,
+    },
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [imageAttachment, setImageAttachment] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   const isLocked = agent.llmConfig?.isLocked ?? false;
   const otherAgents = allAgents.filter((a) => a.id !== agent.id);
@@ -63,71 +109,197 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
     setTimeout(() => setSavedLLMMsg(false), 2000);
   };
 
+  const handleTestConnection = async () => {
+    setTestState({ status: 'testing', message: 'Menghubungkan ke provider...' });
+    try {
+      const res = await fetch('/api/agent/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          config: {
+            provider,
+            baseUrl: baseUrl.trim() || undefined,
+            apiKey: apiKey.trim() || undefined,
+            model: model.trim() || undefined,
+          },
+          isTestConnection: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setTestState({
+          status: 'success',
+          message: `✓ Terhubung ke ${data.provider} (${data.model})`,
+        });
+      } else {
+        setTestState({
+          status: 'error',
+          message: data.error || 'Koneksi gagal',
+        });
+      }
+    } catch (err: any) {
+      setTestState({
+        status: 'error',
+        message: err.message || 'Gagal menghubungi backend API',
+      });
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImageAttachment(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() && !imageAttachment) return;
+
+    const userText = chatInput.trim();
+    const userImg = imageAttachment;
+
+    setChatMessages((prev) => [
+      ...prev,
+      { role: 'user', content: userText, image: userImg || undefined },
+    ]);
+    setChatInput('');
+    setImageAttachment(null);
+    setIsSending(true);
+
+    try {
+      // Build API messages payload with optional vision content
+      const apiPayloadMessages: any[] = chatMessages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      if (userImg) {
+        apiPayloadMessages.push({
+          role: 'user',
+          content: [
+            { type: 'text', text: userText || 'Tolong analisa gambar screenshot ini:' },
+            { type: 'image_url', image_url: { url: userImg } },
+          ],
+        });
+      } else {
+        apiPayloadMessages.push({
+          role: 'user',
+          content: userText,
+        });
+      }
+
+      const activeConfig: LLMConfig = {
+        provider,
+        baseUrl: baseUrl.trim() || undefined,
+        apiKey: apiKey.trim() || undefined,
+        model: model.trim() || undefined,
+        isLocked: false,
+      };
+
+      const res = await fetch('/api/agent/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          config: activeConfig,
+          messages: apiPayloadMessages,
+          agentName: agent.name,
+          agentRole: agent.roleTitle,
+          enableTools: true,
+          autoExecuteTools: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: data.content || '(Tugas dan tools telah dieksekusi)',
+            toolResults: data.toolResults || [],
+          },
+        ]);
+      } else {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `⚠️ Error dari LLM Provider: ${data.error}`,
+          },
+        ]);
+      }
+    } catch (err: any) {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `⚠️ Gagal menghubungi server: ${err.message}`,
+        },
+      ]);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
-    <div className="fixed top-20 right-6 w-96 max-w-[calc(100vw-3rem)] max-h-[85vh] bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden text-slate-100 animate-in fade-in slide-in-from-right duration-200">
+    <div className="fixed top-20 right-6 w-[420px] max-w-[calc(100vw-2rem)] h-[85vh] bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden text-[#2c231c] animate-in fade-in slide-in-from-right duration-200">
       {/* Header with Avatar & Status */}
-      <div className="p-4 border-b border-slate-800 bg-slate-950/60 flex items-start justify-between">
+      <div className="p-4 border-b border-[#d6c5ad] bg-[#f4ebe1] flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-inner ring-2 ring-white/10"
+            className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white shadow-md text-base relative"
             style={{ backgroundColor: agent.avatarColor }}
           >
-            {agent.name.split(' ').map((n) => n[0]).join('')}
+            {agent.name.charAt(0)}
+            <span
+              className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-[#faf5eb] ${
+                agent.state === 'working'
+                  ? 'bg-emerald-500'
+                  : agent.state === 'walking'
+                  ? 'bg-blue-500'
+                  : agent.state === 'talking'
+                  ? 'bg-purple-500'
+                  : agent.state === 'seeking_approval'
+                  ? 'bg-amber-500'
+                  : 'bg-stone-400'
+              }`}
+            />
           </div>
           <div>
-            <h3 className="font-semibold text-white text-base leading-tight flex items-center gap-2">
-              {agent.name}
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            </h3>
-            <p className="text-xs text-cyan-400 font-medium">{agent.roleTitle}</p>
+            <h3 className="font-bold text-sm text-[#2c231c]">{agent.name}</h3>
+            <p className="text-xs text-[#c85a2b] font-semibold">{agent.roleTitle}</p>
+            <div className="text-[10px] text-[#786653] capitalize mt-0.5 font-mono">
+              Status: <span className="text-[#2c231c] font-bold">{agent.state.replace('_', ' ')}</span>
+            </div>
           </div>
         </div>
+
         <button
           onClick={onClose}
-          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+          className="p-1 text-[#786653] hover:text-[#2c231c] hover:bg-[#ede2d1] rounded-lg transition-colors"
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Physical State Badge */}
-      <div className="px-4 py-2.5 bg-slate-900 border-b border-slate-800/80 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400">Status:</span>
-          <span
-            className={`px-2 py-0.5 rounded-full font-mono text-[11px] font-medium uppercase tracking-wider ${
-              agent.state === 'working'
-                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                : agent.state === 'walking'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                : agent.state === 'talking'
-                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                : agent.state === 'seeking_approval'
-                ? 'bg-rose-500/25 text-rose-300 border border-rose-500/50 animate-pulse'
-                : agent.state === 'coffee_break'
-                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                : 'bg-slate-700 text-slate-300'
-            }`}
-          >
-            {agent.state.replace('_', ' ')}
-          </span>
-        </div>
-        <span className="text-[11px] text-slate-400 font-mono">
-          Meja ({agent.deskPosition.x.toFixed(1)}, {agent.deskPosition.z.toFixed(1)})
-        </span>
-      </div>
-
-      <div className="px-4 py-2 bg-slate-950/40 text-xs text-slate-300 border-b border-slate-800/60 italic">
+      {/* State Message / Speech quote */}
+      <div className="px-4 py-2 bg-[#fffdf9] text-xs text-[#4d3c2e] border-b border-[#d6c5ad] italic">
         &ldquo;{agent.stateMessage}&rdquo;
       </div>
 
       {/* Quick Physical Action Buttons */}
-      <div className="p-3 bg-slate-900/80 border-b border-slate-800 flex items-center gap-1.5 flex-wrap">
+      <div className="p-3 bg-[#f4ebe1] border-b border-[#d6c5ad] flex items-center gap-1.5 flex-wrap">
         <div className="w-full flex gap-1.5">
           <select
             value={selectedColleagueId}
             onChange={(e) => setSelectedColleagueId(e.target.value)}
-            className="flex-1 bg-slate-950 border border-slate-700 text-xs rounded-lg px-2 py-1.5 text-slate-200 focus:outline-none focus:border-cyan-500"
+            className="flex-1 bg-[#fffdf9] border border-[#d6c5ad] text-xs rounded-lg px-2 py-1.5 text-[#2c231c] focus:outline-none focus:border-[#c85a2b]"
           >
             {otherAgents.map((other) => (
               <option key={other.id} value={other.id}>
@@ -139,7 +311,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
             onClick={() => {
               if (selectedColleagueId) onSendCollab(agent.id, selectedColleagueId);
             }}
-            className="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium rounded-lg flex items-center gap-1 transition-colors"
+            className="px-2.5 py-1.5 bg-[#c85a2b] hover:bg-[#b54d22] text-white text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors shadow-xs"
             title="Walk to colleague desk and collaborate"
           >
             <MessageSquare className="w-3.5 h-3.5" />
@@ -151,14 +323,14 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
           <div className="flex gap-1.5">
             <button
               onClick={() => onSendCoffee(agent.id)}
-              className="p-1.5 bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 rounded-lg transition-colors"
+              className="p-1.5 bg-[#fef8e7] hover:bg-[#fdeed9] text-[#ab7a1a] border border-[#fae4a8] rounded-lg transition-colors"
               title="Kirim istirahat kopi ke pantry"
             >
               <Coffee className="w-4 h-4" />
             </button>
             <button
               onClick={() => onReturnDesk(agent.id)}
-              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors"
+              className="p-1.5 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#5c4939] border border-[#d6c5ad] rounded-lg transition-colors"
               title="Kembali ke meja kerja"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -166,40 +338,34 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
           </div>
 
           <div className="flex gap-1.5">
-            {/* Human in the loop trigger button */}
             <button
               onClick={() => onTriggerHumanDecision(agent.id)}
-              className="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-medium"
+              className="px-2 py-1 bg-[#fef3e7] hover:bg-[#fde9d2] text-[#c85a2b] border border-[#f0c8a5] rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold"
               title="Minta agen jalan ke meja Owner untuk minta persetujuan keputusan"
             >
-              <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+              <ShieldAlert className="w-3.5 h-3.5 text-[#c85a2b]" />
               <span>Minta Approval</span>
             </button>
 
-            {/* Fire Agent Button */}
             {!confirmFire ? (
               <button
                 onClick={() => setConfirmFire(true)}
-                className="px-2 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-medium"
-                title="Pecat agen ini dari kantor"
+                className="px-2 py-1 bg-[#fdf0f0] hover:bg-[#fae0e0] text-[#b93838] border border-[#f5c6c6] rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold"
               >
-                <UserMinus className="w-3.5 h-3.5 text-rose-400" />
+                <UserMinus className="w-3.5 h-3.5 text-[#b93838]" />
                 <span>Pecat</span>
               </button>
             ) : (
-              <div className="flex items-center gap-1 animate-in fade-in">
+              <div className="flex items-center gap-1">
                 <button
-                  onClick={() => {
-                    onFireAgent(agent.id);
-                    onClose();
-                  }}
-                  className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-[10px]"
+                  onClick={() => onFireAgent(agent.id)}
+                  className="px-2 py-1 bg-[#b93838] hover:bg-[#9e2d2d] text-white rounded-lg text-[10px] font-bold"
                 >
-                  Yakin Pecat?
+                  Ya, Pecat!
                 </button>
                 <button
                   onClick={() => setConfirmFire(false)}
-                  className="px-1.5 py-1 text-slate-400 hover:text-white text-[10px]"
+                  className="px-1.5 py-1 text-[#786653] hover:text-[#2c231c] text-[10px]"
                 >
                   Batal
                 </button>
@@ -209,36 +375,47 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-800 bg-slate-950/40 text-xs font-medium">
+      {/* Tabs Navigation (Screen / Live Chat / LLM / Bio) */}
+      <div className="flex border-b border-[#d6c5ad] bg-[#f4ebe1] text-xs font-semibold">
         <button
           onClick={() => setActiveTab('screen')}
-          className={`flex-1 py-2.5 px-3 flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
+          className={`flex-1 py-2 px-2 flex items-center justify-center gap-1 border-b-2 transition-colors ${
             activeTab === 'screen'
-              ? 'border-cyan-500 text-cyan-300 bg-cyan-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-[#c85a2b] text-[#c85a2b] bg-[#fffdf9]'
+              : 'border-transparent text-[#786653] hover:text-[#2c231c]'
           }`}
         >
           <Terminal className="w-3.5 h-3.5" />
-          <span>Live Screen</span>
+          <span>Terminal</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`flex-1 py-2 px-2 flex items-center justify-center gap-1 border-b-2 transition-colors ${
+            activeTab === 'chat'
+              ? 'border-[#c85a2b] text-[#c85a2b] bg-[#fffdf9]'
+              : 'border-transparent text-[#786653] hover:text-[#2c231c]'
+          }`}
+        >
+          <Bot className="w-3.5 h-3.5" />
+          <span>Live Chat</span>
         </button>
         <button
           onClick={() => setActiveTab('llm')}
-          className={`flex-1 py-2.5 px-3 flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
+          className={`flex-1 py-2 px-2 flex items-center justify-center gap-1 border-b-2 transition-colors ${
             activeTab === 'llm'
-              ? 'border-cyan-500 text-cyan-300 bg-cyan-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-[#c85a2b] text-[#c85a2b] bg-[#fffdf9]'
+              : 'border-transparent text-[#786653] hover:text-[#2c231c]'
           }`}
         >
           <Cpu className="w-3.5 h-3.5" />
-          <span>LLM Engine</span>
+          <span>LLM Config</span>
         </button>
         <button
           onClick={() => setActiveTab('bio')}
-          className={`flex-1 py-2.5 px-3 flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
+          className={`flex-1 py-2 px-2 flex items-center justify-center gap-1 border-b-2 transition-colors ${
             activeTab === 'bio'
-              ? 'border-cyan-500 text-cyan-300 bg-cyan-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-[#c85a2b] text-[#c85a2b] bg-[#fffdf9]'
+              : 'border-transparent text-[#786653] hover:text-[#2c231c]'
           }`}
         >
           <UserCheck className="w-3.5 h-3.5" />
@@ -247,26 +424,28 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto p-4 text-xs space-y-3 font-sans">
-        {activeTab === 'screen' ? (
+      <div className="flex-1 overflow-y-auto p-3 text-xs space-y-3 font-sans flex flex-col">
+        {/* TAB 1: SCREEN / TERMINAL */}
+        {activeTab === 'screen' && (
           <div>
             {currentTask && (
-              <div className="mb-3 p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">
+              <div className="mb-3 p-2.5 rounded-lg bg-[#fffdf9] border border-[#d6c5ad]">
+                <div className="text-[10px] uppercase font-bold text-[#786653] tracking-wider mb-1">
                   Tiket yang Ditugaskan
                 </div>
-                <div className="font-medium text-slate-200 mb-1">{currentTask.title}</div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div className="font-semibold text-[#2c231c] mb-1">{currentTask.title}</div>
+                <div className="w-full bg-[#ebdcc9] h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-cyan-500 h-full rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-[#c85a2b] to-[#d97736] h-full rounded-full transition-all duration-300"
                     style={{ width: `${currentTask.progress}%` }}
                   />
                 </div>
               </div>
             )}
 
-            <div className="rounded-lg bg-slate-950 p-3 border border-slate-800 font-mono text-[11px] text-slate-300 leading-relaxed overflow-x-auto shadow-inner">
-              <div className="flex items-center justify-between text-[10px] text-slate-400 pb-2 mb-2 border-b border-slate-800">
+            {/* Vintage CRT Terminal Display */}
+            <div className="rounded-lg bg-[#18231c] p-3 border-2 border-[#bfa787] font-mono text-[11px] text-[#4ade80] leading-relaxed overflow-x-auto shadow-inner">
+              <div className="flex items-center justify-between text-[10px] text-[#86a892] pb-2 mb-2 border-b border-[#2d3f32]">
                 <div className="flex items-center gap-2">
                   <span>TERMINAL_OUTPUT.log</span>
                   <button
@@ -277,24 +456,24 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                         body: JSON.stringify({ action: 'open_folder' }),
                       }).catch(console.error);
                     }}
-                    className="flex items-center gap-1 text-[9px] bg-slate-800 hover:bg-slate-700 text-cyan-300 px-1.5 py-0.5 rounded border border-slate-700 transition-colors"
-                    title="Buka Folder Disk (~/.realagent/workspaces)"
+                    className="flex items-center gap-1 text-[9px] bg-[#27382d] hover:bg-[#344b3d] text-[#86efac] px-1.5 py-0.5 rounded border border-[#3b5544] transition-colors"
+                    title="Buka Folder Disk (~/.vigent/workspaces)"
                   >
                     <Folder className="w-2.5 h-2.5" />
                     <span>Workspace Disk</span>
                   </button>
                 </div>
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                <span className="flex items-center gap-1 text-[#4ade80]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-ping" />
                   Streaming
                 </span>
               </div>
               {agent.liveCodeOutput.map((line, idx) => (
                 <div key={idx} className="whitespace-pre">
                   {line.startsWith('//') || line.startsWith('#') ? (
-                    <span className="text-emerald-400/80">{line}</span>
+                    <span className="text-[#86efac]/70">{line}</span>
                   ) : line.includes('function') || line.includes('const') || line.includes('export') ? (
-                    <span className="text-cyan-300">{line}</span>
+                    <span className="text-[#fef08a]">{line}</span>
                   ) : (
                     <span>{line}</span>
                   )}
@@ -302,21 +481,116 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
               ))}
             </div>
           </div>
-        ) : activeTab === 'llm' ? (
-          /* LLM Configuration Tab */
+        )}
+
+        {/* TAB 2: LIVE CHAT & VISION + TOOL CALLING */}
+        {activeTab === 'chat' && (
+          <div className="flex-1 flex flex-col h-full space-y-2">
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[360px]">
+              {chatMessages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`p-2.5 rounded-xl text-xs space-y-1.5 ${
+                    msg.role === 'user'
+                      ? 'bg-[#fdeed9] border-2 border-[#e8ba8c] ml-4 text-[#2c231c]'
+                      : 'bg-[#fffdf9] border border-[#d6c5ad] mr-2 text-[#2c231c]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[10px] text-[#786653] font-bold">
+                    <span>{msg.role === 'user' ? 'Boss (Anda)' : agent.name}</span>
+                  </div>
+
+                  {msg.image && (
+                    <div className="my-1 rounded-lg overflow-hidden border border-[#d6c5ad] max-h-40">
+                      <img src={msg.image} alt="Attached screenshot" className="w-full object-cover" />
+                    </div>
+                  )}
+
+                  <p className="text-[#2c231c] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+
+                  {/* Tool Execution Logs */}
+                  {msg.toolResults && msg.toolResults.length > 0 && (
+                    <div className="pt-1.5 border-t border-[#d6c5ad] space-y-1">
+                      <div className="text-[10px] font-mono text-[#c85a2b] font-bold flex items-center gap-1">
+                        <Wrench className="w-3 h-3" />
+                        <span>Tools Executed on Machine:</span>
+                      </div>
+                      {msg.toolResults.map((tr, i) => (
+                        <div key={i} className="text-[10px] font-mono bg-[#f4ebe1] p-1.5 rounded border border-[#d6c5ad] text-[#1f6860] font-semibold">
+                          ✓ {tr.toolName}: {typeof tr.result === 'string' ? tr.result : JSON.stringify(tr.result)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {isSending && (
+                <div className="p-2.5 rounded-xl bg-[#fffdf9] border border-[#d6c5ad] text-xs flex items-center gap-2 text-[#c85a2b] font-medium">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{agent.name} sedang berpikir & mengeksekusi...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Image Preview if selected */}
+            {imageAttachment && (
+              <div className="relative p-1 bg-[#fffdf9] rounded-lg border border-[#c85a2b] flex items-center gap-2">
+                <img src={imageAttachment} alt="Preview" className="w-10 h-10 object-cover rounded" />
+                <span className="text-[10px] text-[#c85a2b] font-semibold">Gambar/Screenshot terlampir</span>
+                <button
+                  onClick={() => setImageAttachment(null)}
+                  className="ml-auto p-1 text-[#786653] hover:text-[#2c231c]"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Input Form with Vision Attachment */}
+            <form onSubmit={handleSendMessage} className="pt-2 border-t border-[#d6c5ad] flex items-center gap-1.5">
+              <label
+                className="p-2 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#5c4939] border border-[#d6c5ad] rounded-lg cursor-pointer transition-colors"
+                title="Lampirkan Gambar / Screenshot UI untuk Vision Analysis"
+              >
+                <ImageIcon className="w-4 h-4 text-[#c85a2b]" />
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              </label>
+
+              <input
+                type="text"
+                placeholder="Perintah atau pertanyaan..."
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                disabled={isSending}
+                className="flex-1 bg-[#fffdf9] border border-[#d6c5ad] rounded-lg px-2.5 py-1.5 text-[#2c231c] placeholder-[#9c8976] focus:outline-none focus:border-[#c85a2b] text-xs"
+              />
+
+              <button
+                type="submit"
+                disabled={isSending || (!chatInput.trim() && !imageAttachment)}
+                className="p-2 bg-[#c85a2b] hover:bg-[#b54d22] disabled:opacity-50 text-white rounded-lg transition-colors shadow-xs"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* TAB 3: LLM CONFIGURATION */}
+        {activeTab === 'llm' && (
           <form onSubmit={handleSaveLLM} className="space-y-3">
-            <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+            <div className="p-2.5 rounded-xl bg-[#fffdf9] border border-[#d6c5ad] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {isLocked ? (
-                  <Lock className="w-4 h-4 text-amber-400" />
+                  <Lock className="w-4 h-4 text-[#c68f23]" />
                 ) : (
-                  <Unlock className="w-4 h-4 text-emerald-400" />
+                  <Unlock className="w-4 h-4 text-[#288279]" />
                 )}
                 <div>
-                  <div className="font-semibold text-slate-200">
+                  <div className="font-semibold text-[#2c231c]">
                     {isLocked ? 'Provider Dikunci Kreator' : 'BYOK (Bebas Kustomisasi)'}
                   </div>
-                  <div className="text-[10px] text-slate-400">
+                  <div className="text-[10px] text-[#786653]">
                     {isLocked
                       ? 'Token ditanggung kreator agen via langganan'
                       : 'Anda dapat mengatur Base URL dan API Key sendiri'}
@@ -326,95 +600,151 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
             </div>
 
             <div>
-              <label className="block text-slate-400 text-[11px] mb-1">Provider</label>
+              <label className="block text-[#615042] text-[11px] mb-1 font-medium">Provider</label>
               <select
                 disabled={isLocked}
                 value={provider}
-                onChange={(e) => setProvider(e.target.value as LLMConfig['provider'])}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 disabled:opacity-60"
+                onChange={(e) => {
+                  const p = e.target.value as LLMConfig['provider'];
+                  setProvider(p);
+                  if (p === 'groq') {
+                    setModel('llama-3.3-70b-versatile');
+                    setBaseUrl('https://api.groq.com/openai/v1');
+                  } else if (p === 'deepseek') {
+                    setModel('deepseek-chat');
+                    setBaseUrl('https://api.deepseek.com');
+                  } else if (p === 'anthropic') {
+                    setModel('claude-3-5-sonnet-20241022');
+                    setBaseUrl('');
+                  } else if (p === 'gemini') {
+                    setModel('gemini-1.5-flash');
+                    setBaseUrl('');
+                  } else if (p === 'custom') {
+                    setModel('llama3');
+                    setBaseUrl('http://localhost:11434/v1');
+                  } else {
+                    setModel('gpt-4o');
+                    setBaseUrl('https://api.openai.com/v1');
+                  }
+                }}
+                className="w-full bg-[#fffdf9] border border-[#d6c5ad] rounded-lg px-2.5 py-1.5 text-[#2c231c] disabled:opacity-60"
               >
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic (Claude)</option>
-                <option value="gemini">Google Gemini</option>
-                <option value="groq">Groq (Ultra-Fast)</option>
-                <option value="deepseek">DeepSeek</option>
-                <option value="custom">Custom (Ollama / vLLM)</option>
+                <option value="openai">OpenAI (GPT-4o / GPT-4o-mini)</option>
+                <option value="groq">Groq (Ultra-Fast Llama 3.3)</option>
+                <option value="deepseek">DeepSeek (V3 / R1)</option>
+                <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+                <option value="gemini">Google Gemini (1.5 Flash / Pro)</option>
+                <option value="custom">Custom (Ollama / vLLM / OpenRouter)</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-slate-400 text-[11px] mb-1">Model Name</label>
+              <label className="block text-[#615042] text-[11px] mb-1 font-medium">Model Name</label>
               <input
                 type="text"
                 disabled={isLocked}
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 disabled:opacity-60"
+                className="w-full bg-[#fffdf9] border border-[#d6c5ad] rounded-lg px-2.5 py-1.5 text-[#2c231c] disabled:opacity-60 font-mono text-xs"
               />
             </div>
 
             <div>
-              <label className="block text-slate-400 text-[11px] mb-1">Base URL</label>
+              <label className="block text-[#615042] text-[11px] mb-1 font-medium">Base URL</label>
               <input
                 type="text"
                 disabled={isLocked}
                 placeholder="https://api.openai.com/v1"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 font-mono text-[11px] disabled:opacity-60"
+                className="w-full bg-[#fffdf9] border border-[#d6c5ad] rounded-lg px-2.5 py-1.5 text-[#2c231c] font-mono text-[11px] disabled:opacity-60"
               />
             </div>
 
             <div>
-              <label className="block text-slate-400 text-[11px] mb-1">API Key Anda</label>
+              <label className="block text-[#615042] text-[11px] mb-1 font-medium">API Key Anda</label>
               <input
                 type="password"
                 disabled={isLocked}
                 placeholder={isLocked ? '••••••••••••••••' : 'sk-... (kunci pribadi Anda)'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 font-mono text-[11px] disabled:opacity-60"
+                className="w-full bg-[#fffdf9] border border-[#d6c5ad] rounded-lg px-2.5 py-1.5 text-[#2c231c] font-mono text-[11px] disabled:opacity-60"
               />
             </div>
 
-            {!isLocked && (
-              <div className="pt-1">
+            {/* Test Connection Button & Status */}
+            <div className="pt-1 space-y-2">
+              <div className="flex gap-2">
                 <button
-                  type="submit"
-                  className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                  type="button"
+                  onClick={handleTestConnection}
+                  disabled={testState.status === 'testing'}
+                  className="flex-1 py-1.5 bg-[#fffdf9] hover:bg-[#ede2d1] border border-[#d6c5ad] text-[#2c231c] font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors"
                 >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>Simpan Konfigurasi LLM</span>
+                  {testState.status === 'testing' ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#c85a2b]" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5 text-[#c85a2b]" />
+                  )}
+                  <span>Test Koneksi</span>
                 </button>
-                {savedLLMMsg && (
-                  <div className="text-center text-emerald-400 text-[11px] mt-1">
-                    ✓ Konfigurasi LLM agen berhasil diperbarui!
-                  </div>
+
+                {!isLocked && (
+                  <button
+                    type="submit"
+                    className="flex-1 py-1.5 bg-[#c85a2b] hover:bg-[#b54d22] text-white font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Simpan</span>
+                  </button>
                 )}
               </div>
-            )}
+
+              {testState.status === 'success' && (
+                <div className="p-2 rounded-lg bg-[#e6f4f2] border border-[#a2d8d0] text-[#1f6860] text-[11px] font-semibold flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>{testState.message}</span>
+                </div>
+              )}
+
+              {testState.status === 'error' && (
+                <div className="p-2 rounded-lg bg-[#fdf0f0] border border-[#f5c6c6] text-[#b93838] text-[11px] font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{testState.message}</span>
+                </div>
+              )}
+
+              {savedLLMMsg && (
+                <div className="text-center text-[#288279] text-[11px] font-bold">
+                  ✓ Konfigurasi LLM agen berhasil diperbarui!
+                </div>
+              )}
+            </div>
           </form>
-        ) : (
-          /* Profile & Bio Tab */
+        )}
+
+        {/* TAB 4: PROFILE & BIO */}
+        {activeTab === 'bio' && (
           <div className="space-y-3">
             <div>
-              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">
+              <div className="text-[10px] uppercase font-bold text-[#786653] tracking-wider mb-1">
                 Bio & Persona
               </div>
-              <p className="text-slate-300 leading-relaxed bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
+              <p className="text-[#2c231c] leading-relaxed bg-[#fffdf9] p-2.5 rounded-lg border border-[#d6c5ad]">
                 {agent.bio}
               </p>
             </div>
 
             <div>
-              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">
+              <div className="text-[10px] uppercase font-bold text-[#786653] tracking-wider mb-1.5">
                 Keahlian & Kemampuan
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {agent.skills.map((skill, i) => (
                   <span
                     key={i}
-                    className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700 text-[11px]"
+                    className="px-2 py-0.5 rounded-md bg-[#f0e3ce] text-[#784620] border border-[#dccab3] text-[11px] font-semibold"
                   >
                     {skill}
                   </span>
@@ -422,26 +752,26 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-800">
-              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
+            <div className="pt-2 border-t border-[#d6c5ad]">
+              <div className="text-[10px] uppercase font-bold text-[#786653] tracking-wider mb-2">
                 Statistik Kerja
               </div>
               <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800">
-                  <div className="text-base font-bold text-cyan-400">{agent.stats.tasksCompleted}</div>
-                  <div className="text-[10px] text-slate-400">Tugas Selesai</div>
+                <div className="bg-[#fffdf9] p-2 rounded-lg border border-[#d6c5ad]">
+                  <div className="text-base font-bold text-[#c85a2b]">{agent.stats.tasksCompleted}</div>
+                  <div className="text-[10px] text-[#786653]">Tugas Selesai</div>
                 </div>
-                <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800">
-                  <div className="text-base font-bold text-emerald-400">{agent.stats.linesOfCode}</div>
-                  <div className="text-[10px] text-slate-400">Baris Kode</div>
+                <div className="bg-[#fffdf9] p-2 rounded-lg border border-[#d6c5ad]">
+                  <div className="text-base font-bold text-[#288279]">{agent.stats.linesOfCode}</div>
+                  <div className="text-[10px] text-[#786653]">Baris Kode</div>
                 </div>
-                <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800">
-                  <div className="text-base font-bold text-amber-400">{agent.stats.wordsWritten}</div>
-                  <div className="text-[10px] text-slate-400">Kata Ditulis</div>
+                <div className="bg-[#fffdf9] p-2 rounded-lg border border-[#d6c5ad]">
+                  <div className="text-base font-bold text-[#ab7a1a]">{agent.stats.wordsWritten}</div>
+                  <div className="text-[10px] text-[#786653]">Kata Ditulis</div>
                 </div>
-                <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800">
-                  <div className="text-base font-bold text-purple-400">{agent.stats.collabCount}</div>
-                  <div className="text-[10px] text-slate-400">Kolaborasi Fisik</div>
+                <div className="bg-[#fffdf9] p-2 rounded-lg border border-[#d6c5ad]">
+                  <div className="text-base font-bold text-[#7d3b8f]">{agent.stats.collabCount}</div>
+                  <div className="text-[10px] text-[#786653]">Kolaborasi Fisik</div>
                 </div>
               </div>
             </div>

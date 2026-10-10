@@ -63,37 +63,37 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   const doneTasks = tasks.filter((t) => t.status === 'done');
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-slate-900/95 backdrop-blur-2xl border-l border-slate-800 shadow-2xl z-50 flex flex-col text-slate-100 animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-[#faf5eb] border-l-2 border-[#d6c5ad] shadow-2xl z-50 flex flex-col text-[#2c231c] animate-in slide-in-from-right duration-300">
       {/* Header */}
-      <div className="p-4 border-b border-slate-800 bg-slate-950/70 flex items-center justify-between">
+      <div className="p-4 border-b border-[#d6c5ad] bg-[#f4ebe1] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+          <div className="p-2 rounded-xl bg-[#fdeed9] text-[#c85a2b] border border-[#e8ba8c]">
             <Code className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">Office Kanban & Sprint Board</h2>
-            <p className="text-xs text-slate-400">Autonomous workflow orchestration and task outputs</p>
+            <h2 className="text-lg font-bold text-[#2c231c]">Office Kanban & Sprint Board</h2>
+            <p className="text-xs text-[#786653]">Autonomous workflow orchestration and task outputs</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleOpenExplorer()}
-            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors border border-slate-700"
-            title="Buka Folder Proyek (~/.realagent/workspaces) di Windows Explorer"
+            className="px-2.5 py-1.5 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#2c231c] text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors border border-[#d6c5ad]"
+            title="Buka Folder Proyek (~/.vigent/workspaces) di Windows Explorer"
           >
-            <Folder className="w-3.5 h-3.5" />
+            <Folder className="w-3.5 h-3.5 text-[#c85a2b]" />
             <span className="hidden sm:inline">Folder Proyek</span>
           </button>
           <button
             onClick={() => setIsAdding(!isAdding)}
-            className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-lg shadow-cyan-600/20"
+            className="px-3 py-1.5 bg-[#c85a2b] hover:bg-[#b54d22] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>New Task</span>
           </button>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-1.5 text-[#786653] hover:text-[#2c231c] hover:bg-[#ede2d1] rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -102,39 +102,39 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
 
       {/* New Task Form Modal / Accordion */}
       {isAdding && (
-        <form onSubmit={handleCreate} className="p-4 bg-slate-950/90 border-b border-slate-800 space-y-3 text-xs">
-          <div className="font-semibold text-slate-200 flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-cyan-400" />
+        <form onSubmit={handleCreate} className="p-4 bg-[#fffdf9] border-b border-[#d6c5ad] space-y-3 text-xs">
+          <div className="font-semibold text-[#2c231c] flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-[#c85a2b]" />
             Create Work Order for Office Agents
           </div>
           <div>
-            <label className="block text-slate-400 mb-1">Task Title</label>
+            <label className="block text-[#615042] mb-1 font-medium">Task Title</label>
             <input
               type="text"
               required
               placeholder="e.g. Implement OAuth2 Login Flow or Write Product Review"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-3 py-2 text-[#2c231c] placeholder-[#9c8976] focus:outline-none focus:border-[#c85a2b]"
             />
           </div>
           <div>
-            <label className="block text-slate-400 mb-1">Task Description</label>
+            <label className="block text-[#615042] mb-1 font-medium">Task Description</label>
             <textarea
               rows={2}
               placeholder="Provide context and requirements..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-3 py-2 text-[#2c231c] placeholder-[#9c8976] focus:outline-none focus:border-[#c85a2b]"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-400 mb-1">Type</label>
+              <label className="block text-[#615042] mb-1 font-medium">Type</label>
               <select
                 value={taskType}
                 onChange={(e) => setTaskType(e.target.value as TaskType)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-2.5 py-2 text-[#2c231c] focus:outline-none focus:border-[#c85a2b]"
               >
                 <option value="coding">💻 Coding & Architecture</option>
                 <option value="content">✍️ Content & Copywriting</option>
@@ -143,11 +143,11 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-slate-400 mb-1">Assignee</label>
+              <label className="block text-[#615042] mb-1 font-medium">Assignee</label>
               <select
                 value={assignedAgentId}
                 onChange={(e) => setAssignedAgentId(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-2.5 py-2 text-[#2c231c] focus:outline-none focus:border-[#c85a2b]"
               >
                 <option value="">(Unassigned - Backlog)</option>
                 {agents.map((ag) => (
@@ -162,13 +162,13 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
             <button
               type="button"
               onClick={() => setIsAdding(false)}
-              className="px-3 py-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+              className="px-3 py-1.5 text-[#615042] hover:text-[#2c231c] hover:bg-[#ede2d1] rounded-lg transition-colors font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg transition-colors"
+              className="px-4 py-1.5 bg-[#c85a2b] hover:bg-[#b54d22] text-white font-medium rounded-lg transition-colors"
             >
               Dispatch Ticket
             </button>
@@ -178,14 +178,14 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
 
       {/* Artifact Viewer Drawer Modal if clicked */}
       {selectedArtifact && (
-        <div className="p-4 bg-slate-950 border-b border-cyan-500/30 text-xs">
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
-            <span className="font-mono text-cyan-300 font-semibold">{selectedArtifact.title}</span>
-            <button onClick={() => setSelectedArtifact(null)} className="text-slate-400 hover:text-white">
+        <div className="p-4 bg-[#f4ebe1] border-b border-[#d6c5ad] text-xs">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#d6c5ad]">
+            <span className="font-mono text-[#c85a2b] font-bold">{selectedArtifact.title}</span>
+            <button onClick={() => setSelectedArtifact(null)} className="text-[#615042] hover:text-[#2c231c]">
               <X className="w-4 h-4" />
             </button>
           </div>
-          <pre className="p-3 bg-slate-900 rounded-lg text-slate-200 font-mono text-[11px] overflow-x-auto max-h-48 whitespace-pre-wrap">
+          <pre className="p-3 bg-[#fffdf9] border border-[#d6c5ad] rounded-lg text-[#2c231c] font-mono text-[11px] overflow-x-auto max-h-48 whitespace-pre-wrap">
             {selectedArtifact.content}
           </pre>
         </div>
@@ -194,10 +194,10 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
       {/* Kanban Board Columns */}
       <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Column 1: Backlog */}
-        <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 flex flex-col">
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs font-semibold text-slate-400">
+        <div className="bg-[#f4ebe1] rounded-xl p-3 border border-[#d6c5ad] flex flex-col">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#d6c5ad] text-xs font-semibold text-[#615042]">
             <span>Backlog</span>
-            <span className="px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px]">
+            <span className="px-1.5 py-0.5 rounded-full bg-[#ebdcc9] text-[#4d3c2e] text-[10px] font-bold">
               {backlogTasks.length}
             </span>
           </div>
@@ -205,12 +205,12 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
             {backlogTasks.map((task) => (
               <div
                 key={task.id}
-                className="p-3 bg-slate-900/90 rounded-lg border border-slate-800 text-xs space-y-2 shadow-sm"
+                className="p-3 bg-[#fffdf9] rounded-lg border border-[#d6c5ad] text-xs space-y-2 shadow-xs"
               >
-                <div className="font-medium text-slate-200">{task.title}</div>
-                <p className="text-[11px] text-slate-400 line-clamp-2">{task.description}</p>
+                <div className="font-semibold text-[#2c231c]">{task.title}</div>
+                <p className="text-[11px] text-[#615042] line-clamp-2">{task.description}</p>
                 <div className="flex items-center justify-between pt-1">
-                  <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300 uppercase">
+                  <span className="px-2 py-0.5 rounded bg-[#f0e3ce] text-[10px] text-[#784620] uppercase font-bold">
                     {task.type}
                   </span>
                   <select
@@ -218,7 +218,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                       if (e.target.value) onAssignTask(task.id, e.target.value);
                     }}
                     defaultValue=""
-                    className="text-[10px] bg-slate-950 border border-slate-700 text-cyan-300 rounded px-1.5 py-0.5 focus:outline-none"
+                    className="text-[10px] bg-[#fbf7ee] border border-[#d6c5ad] text-[#c85a2b] font-medium rounded px-1.5 py-0.5 focus:outline-none"
                   >
                     <option value="" disabled>
                       Assign to...
@@ -233,16 +233,16 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
               </div>
             ))}
             {backlogTasks.length === 0 && (
-              <div className="text-center py-6 text-slate-600 text-xs italic">No backlog tickets</div>
+              <div className="text-center py-6 text-[#9c8976] text-xs italic">No backlog tickets</div>
             )}
           </div>
         </div>
 
         {/* Column 2: In Progress */}
-        <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 flex flex-col">
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs font-semibold text-cyan-400">
+        <div className="bg-[#f4ebe1] rounded-xl p-3 border border-[#d6c5ad] flex flex-col">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#d6c5ad] text-xs font-semibold text-[#c85a2b]">
             <span>In Progress</span>
-            <span className="px-1.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-[10px]">
+            <span className="px-1.5 py-0.5 rounded-full bg-[#fdeed9] text-[#c85a2b] border border-[#f0c8a5] text-[10px] font-bold">
               {inProgressTasks.length}
             </span>
           </div>
@@ -252,22 +252,22 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
               return (
                 <div
                   key={task.id}
-                  className="p-3 bg-slate-900/90 rounded-lg border border-cyan-500/30 text-xs space-y-2 shadow-md relative overflow-hidden"
+                  className="p-3 bg-[#fffdf9] rounded-lg border-2 border-[#e8ba8c] text-xs space-y-2 shadow-sm relative overflow-hidden"
                 >
                   <div className="flex items-start justify-between gap-1">
-                    <span className="font-medium text-slate-100">{task.title}</span>
+                    <span className="font-semibold text-[#2c231c]">{task.title}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-cyan-300">
+                  <div className="flex items-center gap-1.5 text-[11px] text-[#c85a2b] font-medium">
                     <User className="w-3 h-3" />
                     <span>{assigned?.name || 'Assigned'}</span>
                   </div>
-                  <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-[#ebdcc9] h-1.5 rounded-full overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-300"
+                      className="bg-gradient-to-r from-[#c85a2b] to-[#d97736] h-full rounded-full transition-all duration-300"
                       style={{ width: `${task.progress}%` }}
                     />
                   </div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="flex items-center justify-between text-[10px] text-[#786653]">
                     <span>{Math.round(task.progress)}% executed</span>
                     {task.artifacts.length > 0 && (
                       <button
@@ -277,7 +277,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                             content: task.artifacts[0].content,
                           })
                         }
-                        className="text-cyan-400 hover:underline"
+                        className="text-[#c85a2b] font-bold hover:underline"
                       >
                         View code ({task.artifacts.length})
                       </button>
@@ -287,16 +287,16 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
               );
             })}
             {inProgressTasks.length === 0 && (
-              <div className="text-center py-6 text-slate-600 text-xs italic">All agents are resting</div>
+              <div className="text-center py-6 text-[#9c8976] text-xs italic">All agents are resting</div>
             )}
           </div>
         </div>
 
         {/* Column 3: Completed */}
-        <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 flex flex-col">
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs font-semibold text-emerald-400">
+        <div className="bg-[#f4ebe1] rounded-xl p-3 border border-[#d6c5ad] flex flex-col">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#d6c5ad] text-xs font-semibold text-[#288279]">
             <span>Completed</span>
-            <span className="px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px]">
+            <span className="px-1.5 py-0.5 rounded-full bg-[#e6f4f2] text-[#1f6860] border border-[#a2d8d0] text-[10px] font-bold">
               {doneTasks.length}
             </span>
           </div>
@@ -304,13 +304,13 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
             {doneTasks.map((task) => (
               <div
                 key={task.id}
-                className="p-3 bg-slate-900/90 rounded-lg border border-emerald-500/20 text-xs space-y-2"
+                className="p-3 bg-[#fffdf9] rounded-lg border border-[#a2d8d0] text-xs space-y-2 shadow-xs"
               >
-                <div className="flex items-center gap-1.5 text-emerald-300 font-medium">
+                <div className="flex items-center gap-1.5 text-[#288279] font-semibold">
                   <CheckCircle className="w-4 h-4 shrink-0" />
                   <span>{task.title}</span>
                 </div>
-                <p className="text-[11px] text-slate-400">{task.description}</p>
+                <p className="text-[11px] text-[#615042]">{task.description}</p>
                 {task.artifacts.length > 0 && (
                   <button
                     onClick={() =>
@@ -319,7 +319,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                         content: task.artifacts[0].content,
                       })
                     }
-                    className="text-[10px] text-emerald-400 hover:underline block"
+                    className="text-[10px] text-[#288279] font-bold hover:underline block"
                   >
                     📄 View Output Artifact
                   </button>
@@ -332,17 +332,17 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
 
       {/* Artifact Preview Modal */}
       {selectedArtifact && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+        <div className="fixed inset-0 bg-[#2c231c]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#fffdf9] border-2 border-[#d6c5ad] rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 text-[#2c231c]">
+            <div className="p-4 border-b border-[#d6c5ad] flex items-center justify-between bg-[#f4ebe1]">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-cyan-400" />
-                <h3 className="font-bold text-sm text-white">{selectedArtifact.title}</h3>
+                <FileText className="w-5 h-5 text-[#c85a2b]" />
+                <h3 className="font-bold text-sm text-[#2c231c]">{selectedArtifact.title}</h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleOpenExplorer()}
-                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-lg flex items-center gap-1 shadow-sm"
+                  className="px-2.5 py-1 bg-[#c85a2b] hover:bg-[#b54d22] text-white text-xs rounded-lg flex items-center gap-1 shadow-sm font-semibold"
                   title="Buka Folder Proyek di Windows Explorer"
                 >
                   <Folder className="w-3.5 h-3.5" />
@@ -350,13 +350,13 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                 </button>
                 <button
                   onClick={() => setSelectedArtifact(null)}
-                  className="p-1 text-slate-400 hover:text-white rounded"
+                  className="p-1 text-[#615042] hover:text-[#2c231c] rounded"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
-            <div className="p-4 overflow-auto bg-slate-950 font-mono text-xs text-slate-300 flex-1">
+            <div className="p-4 overflow-auto bg-[#fbf7ee] font-mono text-xs text-[#2c231c] flex-1">
               <pre className="whitespace-pre-wrap leading-relaxed">{selectedArtifact.content}</pre>
             </div>
           </div>

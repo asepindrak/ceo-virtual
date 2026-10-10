@@ -16,6 +16,7 @@ import { MarketplaceModal } from '@/components/ui/MarketplaceModal';
 import { WalletModal } from '@/components/ui/WalletModal';
 import { DecisionModal } from '@/components/ui/DecisionModal';
 import { WorkspaceModal } from '@/components/ui/WorkspaceModal';
+import { ExtensionHubModal } from '@/components/ui/ExtensionHubModal';
 import { IsometricOffice } from '@/components/office2d/IsometricOffice';
 
 // Dynamically import Three.js Canvas to prevent SSR issues
@@ -24,9 +25,9 @@ const OfficeCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-slate-300">
-        <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="font-mono text-sm tracking-widest text-cyan-400">LOADING 3D OFFICE ENVIRONMENT...</p>
+      <div className="w-full h-full flex flex-col items-center justify-center bg-[#fbf7ee] text-[#2c231c]">
+        <div className="w-12 h-12 border-4 border-[#c85a2b] border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="font-mono text-sm tracking-widest text-[#c85a2b] font-bold">MEMUAT LINGKUNGAN 3D KANTOR...</p>
       </div>
     ),
   }
@@ -65,6 +66,7 @@ export default function RealAgent3DPage() {
   const [isMarketplaceOpen, setIsMarketplaceOpen] = useState(false);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
+  const [isExtensionsOpen, setIsExtensionsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d'); // Default to 2.5D for instant 60fps & reliability
 
   // Human-in-the-Loop Decision State
@@ -418,7 +420,7 @@ export default function RealAgent3DPage() {
   const selectedAgentTask = tasks.find((t) => t.id === selectedAgent?.currentTaskId);
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans">
+    <main className="relative w-screen h-screen overflow-hidden bg-[#f4ebe1] text-[#2c231c] font-sans">
       {/* Top Navigation Bar */}
       <TopNav
         company={currentCompany}
@@ -442,6 +444,7 @@ export default function RealAgent3DPage() {
           }
         }}
         onOpenWorkspace={() => setIsWorkspaceModalOpen(true)}
+        onOpenExtensions={() => setIsExtensionsOpen(true)}
       />
 
       {/* Office Simulation Viewport: 2.5D Isometric (Ultra-Fast) vs 3D WebGL */}
@@ -556,6 +559,11 @@ export default function RealAgent3DPage() {
       {/* Dedicated Workspace & CLI Modal */}
       {isWorkspaceModalOpen && (
         <WorkspaceModal onClose={() => setIsWorkspaceModalOpen(false)} />
+      )}
+
+      {/* Skills & MCP Extension Hub Modal */}
+      {isExtensionsOpen && (
+        <ExtensionHubModal onClose={() => setIsExtensionsOpen(false)} />
       )}
     </main>
   );

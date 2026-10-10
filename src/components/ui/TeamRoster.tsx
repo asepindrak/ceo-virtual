@@ -20,21 +20,21 @@ export const TeamRoster: React.FC<TeamRosterProps> = ({
   onClose,
 }) => {
   return (
-    <div className="fixed inset-y-0 left-0 w-80 max-w-[calc(100vw-3rem)] bg-slate-900/95 backdrop-blur-2xl border-r border-slate-800 shadow-2xl z-50 flex flex-col text-slate-100 animate-in slide-in-from-left duration-200">
+    <div className="fixed inset-y-0 left-0 w-80 max-w-[calc(100vw-3rem)] bg-[#faf5eb] border-r-2 border-[#d6c5ad] shadow-2xl z-50 flex flex-col text-[#2c231c] animate-in slide-in-from-left duration-200">
       {/* Header */}
-      <div className="p-4 border-b border-slate-800 bg-slate-950/70 flex items-center justify-between">
+      <div className="p-4 border-b border-[#d6c5ad] bg-[#f4ebe1] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
+          <div className="p-2 rounded-xl bg-[#fdeed9] text-[#c85a2b] border border-[#f0c8a5]">
             <User className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-white">Office Personnel</h2>
-            <p className="text-xs text-slate-400">{agents.length} Autonomous Agents</p>
+            <h2 className="text-base font-bold text-[#2c231c]">Office Personnel</h2>
+            <p className="text-xs text-[#786653]">{agents.length} Autonomous Agents</p>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+          className="p-1.5 text-[#786653] hover:text-[#2c231c] hover:bg-[#ede2d1] rounded-lg transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -52,38 +52,38 @@ export const TeamRoster: React.FC<TeamRosterProps> = ({
               onClick={() => onSelectAgent(agent.id)}
               className={`p-3 rounded-xl border cursor-pointer transition-all duration-150 flex items-start gap-3 ${
                 isSelected
-                  ? 'bg-cyan-950/40 border-cyan-500/70 ring-1 ring-cyan-500/40'
-                  : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-950'
+                  ? 'bg-[#fdeed9] border-2 border-[#c85a2b] shadow-xs'
+                  : 'bg-[#fffdf9] border-[#d6c5ad] hover:border-[#c85a2b]'
               }`}
             >
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white shrink-0 shadow-inner"
+                className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white shrink-0 shadow-sm"
                 style={{ backgroundColor: agent.avatarColor }}
               >
                 {agent.name.split(' ').map((n) => n[0]).join('')}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
-                  <span className="font-semibold text-xs text-white truncate">{agent.name}</span>
+                  <span className="font-bold text-xs text-[#2c231c] truncate">{agent.name}</span>
                   <span
-                    className={`px-1.5 py-0.2 rounded-full font-mono text-[9px] uppercase tracking-wider ${
+                    className={`px-1.5 py-0.2 rounded-full font-mono text-[9px] uppercase tracking-wider font-bold ${
                       agent.state === 'working'
-                        ? 'bg-blue-500/20 text-blue-300'
+                        ? 'bg-[#e6f4f2] text-[#1f6860] border border-[#a2d8d0]'
                         : agent.state === 'walking'
-                        ? 'bg-amber-500/20 text-amber-300'
+                        ? 'bg-[#fef8e7] text-[#ab7a1a] border border-[#fae4a8]'
                         : agent.state === 'talking'
-                        ? 'bg-purple-500/20 text-purple-300'
+                        ? 'bg-[#fdf2fc] text-[#7d3b8f] border border-[#eed0ed]'
                         : agent.state === 'coffee_break'
-                        ? 'bg-rose-500/20 text-rose-300'
-                        : 'bg-slate-800 text-slate-400'
+                        ? 'bg-[#fdeed9] text-[#c85a2b] border border-[#f0c8a5]'
+                        : 'bg-[#ede2d1] text-[#615042]'
                     }`}
                   >
                     {agent.state.replace('_', ' ')}
                   </span>
                 </div>
-                <div className="text-[11px] text-cyan-400 font-medium truncate">{agent.roleTitle}</div>
+                <div className="text-[11px] text-[#c85a2b] font-semibold truncate">{agent.roleTitle}</div>
                 {dept && (
-                  <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
+                  <div className="text-[10px] text-[#786653] flex items-center gap-1 mt-1 font-medium">
                     <span
                       className="w-1.5 h-1.5 rounded-full inline-block"
                       style={{ backgroundColor: dept.color }}
@@ -91,12 +91,12 @@ export const TeamRoster: React.FC<TeamRosterProps> = ({
                     <span>{dept.name}</span>
                   </div>
                 )}
-                <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-400 font-mono">
+                <div className="flex items-center gap-2 mt-1.5 text-[10px] text-[#786653] font-mono">
                   <span className="flex items-center gap-0.5">
-                    <Code className="w-3 h-3 text-emerald-400" /> {agent.stats.linesOfCode} loc
+                    <Code className="w-3 h-3 text-[#288279]" /> {agent.stats.linesOfCode} loc
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <MessageSquare className="w-3 h-3 text-purple-400" /> {agent.stats.collabCount} chats
+                    <MessageSquare className="w-3 h-3 text-[#7d3b8f]" /> {agent.stats.collabCount} chats
                   </span>
                 </div>
               </div>

@@ -51,25 +51,25 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
 
   // Build the complete 3D Office Environment
   const buildOfficeScene = useCallback((scene: THREE.Scene) => {
-    // 1. Flooring
+    // 1. Flooring - Retro warm parquet
     const floorGeo = new THREE.PlaneGeometry(28, 22);
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x1e222d, // Modern dark graphite floor
-      roughness: 0.6,
-      metalness: 0.1,
+      color: 0xede0cf, // Warm retro parquet
+      roughness: 0.7,
+      metalness: 0.05,
     });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Subtle grid pattern for modern aesthetic
-    const gridHelper = new THREE.GridHelper(26, 26, 0x334155, 0x1e293b);
+    // Subtle grid pattern for vintage parquet aesthetic
+    const gridHelper = new THREE.GridHelper(26, 26, 0xd6c5ad, 0xe2d4bf);
     gridHelper.position.y = 0.01;
     scene.add(gridHelper);
 
-    // 2. Perimeter Walls
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+    // 2. Perimeter Walls - Warm vintage cream
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xf3e8d8, roughness: 0.9 });
     const wallHeight = 2.5;
 
     // Back wall
@@ -173,10 +173,10 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
     const createWorkstation = (x: number, z: number, rotation: number = 0) => {
       const deskGroup = new THREE.Group();
 
-      // Wooden Desktop
+      // Wooden Desktop - Vintage Teak Wood
       const deskTop = new THREE.Mesh(
         new THREE.BoxGeometry(1.6, 0.08, 0.9),
-        new THREE.MeshStandardMaterial({ color: 0x3b3a36, roughness: 0.5 })
+        new THREE.MeshStandardMaterial({ color: 0xb59e82, roughness: 0.5 })
       );
       deskTop.position.set(0, 0.72, 0);
       deskTop.castShadow = true;
@@ -184,7 +184,7 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
       deskGroup.add(deskTop);
 
       // Desk Metal Legs
-      const legMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.8 });
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x4a3b32, metalness: 0.6 });
       const legGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.72, 8);
       const offsets = [
         [-0.72, -0.38],
@@ -198,26 +198,26 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
         deskGroup.add(leg);
       });
 
-      // Dual Monitors
-      const monitorMat = new THREE.MeshStandardMaterial({ color: 0x09090b });
-      const screenMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 }); // Glowing blue screen
+      // Dual CRT Monitors with Classic Beige Casing
+      const monitorMat = new THREE.MeshStandardMaterial({ color: 0xdfd3c3, roughness: 0.7 });
+      const screenMat = new THREE.MeshBasicMaterial({ color: 0x22c55e }); // Phosphor green retro screen
       
-      const mon1 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.35, 0.04), monitorMat);
+      const mon1 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.35, 0.08), monitorMat);
       mon1.position.set(-0.32, 0.98, -0.25);
       mon1.rotation.y = 0.15;
       deskGroup.add(mon1);
 
-      const scr1 = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.31), screenMat);
-      scr1.position.set(-0.32, 0.98, -0.22);
+      const scr1 = new THREE.Mesh(new THREE.PlaneGeometry(0.54, 0.29), screenMat);
+      scr1.position.set(-0.32, 0.98, -0.20);
       scr1.rotation.y = 0.15;
       deskGroup.add(scr1);
 
-      const mon2 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.35, 0.04), monitorMat);
+      const mon2 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.35, 0.08), monitorMat);
       mon2.position.set(0.32, 0.98, -0.25);
       mon2.rotation.y = -0.15;
       deskGroup.add(mon2);
 
-      const scr2 = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.31), screenMat);
+      const scr2 = new THREE.Mesh(new THREE.PlaneGeometry(0.54, 0.29), screenMat);
       scr2.position.set(0.32, 0.98, -0.22);
       scr2.rotation.y = -0.15;
       deskGroup.add(scr2);
@@ -519,10 +519,10 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
   useEffect(() => {
     if (!mountRef.current) return;
 
-    // 1. Scene
+    // 1. Scene - Warm retro sepia/cream background
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0f1d);
-    scene.fog = new THREE.FogExp2(0x0a0f1d, 0.022);
+    scene.background = new THREE.Color(0xf4ebe1);
+    scene.fog = new THREE.FogExp2(0xf4ebe1, 0.02);
     sceneRef.current = scene;
 
     // 2. Camera: Isometric Trimetric Angle
@@ -552,11 +552,11 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
     controls.target.set(0, 0.5, 0);
     controlsRef.current = controls;
 
-    // 5. Lighting Setup
-    const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.7);
+    // 5. Lighting Setup - Warm vintage daylight
+    const ambientLight = new THREE.AmbientLight(0xfff8ee, 0.95);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.3);
+    const dirLight = new THREE.DirectionalLight(0xfffaed, 1.2);
     dirLight.position.set(12, 18, 10);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
@@ -722,20 +722,20 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
             style={{ left: `${x}px`, top: `${y - 12}px` }}
             title={`Klik untuk lihat status ${agent.name}`}
           >
-            {/* Active Speech Bubble (calm and steady, no bouncing) */}
+            {/* Active Speech Bubble (vintage stationery paper style) */}
             {agent.activeDialog && (
-              <div className="mb-1 bg-slate-900/95 backdrop-blur-md border border-cyan-500/60 text-cyan-200 px-3 py-1.5 rounded-xl shadow-2xl text-xs max-w-xs font-medium flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+              <div className="mb-1 bg-[#fffdfa]/95 backdrop-blur-md border-2 border-[#d6c5ad] text-[#2c231c] px-3 py-1.5 rounded-xl shadow-lg text-xs max-w-xs font-mono font-medium flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#c85a2b] animate-pulse shrink-0" />
                 <span className="truncate">{agent.activeDialog.message}</span>
               </div>
             )}
 
             {/* Persistent Clickable Name Tag */}
             <div
-              className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-[11px] font-semibold shadow-lg backdrop-blur-md transition-all ${
+              className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border-2 text-[11px] font-mono font-bold shadow-md backdrop-blur-md transition-all ${
                 isSelected
-                  ? 'bg-cyan-500 text-slate-950 border-cyan-300 ring-2 ring-cyan-400/50'
-                  : 'bg-slate-950/85 text-slate-200 border-slate-700/80 group-hover:border-cyan-400 group-hover:text-white'
+                  ? 'bg-[#c85a2b] text-white border-[#9c3e16] ring-2 ring-[#c85a2b]/30'
+                  : 'bg-[#fffdf9]/95 text-[#2c231c] border-[#d6c5ad] group-hover:border-[#c85a2b] group-hover:text-[#c85a2b]'
               }`}
             >
               <span
@@ -760,7 +760,7 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
       })}
 
       {/* Camera & View Controls Float */}
-      <div className="absolute bottom-5 right-5 flex items-center gap-2 bg-slate-900/80 backdrop-blur-md border border-slate-800 p-1.5 rounded-xl shadow-2xl z-10">
+      <div className="absolute bottom-5 right-5 flex items-center gap-2 bg-[#faf5eb]/95 backdrop-blur-md border-2 border-[#d6c5ad] p-1.5 rounded-xl shadow-lg z-10 font-mono">
         <button
           onClick={() => {
             if (controlsRef.current && cameraRef.current) {
@@ -769,7 +769,7 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
               setCameraMode('free');
             }
           }}
-          className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-1.5"
+          className="px-3 py-1.5 text-xs font-bold text-[#5c4a3d] hover:text-[#2c231c] hover:bg-[#ebdcc9] rounded-lg transition-colors flex items-center gap-1.5"
           title="Reset Isometric Angle"
         >
           📐 Isometric Reset
@@ -777,10 +777,10 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
         {selectedAgentId && (
           <button
             onClick={() => setCameraMode(cameraMode === 'follow' ? 'free' : 'follow')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 ${
               cameraMode === 'follow'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                ? 'bg-[#c85a2b] text-white border border-[#9c3e16]'
+                : 'text-[#5c4a3d] hover:text-[#2c231c] hover:bg-[#ebdcc9]'
             }`}
           >
             🎥 {cameraMode === 'follow' ? 'Following Agent' : 'Follow Agent'}
@@ -789,17 +789,17 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
       </div>
 
       {/* 3D Office Floor Guide Overlay */}
-      <div className="absolute top-5 left-5 pointer-events-none flex flex-col gap-1 text-[11px] text-slate-400 font-mono">
-        <div className="flex items-center gap-2 bg-slate-950/60 backdrop-blur px-2.5 py-1 rounded-md border border-slate-800/80">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
+      <div className="absolute top-5 left-5 pointer-events-none flex flex-col gap-1 text-[11px] text-[#5c4a3d] font-mono">
+        <div className="flex items-center gap-2 bg-[#faf5eb]/90 backdrop-blur px-2.5 py-1 rounded-md border border-[#d6c5ad] shadow-sm">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#c85a2b] inline-block" />
           <span>Workstations (8 Desks)</span>
         </div>
-        <div className="flex items-center gap-2 bg-slate-950/60 backdrop-blur px-2.5 py-1 rounded-md border border-slate-800/80">
-          <span className="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block" />
+        <div className="flex items-center gap-2 bg-[#faf5eb]/90 backdrop-blur px-2.5 py-1 rounded-md border border-[#d6c5ad] shadow-sm">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#288279] inline-block" />
           <span>Conference Room</span>
         </div>
-        <div className="flex items-center gap-2 bg-slate-950/60 backdrop-blur px-2.5 py-1 rounded-md border border-slate-800/80">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+        <div className="flex items-center gap-2 bg-[#faf5eb]/90 backdrop-blur px-2.5 py-1 rounded-md border border-[#d6c5ad] shadow-sm">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#c68f23] inline-block" />
           <span>Pantry & Espresso Bar</span>
         </div>
       </div>
