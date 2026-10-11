@@ -669,6 +669,73 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
       }),
     }).catch(console.error);
 
+    // 🚀 Detect GitHub Link and Auto-Clone into Workspaces
+    const gitMatch = text.match(/(?:https?:\/\/(?:www\.)?github\.com\/|git@github\.com:)([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)/i);
+    let cloneSuccessNote = '';
+
+    if (gitMatch) {
+      const owner = gitMatch[1];
+      let rawRepo = gitMatch[2].replace(/[),;!?>]+$/, '');
+      let repo = rawRepo.replace(/\.git$/i, '');
+      if (repo.endsWith('/')) repo = repo.slice(0, -1);
+      const targetFolder = repo.toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/^-+|-+$/g, '') || 'github-repo';
+      const cloneUrl = `https://github.com/${owner}/${repo}.git`;
+      const cloneStatusId = `msg-clone-status-${Date.now()}`;
+
+      const cloneInitialMsg: OfficeGroupChatMessage = {
+        id: cloneStatusId,
+        senderType: 'system',
+        senderName: 'GitHub Clone Engine',
+        message: `📦 Mendeteksi repository GitHub: ${cloneUrl}\n⏳ Sedang meng-clone ke direktori workspace (~/.vigent/workspaces/${targetFolder})...`,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, cloneInitialMsg]);
+
+      try {
+        const cloneRes = await fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'clone_repo', repoUrl: cloneUrl, folderName: targetFolder }),
+        });
+        const cloneData = await cloneRes.json();
+        if (cloneData.success) {
+          cloneSuccessNote = `\n[Info Sistem: Repository GitHub ${cloneUrl} berhasil di-clone ke folder workspace "~/.vigent/workspaces/${cloneData.projectName}" (${cloneData.filesCount} file)]`;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === cloneStatusId
+                ? {
+                    ...m,
+                    message: `✅ Berhasil meng-clone **${cloneData.projectName}** (${cloneData.filesCount} file) ke folder workspaces!\n📁 Lokasi: ~/.vigent/workspaces/${cloneData.projectName}\nFolder proyek kini aktif dan siap dieksplorasi.`,
+                  }
+                : m
+            )
+          );
+        } else {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === cloneStatusId
+                ? {
+                    ...m,
+                    message: `❌ Gagal meng-clone repository: ${cloneData.error || cloneData.message}`,
+                  }
+                : m
+            )
+          );
+        }
+      } catch (err: any) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === cloneStatusId
+              ? {
+                  ...m,
+                  message: `❌ Terjadi kesalahan saat clone: ${err.message}`,
+                }
+              : m
+          )
+        );
+      }
+    }
+
     const responders: Agent[] =
       mentionedAgentIds.length > 0
         ? agents.filter((a) => mentionedAgentIds.includes(a.id))
@@ -679,12 +746,13 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
       setTypingAgent(responder.name);
       try {
         const currentTask = tasks.find((t) => t.id === responder.currentTaskId);
+        const promptForAgent = cloneSuccessNote ? `${text}${cloneSuccessNote}` : text;
         const res = await fetch('/api/agent/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             agent: responder,
-            userMessage: text,
+            userMessage: promptForAgent,
             currentTask: currentTask || null,
             allTasks: tasks || [],
             companyName: company.name,
@@ -1068,6 +1136,27 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-[#fbf7ee]">
               {messages.map((msg) => {
                 const isUser = msg.senderType === 'user';
+                const isSystem = msg.senderType === 'system';
+
+                if (isSystem) {
+                  return (
+                    <div key={msg.id} className="flex justify-center my-2 animate-in fade-in">
+                      <div className="bg-[#f0fdf4] border border-[#bbf7d0] text-[#166534] rounded-2xl px-4 py-2.5 text-xs shadow-xs max-w-[90%] sm:max-w-[80%] flex items-start gap-2.5">
+                        <span className="text-base shrink-0 leading-none">📦</span>
+                        <div className="flex-1 whitespace-pre-wrap font-sans leading-relaxed">
+                          {msg.message}
+                        </div>
+                        <span className="text-[10px] text-[#15803d]/70 font-mono shrink-0">
+                          {new Date(msg.timestamp).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={msg.id}

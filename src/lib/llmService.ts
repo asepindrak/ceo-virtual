@@ -5,7 +5,7 @@
  */
 
 import { LLMConfig } from '@/types/office';
-import { writeProjectFile, readProjectFile, listWorkspaceProjects, createProjectDirectory } from './workspaceManager';
+import { writeProjectFile, readProjectFile, listWorkspaceProjects, createProjectDirectory, cloneGitRepository } from './workspaceManager';
 import { exec } from 'child_process';
 import path from 'path';
 
@@ -50,6 +50,27 @@ export interface ToolDefinition {
 
 // Default standard tools available to autonomous agents
 export const OFFICE_AGENT_TOOLS: ToolDefinition[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'clone_git_repository',
+      description: 'Clone a public or private GitHub repository directly into the Vigent workspace directory (~/.vigent/workspaces/<projectName>).',
+      parameters: {
+        type: 'object',
+        properties: {
+          repoUrl: {
+            type: 'string',
+            description: 'The GitHub repository URL (e.g. "https://github.com/facebook/react.git" or "https://github.com/vercel/next.js")',
+          },
+          projectName: {
+            type: 'string',
+            description: 'Optional custom folder name in workspaces. If omitted, uses the repository name.',
+          },
+        },
+        required: ['repoUrl'],
+      },
+    },
+  },
   {
     type: 'function',
     function: {
@@ -261,6 +282,15 @@ export async function executeToolCall(
   args: Record<string, any>
 ): Promise<{ success: boolean; result: any; error?: string }> {
   try {
+    if (name === 'clone_git_repository') {
+      const { repoUrl, projectName } = args;
+      const res = await cloneGitRepository(repoUrl, projectName);
+      if (res.success) {
+        return { success: true, result: res.message };
+      }
+      return { success: false, result: null, error: res.error || res.message };
+    }
+
     if (name === 'write_project_file') {
       const { projectName, filePath, content } = args;
       const targetPath = writeProjectFile(projectName, filePath, content);

@@ -2,15 +2,22 @@ import { NextResponse } from 'next/server';
 import {
   REALAGENT_HOME,
   REALAGENT_WORKSPACES,
+  VIGENT_PROJECTS,
+  VIGENT_ARTIFACTS,
   listWorkspaceProjects,
+  listWorkspaceArtifacts,
   createProjectDirectory,
   writeProjectFile,
   readProjectFile,
+  writeArtifactFile,
+  readArtifactFile,
   openFolderInOS,
   initRealAgentHomeDirs,
   isAutorunConfigured,
   setAutorun,
   DEFAULT_PORT,
+  cloneGitRepository,
+  extractGitHubUrl,
 } from '@/lib/workspaceManager';
 import path from 'path';
 import fs from 'fs';
@@ -19,16 +26,21 @@ export async function GET() {
   try {
     const config = initRealAgentHomeDirs();
     const projects = listWorkspaceProjects();
+    const artifacts = listWorkspaceArtifacts();
     const autorunStatus = isAutorunConfigured();
 
     return NextResponse.json({
       success: true,
       homeDir: REALAGENT_HOME,
-      workspacesDir: REALAGENT_WORKSPACES,
+      workspacesDir: VIGENT_PROJECTS,
+      projectsDir: VIGENT_PROJECTS,
+      artifactsDir: VIGENT_ARTIFACTS,
       port: config.port || DEFAULT_PORT,
       autorunAtStartup: autorunStatus,
       projects,
       totalProjects: projects.length,
+      artifacts,
+      totalArtifacts: artifacts.length,
     });
   } catch (error) {
     return NextResponse.json(
@@ -43,10 +55,25 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { action } = body;
 
+    if (action === 'clone_repo') {
+      const { repoUrl, folderName } = body;
+      if (!repoUrl) {
+        return NextResponse.json({ success: false, error: 'Repository URL is required' }, { status: 400 });
+      }
+      const result = await cloneGitRepository(repoUrl, folderName);
+      return NextResponse.json(result, { status: result.success ? 200 : 400 });
+    }
+
     if (action === 'open_folder') {
-      const targetPath = body.targetPath || REALAGENT_WORKSPACES;
+      const targetPath = body.targetPath || VIGENT_PROJECTS;
       openFolderInOS(targetPath);
       return NextResponse.json({ success: true, message: 'Opened folder in OS explorer', targetPath });
+    }
+
+    if (action === 'open_artifacts_folder') {
+      const targetPath = body.targetPath || VIGENT_ARTIFACTS;
+      openFolderInOS(targetPath);
+      return NextResponse.json({ success: true, message: 'Opened artifacts folder in OS explorer', targetPath });
     }
 
     if (action === 'create_project') {
@@ -79,6 +106,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, content });
     }
 
+    if (action === 'read_artifact') {
+      const { category, artifactFolder, filePath } = body;
+      if (!artifactFolder || !filePath) {
+        return NextResponse.json({ success: false, error: 'Missing parameters' }, { status: 400 });
+      }
+      const content = readArtifactFile(category || 'company-shadowmove', artifactFolder, filePath);
+      if (content === null) {
+        return NextResponse.json({ success: false, error: 'Artifact file not found' }, { status: 404 });
+      }
+      return NextResponse.json({ success: true, content });
+    }
+
     if (action === 'toggle_autorun') {
       const { enable } = body;
       const appRoot = process.cwd();
@@ -87,17 +126,18 @@ export async function POST(req: Request) {
     }
 
     if (action === 'generate_task_code') {
-      const { projectName, taskTitle, taskType, agentName } = body;
+      const { projectName, taskTitle, taskType, agentName, companyId } = body;
       const safeProject = (projectName || taskTitle || 'task-generated-project')
         .toLowerCase()
         .replace(/[^a-z0-9_-]/g, '-')
         .slice(0, 32);
 
+      const targetCompany = companyId || 'company-shadowmove';
       const baseDir = createProjectDirectory(safeProject);
 
-      // Generate realistic project files
-      const readmeContent = `# ${taskTitle}\n\n> 🤖 Dikerjakan secara otomatis oleh Agent: **${agentName || 'Vigent Agent'}**\n> 📁 Lokasi Proyek: \`${baseDir}\`\n> ⏰ Waktu Eksekusi: ${new Date().toLocaleString()}\n\n## Deskripsi Task\nTask: ${taskTitle}\nTipe: ${taskType}\nStatus: Completed & Artifacts Generated\n\n## Cara Menjalankan\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\`\n`;
-      writeProjectFile(safeProject, 'README.md', readmeContent);
+      // 1. Generate task summary artifact in ~/.vigent/artifacts/
+      const readmeContent = `# ${taskTitle}\n\n> 🤖 Dikerjakan secara otomatis oleh Agent: **${agentName || 'Vigent Agent'}**\n> 📁 Proyek: \`${projectName || safeProject}\`\n> ⏰ Waktu Eksekusi: ${new Date().toLocaleString()}\n\n## Deskripsi Deliverables\nTask: ${taskTitle}\nTipe: ${taskType}\nStatus: Completed & Artifacts Generated\n`;
+      writeArtifactFile(targetCompany, safeProject, 'TASK_SUMMARY.md', readmeContent);
 
       // If task is about ShadowMove Landing Page or UI/framework, sync and ensure public preview is updated
       const isLandingRelated =
@@ -108,8 +148,7 @@ export async function POST(req: Request) {
         const previewDir = path.join(process.cwd(), 'public', 'preview', 'shadowmove');
         const previewHtml = path.join(previewDir, 'index.html');
         if (fs.existsSync(previewHtml)) {
-          // Sync preview to user workspace as well
-          const wsDir = path.join(REALAGENT_WORKSPACES, 'shadowmove-landing-page');
+          const wsDir = path.join(VIGENT_PROJECTS, 'shadowmove-landing-page');
           if (!fs.existsSync(wsDir)) fs.mkdirSync(wsDir, { recursive: true });
           fs.copyFileSync(previewHtml, path.join(wsDir, 'index.html'));
           const updateNotice = `\n<!-- Updated by Agent ${agentName || 'Rei Kasumi'} for Task: ${taskTitle} at ${new Date().toISOString()} -->\n`;
@@ -141,14 +180,22 @@ export async function POST(req: Request) {
         writeProjectFile(safeProject, 'src/config.js', configJs);
       } else if (taskType === 'content') {
         const articleMd = `# Dokumentasi & Panduan: ${taskTitle}\n\nPenulis: ${agentName || 'Lead Writer'}\nTanggal: ${new Date().toLocaleDateString()}\n\n## 1. Pendahuluan\nDokumen ini disusun untuk memberikan gambaran lengkap mengenai implementasi arsitektur sistem dan panduan operasional pengguna.\n\n## 2. Poin Kunci\n- Skalabilitas sistem berbasis microservices\n- Human-in-the-Loop decision framework\n- Desentralisasi AI Agent di workspace terisolasi Vigent\n\n## 3. Kesimpulan\nSemua modul telah divalidasi dan siap untuk deployment.\n`;
-        writeProjectFile(safeProject, 'docs/ARTICLE.md', articleMd);
+        // Save content artifact to dedicated artifacts directory!
+        writeArtifactFile(targetCompany, safeProject, 'ARTICLE.md', articleMd);
+        // Also if target project exists in projects, mirror into in-project .vigent/artifacts/
+        if (projectName) {
+          const targetProjDir = path.join(VIGENT_PROJECTS, projectName.toLowerCase().replace(/[^a-z0-9_-]/g, '-'));
+          if (fs.existsSync(targetProjDir)) {
+            writeProjectFile(projectName, '.vigent/artifacts/ARTICLE.md', articleMd);
+          }
+        }
       }
 
       return NextResponse.json({
         success: true,
         projectName: safeProject,
         projectDir: baseDir,
-        message: 'Task files successfully written to disk',
+        message: 'Task files & artifacts successfully generated',
       });
     }
 

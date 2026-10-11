@@ -12,6 +12,7 @@ import os from 'os';
 import { Company, Agent, OfficeGroupChatMessage, TelegramConfig, TaskTicket } from '@/types/office';
 import { PRESET_COMPANIES, getEffectiveAgentLLMConfig } from './companyPresets';
 import { callLLMProvider } from './llmService';
+import { cloneGitRepository, extractGitHubUrl } from './workspaceManager';
 
 export interface BotRunnerInstance {
   companyId: string;
@@ -377,14 +378,68 @@ Setiap karyawan yang Anda tag akan langsung membalas dengan label identitas mere
       );
     });
 
+    // Command: /clone
+    bot.command('clone', async (ctx) => {
+      const parts = ctx.message.text.trim().split(/\s+/);
+      const repoUrl = parts[1];
+      if (!repoUrl) {
+        await ctx.reply(
+          '⚠️ Harap sertakan link repository GitHub.\nContoh: `/clone https://github.com/facebook/react`',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+
+      const extracted = extractGitHubUrl(repoUrl);
+      if (!extracted) {
+        await ctx.reply(
+          '⚠️ URL GitHub tidak valid. Contoh format: `https://github.com/owner/repository`',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+
+      await ctx.reply(
+        `📦 *Mempersiapkan Clone GitHub...*\nURL: \`${extracted.url}\`\nTarget Workspace: \`~/.vigent/workspaces/${extracted.projectName}\``,
+        { parse_mode: 'Markdown' }
+      );
+
+      try {
+        await ctx.sendChatAction('typing');
+      } catch {}
+
+      const res = await cloneGitRepository(extracted.url, extracted.projectName);
+      if (res.success) {
+        await ctx.reply(
+          `✅ *Clone Repository Berhasil!*\n\n📁 *Proyek:* \`${res.projectName}\`\n📂 *Lokasi:* \`${res.folderPath}\`\n📄 *Total:* ${res.filesCount} file\n\nProyek langsung tersimpan di workspaces Vigent dan siap dikerjakan oleh tim agen! 🚀`,
+          { parse_mode: 'Markdown' }
+        );
+
+        appendCompanyChatMessage(companyId, {
+          id: `tg-clone-${Date.now()}`,
+          senderType: 'system',
+          senderName: 'GitHub Sync [Telegram]',
+          message: `📦 Berhasil clone repository **${res.projectName}** dari ${extracted.url} ke folder workspaces (~/.vigent/workspaces/${res.projectName}) dengan ${res.filesCount} file.`,
+          timestamp: Date.now(),
+          source: 'telegram',
+        });
+      } else {
+        await ctx.reply(`❌ *Gagal Clone Repository:*\n${res.error || res.message}`, { parse_mode: 'Markdown' });
+      }
+    });
+
     // Command: /help
     bot.command('help', async (ctx) => {
       await ctx.reply(
         `🤖 *Perintah Bot Telegram Vigent:*\n
 /start - Menampilkan panduan dan Chat ID Anda
+/clone <url> - Clone repository GitHub langsung ke workspaces
 /team - Daftar karyawan yang bisa di-tag
 /tasks - Cek progres task di papan Kanban
 /chatid - Mengetahui Chat ID ruang obrolan ini
+
+⚡ *Clone Repo Otomatis:*
+Cukup kirimkan link GitHub (misal: \`https://github.com/user/repo\`) di chat ini, bot akan otomatis meng-clone proyek langsung ke \`~/.vigent/workspaces\`!
 
 📌 *Cara Tag Karyawan:*
 Ketik nama panggilan setelah tanda @, misalnya:
@@ -422,6 +477,45 @@ Ketik nama panggilan setelah tanda @, misalnya:
       };
       appendCompanyChatMessage(companyId, userChatMessage);
 
+      // 🚀 DETECT AND AUTO-CLONE GITHUB REPOSITORY IF LINK PRESENT
+      const detectedGit = extractGitHubUrl(text);
+      let gitCloneNote = '';
+      if (detectedGit) {
+        try {
+          await ctx.reply(
+            `📦 *Mendeteksi Link GitHub:* \`${detectedGit.url}\`\n⏳ Sedang melakukan clone ke folder workspace: \`~/.vigent/workspaces/${detectedGit.projectName}\`...`,
+            { parse_mode: 'Markdown' }
+          );
+          await ctx.sendChatAction('typing');
+          const cloneRes = await cloneGitRepository(detectedGit.url, detectedGit.projectName);
+
+          if (cloneRes.success) {
+            await ctx.reply(
+              `✅ *Clone GitHub Berhasil!*\n\n📁 *Proyek:* \`${cloneRes.projectName}\`\n📂 *Lokasi:* \`${cloneRes.folderPath}\`\n📄 *Total:* ${cloneRes.filesCount} file\n\nProyek langsung tersimpan di workspaces Vigent dan siap dikerjakan tim! 🚀`,
+              { parse_mode: 'Markdown' }
+            );
+
+            appendCompanyChatMessage(companyId, {
+              id: `tg-clone-${Date.now()}`,
+              senderType: 'system',
+              senderName: 'GitHub Sync [Telegram]',
+              message: `📦 Berhasil clone repository **${cloneRes.projectName}** dari ${detectedGit.url} ke folder workspaces (~/.vigent/workspaces/${cloneRes.projectName}) dengan ${cloneRes.filesCount} file.`,
+              timestamp: Date.now(),
+              source: 'telegram',
+            });
+
+            gitCloneNote = `\n[Catatan Sistem: Repository GitHub ${detectedGit.url} telah berhasil di-clone ke folder workspace "~/.vigent/workspaces/${cloneRes.projectName}" dengan ${cloneRes.filesCount} file]`;
+          } else {
+            await ctx.reply(
+              `❌ *Gagal Clone GitHub:*\n${cloneRes.error || cloneRes.message}`,
+              { parse_mode: 'Markdown' }
+            );
+          }
+        } catch (cloneErr: any) {
+          console.error('[Telegram Git Clone Error]:', cloneErr);
+        }
+      }
+
       // Parse tags
       const lowerText = text.toLowerCase();
       const isAllTagged = lowerText.includes('@all') || lowerText.includes('@everyone') || lowerText.includes('@semua');
@@ -452,8 +546,9 @@ Ketik nama panggilan setelah tanda @, misalnya:
       tasks = getCompanyTasks(companyId);
 
       // Generate responses for each tagged agent
+      const effectiveUserPrompt = gitCloneNote ? `${text}${gitCloneNote}` : text;
       for (const responder of responders) {
-        const replyText = await generateAgentAnswer(responder, text, company, tasks);
+        const replyText = await generateAgentAnswer(responder, effectiveUserPrompt, company, tasks);
 
         // Format labeled response
         let finalTelegramReply = formatAgentTelegramReply(responder, replyText);

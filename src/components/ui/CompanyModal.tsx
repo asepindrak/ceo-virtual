@@ -356,9 +356,9 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-[#2c231c]/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-200">
-      <div className="bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-3xl w-full max-w-2xl max-h-[92vh] shadow-2xl overflow-hidden text-[#2c231c] flex flex-col">
+      <div className="bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-3xl w-full max-w-4xl max-h-[90vh] shadow-2xl overflow-hidden text-[#2c231c] flex flex-col">
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-[#d6c5ad] bg-[#f4ebe1] flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-[#d6c5ad] bg-[#f4ebe1] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 rounded-2xl bg-[#fdeed9] text-[#c85a2b] border border-[#f0c8a5] shadow-xs">
               <Building2 className="w-5 h-5" />
@@ -373,7 +373,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-[#786653]">
-                Kelola preset kantor, buat perusahaan baru, atau atur Provider LLM Global
+                Kelola preset kantor, buat perusahaan baru, atur Provider LLM, atau pantau memori & progres tim
               </p>
             </div>
           </div>
@@ -386,13 +386,13 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         </div>
 
         {/* Tab selection */}
-        <div className="flex border-b border-[#d6c5ad] bg-[#faf5eb] text-xs font-semibold overflow-x-auto">
+        <div className="flex border-b border-[#d6c5ad] bg-[#faf5eb] text-xs font-semibold overflow-x-auto shrink-0 z-10 scrollbar-none">
           <button
             onClick={() => setActiveTab('presets')}
             className={`flex-1 min-w-[120px] py-3 text-center border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
               activeTab === 'presets'
-                ? 'border-[#c85a2b] text-[#c85a2b] bg-[#fffdf9]'
-                : 'border-transparent text-[#786653] hover:text-[#2c231c]'
+                ? 'border-[#c85a2b] text-[#c85a2b] bg-[#fffdf9] font-bold shadow-xs'
+                : 'border-transparent text-[#786653] hover:text-[#2c231c] hover:bg-[#f4ebe1]/60'
             }`}
           >
             <Building2 className="w-4 h-4" />
@@ -402,8 +402,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             onClick={() => setActiveTab('custom')}
             className={`flex-1 min-w-[130px] py-3 text-center border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
               activeTab === 'custom'
-                ? 'border-[#c85a2b] text-[#c85a2b] bg-[#fffdf9]'
-                : 'border-transparent text-[#786653] hover:text-[#2c231c]'
+                ? 'border-[#c85a2b] text-[#c85a2b] bg-[#fffdf9] font-bold shadow-xs'
+                : 'border-transparent text-[#786653] hover:text-[#2c231c] hover:bg-[#f4ebe1]/60'
             }`}
           >
             <Wand2 className="w-4 h-4 text-[#ab7a1a]" />
@@ -413,8 +413,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             onClick={() => setActiveTab('global_llm')}
             className={`flex-1 min-w-[140px] py-3 text-center border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
               activeTab === 'global_llm'
-                ? 'border-[#4f46e5] text-[#4f46e5] bg-[#fffdf9]'
-                : 'border-transparent text-[#786653] hover:text-[#2c231c]'
+                ? 'border-[#4f46e5] text-[#4f46e5] bg-[#fffdf9] font-bold shadow-xs'
+                : 'border-transparent text-[#786653] hover:text-[#2c231c] hover:bg-[#f4ebe1]/60'
             }`}
           >
             <Cpu className="w-4 h-4 text-[#4f46e5]" />
@@ -424,8 +424,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             onClick={() => setActiveTab('memory')}
             className={`flex-1 min-w-[140px] py-3 text-center border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
               activeTab === 'memory'
-                ? 'border-[#059669] text-[#059669] bg-[#fffdf9]'
-                : 'border-transparent text-[#786653] hover:text-[#2c231c]'
+                ? 'border-[#059669] text-[#059669] bg-[#fffdf9] font-bold shadow-xs'
+                : 'border-transparent text-[#786653] hover:text-[#2c231c] hover:bg-[#f4ebe1]/60'
             }`}
           >
             <Brain className="w-4 h-4 text-[#059669]" />
@@ -434,7 +434,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-5 sm:p-6 flex-1 overflow-y-auto">
+        <div className="p-5 sm:p-6 flex-1 overflow-y-auto min-h-0">
           {activeTab === 'presets' ? (
             <div className="space-y-3.5">
               <div className="text-xs text-[#786653] mb-2 font-medium">
@@ -936,7 +936,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               </div>
             </form>
           ) : activeTab === 'memory' ? (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Notification Banner */}
               {memoryNotice && (
                 <div className="p-3 bg-[#e6f4ea] border border-[#34a853] text-[#137333] rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in">
@@ -946,11 +946,11 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               )}
 
               {/* Company Level & Progression Header */}
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-[#1a1512] via-[#2c221a] to-[#120f0c] text-white shadow-md border border-[#3d3126]">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#1a1512] via-[#2c221a] to-[#120f0c] text-white shadow-md border border-[#3d3126]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#f59e0b] to-[#fbbf24] flex items-center justify-center text-[#1a1512] font-black text-xl shadow-lg ring-2 ring-[#f59e0b]/40">
-                      <Trophy className="w-6 h-6 text-[#1a1512]" />
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#f59e0b] to-[#fbbf24] flex items-center justify-center text-[#1a1512] font-black text-xl shadow-lg ring-2 ring-[#f59e0b]/40 shrink-0">
+                      <Trophy className="w-5 h-5 text-[#1a1512]" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -961,14 +961,14 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                           {currentCompany.name}
                         </span>
                       </div>
-                      <h3 className="text-base font-extrabold text-[#fdf6e2]">
+                      <h3 className="text-sm sm:text-base font-extrabold text-[#fdf6e2]">
                         {memoryProgress?.levelTitle || 'Startup Visioner'}
                       </h3>
                     </div>
                   </div>
-                  <div className="text-right sm:text-right">
+                  <div className="text-left sm:text-right">
                     <div className="text-xs text-[#c5b29f]">Total Pengalaman (XP)</div>
-                    <div className="text-lg font-black text-[#fbbf24]">
+                    <div className="text-base sm:text-lg font-black text-[#fbbf24]">
                       {memoryProgress?.xp || 0}{' '}
                       <span className="text-xs font-normal text-[#9e8b78]">
                         / {memoryProgress?.nextLevelXp || 1000} XP
@@ -1005,7 +1005,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 </div>
 
                 {/* Quick stats grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-4 border-t border-[#3d3126]/80 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3.5 pt-3.5 border-t border-[#3d3126]/80 text-xs">
                   <div className="bg-[#241c15] p-2.5 rounded-xl border border-[#3d3126]">
                     <div className="text-[10px] text-[#9e8b78] flex items-center gap-1">
                       <Brain className="w-3 h-3 text-[#10b981]" /> Memori Tersimpan
@@ -1041,261 +1041,272 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 </div>
               </div>
 
-              {/* Vector Engine Architecture Info Card */}
-              <div className="p-4 rounded-xl bg-[#f5efe4] border border-[#d6c5ad] text-xs text-[#5c4939] space-y-1.5">
-                <div className="font-bold text-[#2c231c] flex items-center gap-1.5">
-                  <Database className="w-4 h-4 text-[#059669]" />
-                  <span>Sistem Vector DB & Embedding Zero-Setup Vigent</span>
-                </div>
-                <p className="leading-relaxed">
-                  Setiap perusahaan memiliki database memori terisolasi di{' '}
-                  <code className="px-1.5 py-0.5 bg-[#e8dece] rounded text-[#2c231c] font-mono font-semibold">
-                    ~/.vigent/memories_{currentCompany.id}.json
-                  </code>
-                  . Vigent menggunakan dual embedding engine: otomatis memanfaatkan endpoint{' '}
-                  <code className="px-1.5 py-0.5 bg-[#e8dece] rounded text-[#2c231c] font-mono">
-                    /v1/embeddings
-                  </code>{' '}
-                  jika tersedia provider LLM custom, atau seketika fallback ke{' '}
-                  <strong>Deterministic 64-dim Local Semantic Vector</strong> tanpa butuh Docker,
-                  Milvus, atau token API eksternal!
-                </p>
-              </div>
-
-              {/* Semantic Vector Search Test */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-[#2c231c] flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Search className="w-3.5 h-3.5 text-[#059669]" />
-                    Pencarian Semantik & Recall Memori (Cosine Similarity)
-                  </span>
-                  {memorySearchQuery && (
-                    <button
-                      onClick={() => {
-                        setMemorySearchQuery('');
-                        fetchCompanyMemories();
-                      }}
-                      className="text-[11px] text-[#c85a2b] hover:underline"
-                    >
-                      Reset Filter
-                    </button>
-                  )}
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      value={memorySearchQuery}
-                      onChange={(e) => setMemorySearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          fetchCompanyMemories(memorySearchQuery);
-                        }
-                      }}
-                      placeholder="Cari pengalaman kantor, lore, SOP, atau sprint (misal: arsitektur, bug, design)..."
-                      className="w-full pl-9 pr-3 py-2 bg-[#fffdf9] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#059669]"
-                    />
-                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#a89887]" />
-                  </div>
-                  <button
-                    onClick={() => fetchCompanyMemories(memorySearchQuery)}
-                    disabled={isLoadingMemories}
-                    className="px-4 py-2 bg-[#059669] hover:bg-[#047857] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors"
-                  >
-                    {isLoadingMemories ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Search className="w-3.5 h-3.5" />
-                    )}
-                    <span>Cari Vector</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Form Tambah Lore / Aturan Kantor */}
-              <form
-                onSubmit={handleAddMemory}
-                className="p-4 rounded-xl border border-[#d6c5ad] bg-[#fffdf9] space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="font-bold text-xs text-[#2c231c] flex items-center gap-1.5">
-                    <Plus className="w-3.5 h-3.5 text-[#c85a2b]" />
-                    <span>Tambah Nilai, Aturan, atau Lore Perusahaan</span>
-                  </div>
-                  <span className="text-[10px] text-[#786653]">
-                    Diindeks langsung ke memori agen
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div className="sm:col-span-2">
-                    <input
-                      type="text"
-                      value={newLoreTitle}
-                      onChange={(e) => setNewLoreTitle(e.target.value)}
-                      placeholder="Judul (misal: Standar Kode TypeScript, Visi Q4 2026)..."
-                      className="w-full px-3 py-2 bg-[#faf5eb] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#c85a2b]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <select
-                      value={newLoreType}
-                      onChange={(e) => setNewLoreType(e.target.value as MemoryType)}
-                      className="w-full px-3 py-2 bg-[#faf5eb] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#c85a2b]"
-                    >
-                      <option value="lore">Lore & Budaya</option>
-                      <option value="rule">Aturan Kerja</option>
-                      <option value="milestone">Milestone Kantor</option>
-                      <option value="knowledge">Pengetahuan Umum</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <textarea
-                    value={newLoreContent}
-                    onChange={(e) => setNewLoreContent(e.target.value)}
-                    placeholder="Tuliskan detail memori yang harus diingat oleh seluruh agen saat berdiskusi, merespons pesan Telegram, dan mengeksekusi tugas..."
-                    rows={2}
-                    className="w-full px-3 py-2 bg-[#faf5eb] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#c85a2b]"
-                    required
-                  />
-                </div>
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={isAddingMemory || !newLoreTitle.trim() || !newLoreContent.trim()}
-                    className="px-4 py-2 bg-[#c85a2b] hover:bg-[#b54f24] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-50"
-                  >
-                    {isAddingMemory ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Save className="w-3.5 h-3.5" />
-                    )}
-                    <span>Simpan ke Memori Kantor</span>
-                  </button>
-                </div>
-              </form>
-
-              {/* Memory Archive List */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="font-bold text-xs text-[#2c231c] flex items-center gap-1.5">
-                    <BookOpen className="w-3.5 h-3.5 text-[#059669]" />
-                    <span>Arsip Memori & Riwayat Pengalaman ({memories.length})</span>
-                  </div>
-                  <div className="flex gap-1 text-[10px]">
-                    {['all', 'task_experience', 'lore', 'rule', 'milestone'].map((t) => (
+              {/* 2-Column Responsive Layout for Memory & Knowledge Management */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                {/* Left Column (7 cols): Search & Memory Archives */}
+                <div className="lg:col-span-7 space-y-3.5">
+                  {/* Semantic Vector Search Test */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#2c231c] flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Search className="w-3.5 h-3.5 text-[#059669]" />
+                        Pencarian Semantik & Recall Memori (Cosine Similarity)
+                      </span>
+                      {memorySearchQuery && (
+                        <button
+                          onClick={() => {
+                            setMemorySearchQuery('');
+                            fetchCompanyMemories();
+                          }}
+                          className="text-[11px] text-[#c85a2b] hover:underline"
+                        >
+                          Reset Filter
+                        </button>
+                      )}
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={memorySearchQuery}
+                          onChange={(e) => setMemorySearchQuery(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              fetchCompanyMemories(memorySearchQuery);
+                            }
+                          }}
+                          placeholder="Cari lore, SOP, arsitektur, bug, dll..."
+                          className="w-full pl-9 pr-3 py-2 bg-[#fffdf9] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#059669]"
+                        />
+                        <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#a89887]" />
+                      </div>
                       <button
-                        key={t}
-                        onClick={() => setMemoryFilterType(t)}
-                        className={`px-2 py-1 rounded-lg font-semibold transition-colors ${
-                          memoryFilterType === t
-                            ? 'bg-[#059669] text-white'
-                            : 'bg-[#faf5eb] text-[#786653] hover:text-[#2c231c]'
-                        }`}
+                        onClick={() => fetchCompanyMemories(memorySearchQuery)}
+                        disabled={isLoadingMemories}
+                        className="px-3.5 py-2 bg-[#059669] hover:bg-[#047857] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors shrink-0"
                       >
-                        {t === 'all'
-                          ? 'Semua'
-                          : t === 'task_experience'
-                          ? 'Tugas Selesai'
-                          : t === 'lore'
-                          ? 'Lore'
-                          : t === 'rule'
-                          ? 'Aturan'
-                          : 'Milestone'}
+                        {isLoadingMemories ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Search className="w-3.5 h-3.5" />
+                        )}
+                        <span>Cari Vector</span>
                       </button>
-                    ))}
+                    </div>
                   </div>
+
+                  {/* Filter Pills & Counter */}
+                  <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
+                    <div className="font-bold text-xs text-[#2c231c] flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5 text-[#059669]" />
+                      <span>Arsip Memori ({memories.length})</span>
+                    </div>
+                    <div className="flex gap-1 text-[10px] overflow-x-auto">
+                      {['all', 'task_experience', 'lore', 'rule', 'milestone'].map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => setMemoryFilterType(t)}
+                          className={`px-2 py-1 rounded-lg font-semibold transition-colors shrink-0 ${
+                            memoryFilterType === t
+                              ? 'bg-[#059669] text-white'
+                              : 'bg-[#faf5eb] text-[#786653] hover:text-[#2c231c]'
+                          }`}
+                        >
+                          {t === 'all'
+                            ? 'Semua'
+                            : t === 'task_experience'
+                            ? 'Tugas Selesai'
+                            : t === 'lore'
+                            ? 'Lore'
+                            : t === 'rule'
+                            ? 'Aturan'
+                            : 'Milestone'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Memory Archive List */}
+                  {isLoadingMemories ? (
+                    <div className="p-8 text-center text-xs text-[#786653] flex flex-col items-center gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-[#059669]" />
+                      <span>Memuat arsip memori vektor...</span>
+                    </div>
+                  ) : memories.length === 0 ? (
+                    <div className="p-6 rounded-xl bg-[#faf5eb] border border-dashed border-[#d6c5ad] text-center text-xs text-[#786653]">
+                      Belum ada memori untuk kategori ini. Tambahkan aturan baru atau selesaikan tugas sprint untuk mengakumulasi pengalaman kantor!
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
+                      {memories
+                        .filter((m) =>
+                          memoryFilterType === 'all' ? true : m.type === memoryFilterType
+                        )
+                        .map((mem) => {
+                          const isTask = mem.type === 'task_experience' || mem.type === 'episodic';
+                          const isRule = mem.type === 'rule' || mem.type === 'procedural';
+                          const badgeBg = isTask
+                            ? 'bg-[#e0f2fe] text-[#0369a1] border-[#bae6fd]'
+                            : isRule
+                            ? 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]'
+                            : 'bg-[#fef3c7] text-[#b45309] border-[#fde68a]';
+
+                          return (
+                            <div
+                              key={mem.id}
+                              className="p-3.5 rounded-xl border border-[#d6c5ad] bg-[#fffdf9] hover:border-[#059669] transition-all space-y-2 group shadow-xs"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span
+                                    className={`text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-full border ${badgeBg}`}
+                                  >
+                                    {mem.type.replace('_', ' ')}
+                                  </span>
+                                  <h4 className="font-bold text-xs text-[#2c231c]">{mem.title}</h4>
+                                  <span className="text-[10px] text-[#9e8b78] font-mono">
+                                    Vector {mem.embedding?.length || 64}D
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => handleDeleteMemory(mem.id)}
+                                  title="Hapus memori"
+                                  className="text-[#a89887] hover:text-[#dc2626] p-1 rounded transition-colors opacity-60 group-hover:opacity-100 shrink-0"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              <p className="text-xs text-[#5c4939] leading-relaxed bg-[#faf5eb] p-2 rounded-lg border border-[#ede2d1]">
+                                {mem.content}
+                              </p>
+
+                              <div className="flex items-center justify-between text-[10px] text-[#9e8b78] pt-1 flex-wrap gap-1">
+                                <div className="flex items-center gap-2">
+                                  <span>
+                                    Diarsipkan: <strong>{mem.authorAgent || 'Sistem'}</strong>
+                                  </span>
+                                  <span>•</span>
+                                  <span>
+                                    {new Date(mem.createdAt).toLocaleDateString('id-ID', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </span>
+                                </div>
+                                <div className="flex gap-1 flex-wrap">
+                                  {(mem.tags || []).map((tag, tIdx) => (
+                                    <span
+                                      key={tIdx}
+                                      className="px-1.5 py-0.5 rounded bg-[#ede2d1] text-[#786653] font-mono text-[9px]"
+                                    >
+                                      #{tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </div>
 
-                {isLoadingMemories ? (
-                  <div className="p-8 text-center text-xs text-[#786653] flex flex-col items-center gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-[#059669]" />
-                    <span>Memuat arsip memori vektor...</span>
-                  </div>
-                ) : memories.length === 0 ? (
-                  <div className="p-8 rounded-xl bg-[#faf5eb] border border-dashed border-[#d6c5ad] text-center text-xs text-[#786653]">
-                    Belum ada memori untuk kategori ini. Tambahkan aturan baru atau jalankan tugas
-                    sprint untuk mengakumulasi pengalaman kantor!
-                  </div>
-                ) : (
-                  <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
-                    {memories
-                      .filter((m) =>
-                        memoryFilterType === 'all' ? true : m.type === memoryFilterType
-                      )
-                      .map((mem) => {
-                        const isTask = mem.type === 'task_experience' || mem.type === 'episodic';
-                        const isRule = mem.type === 'rule' || mem.type === 'procedural';
-                        const badgeBg = isTask
-                          ? 'bg-[#e0f2fe] text-[#0369a1] border-[#bae6fd]'
-                          : isRule
-                          ? 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]'
-                          : 'bg-[#fef3c7] text-[#b45309] border-[#fde68a]';
+                {/* Right Column (5 cols): Tambah Memori & Architecture Info */}
+                <div className="lg:col-span-5 space-y-4">
+                  {/* Form Tambah Lore / Aturan Kantor */}
+                  <form
+                    onSubmit={handleAddMemory}
+                    className="p-4 rounded-xl border border-[#d6c5ad] bg-[#fffdf9] space-y-3 shadow-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-xs text-[#2c231c] flex items-center gap-1.5">
+                        <Plus className="w-3.5 h-3.5 text-[#c85a2b]" />
+                        <span>Tambah Nilai / Aturan Baru</span>
+                      </div>
+                      <span className="text-[10px] text-[#786653]">
+                        Indeks otomatis
+                      </span>
+                    </div>
 
-                        return (
-                          <div
-                            key={mem.id}
-                            className="p-3.5 rounded-xl border border-[#d6c5ad] bg-[#fffdf9] hover:border-[#059669] transition-all space-y-2 group"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span
-                                  className={`text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-full border ${badgeBg}`}
-                                >
-                                  {mem.type.replace('_', ' ')}
-                                </span>
-                                <h4 className="font-bold text-xs text-[#2c231c]">{mem.title}</h4>
-                                <span className="text-[10px] text-[#9e8b78] font-mono">
-                                  Vector {mem.embedding?.length || 64}D
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => handleDeleteMemory(mem.id)}
-                                title="Hapus memori"
-                                className="text-[#a89887] hover:text-[#dc2626] p-1 rounded transition-colors opacity-60 group-hover:opacity-100"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="text-[11px] font-semibold text-[#786653] block mb-1">
+                          Judul Memori
+                        </label>
+                        <input
+                          type="text"
+                          value={newLoreTitle}
+                          onChange={(e) => setNewLoreTitle(e.target.value)}
+                          placeholder="Misal: Standar Kode TypeScript..."
+                          className="w-full px-3 py-2 bg-[#faf5eb] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#c85a2b]"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-[#786653] block mb-1">
+                          Tipe Pengetahuan
+                        </label>
+                        <select
+                          value={newLoreType}
+                          onChange={(e) => setNewLoreType(e.target.value as MemoryType)}
+                          className="w-full px-3 py-2 bg-[#faf5eb] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#c85a2b]"
+                        >
+                          <option value="lore">Lore & Budaya</option>
+                          <option value="rule">Aturan Kerja</option>
+                          <option value="milestone">Milestone Kantor</option>
+                          <option value="knowledge">Pengetahuan Umum</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-[#786653] block mb-1">
+                          Detail Memori
+                        </label>
+                        <textarea
+                          value={newLoreContent}
+                          onChange={(e) => setNewLoreContent(e.target.value)}
+                          placeholder="Tuliskan pengetahuan yang harus dipatuhi agen saat berdiskusi dan mengerjakan tugas..."
+                          rows={3}
+                          className="w-full px-3 py-2 bg-[#faf5eb] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#c85a2b]"
+                          required
+                        />
+                      </div>
+                    </div>
 
-                            <p className="text-xs text-[#5c4939] leading-relaxed bg-[#faf5eb] p-2 rounded-lg border border-[#ede2d1]">
-                              {mem.content}
-                            </p>
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="submit"
+                        disabled={isAddingMemory || !newLoreTitle.trim() || !newLoreContent.trim()}
+                        className="w-full py-2 bg-[#c85a2b] hover:bg-[#b54f24] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                        {isAddingMemory ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        <span>Simpan ke Memori Kantor</span>
+                      </button>
+                    </div>
+                  </form>
 
-                            <div className="flex items-center justify-between text-[10px] text-[#9e8b78] pt-1">
-                              <div className="flex items-center gap-2">
-                                <span>
-                                  Diarsipkan oleh: <strong>{mem.authorAgent || 'Sistem'}</strong>
-                                </span>
-                                <span>•</span>
-                                <span>
-                                  {new Date(mem.createdAt).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                              </div>
-                              <div className="flex gap-1">
-                                {(mem.tags || []).map((tag, tIdx) => (
-                                  <span
-                                    key={tIdx}
-                                    className="px-1.5 py-0.5 rounded bg-[#ede2d1] text-[#786653] font-mono"
-                                  >
-                                    #{tag}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                  {/* Vector Engine Architecture Info Card */}
+                  <div className="p-3.5 rounded-xl bg-[#f5efe4] border border-[#d6c5ad] text-xs text-[#5c4939] space-y-1.5">
+                    <div className="font-bold text-[#2c231c] flex items-center gap-1.5">
+                      <Database className="w-4 h-4 text-[#059669]" />
+                      <span>Vector DB & Embedding Zero-Setup</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed">
+                      Memori disimpan terisolasi di{' '}
+                      <code className="px-1 py-0.5 bg-[#e8dece] rounded text-[#2c231c] font-mono font-semibold text-[10px]">
+                        ~/.vigent/memories_{currentCompany.id}.json
+                      </code>
+                      . Menggunakan Dual Vector Engine (API embedding otomatis atau 64-dim local vector) sehingga tidak butuh Docker atau database eksternal terpisah.
+                    </p>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           ) : null}

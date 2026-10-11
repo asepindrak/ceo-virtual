@@ -311,6 +311,36 @@ async function handleCommand() {
     console.log(`${colors.green}✓ Created project directory: ${target}${colors.reset}`);
     openFolder(target);
 
+  } else if (cmd === 'clone') {
+    const repoUrl = args[1];
+    const customFolder = args[2];
+    if (!repoUrl) {
+      console.log(`${colors.red}Please provide a repository URL: vigent clone <github-url> [folder-name]${colors.reset}`);
+      return;
+    }
+    const match = repoUrl.match(/(?:https?:\/\/(?:www\.)?github\.com\/|git@github\.com:)([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git|\/|\b|$)/i);
+    let folder = customFolder;
+    if (!folder) {
+      if (match) {
+        let repo = match[2].replace(/\.git$/i, '');
+        if (repo.endsWith('/')) repo = repo.slice(0, -1);
+        folder = repo;
+      } else {
+        const parts = repoUrl.replace(/\.git$/, '').split(/[/:]/);
+        folder = parts[parts.length - 1] || 'github-repo';
+      }
+    }
+    const safe = folder.toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/^-+|-+$/g, '') || 'github-repo';
+    const target = path.join(VIGENT_WORKSPACES, safe);
+    console.log(`${colors.cyan}Cloning ${repoUrl} into ${target}...${colors.reset}`);
+    try {
+      execSync(`git clone --depth 1 "${repoUrl}" "${target}"`, { stdio: 'inherit' });
+      console.log(`${colors.green}✓ Cloned repository successfully to: ${target}${colors.reset}`);
+      openFolder(target);
+    } catch (err) {
+      console.log(`${colors.red}Failed to clone repository: ${err.message}${colors.reset}`);
+    }
+
   } else if (cmd === 'mcp') {
     const sub = args[1] || 'list';
     const mcpConfigFile = path.join(VIGENT_HOME, 'mcp_config.json');
@@ -493,6 +523,7 @@ async function handleCommand() {
   ${colors.cyan}vigent autorun enable${colors.reset}     Enable auto-start on Windows/macOS/Linux startup
   ${colors.cyan}vigent autorun disable${colors.reset}    Disable startup autorun
   ${colors.cyan}vigent create <name>${colors.reset}      Scaffold a new project in ~/.vigent/workspaces/
+  ${colors.cyan}vigent clone <url> [name]${colors.reset} Clone a GitHub repository directly into ~/.vigent/workspaces/
   ${colors.cyan}vigent help${colors.reset}               Show this help message
 `);
   }
