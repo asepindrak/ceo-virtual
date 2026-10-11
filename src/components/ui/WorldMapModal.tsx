@@ -869,32 +869,32 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                 </div>
               )}
 
-              {/* Node Identity Card */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#101923] via-[#1a2530] to-[#0c131a] text-white border-2 border-[#1e3a5f] shadow-md space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#243d5c]">
+              {/* Node Identity Card (Vigent Light Theme) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#fffdf9] border-2 border-[#d6c5ad] shadow-sm space-y-4 text-[#2c231c]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#e8decb]">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#0284c7] to-[#38bdf8] flex items-center justify-center text-white font-black shadow-lg ring-2 ring-[#0284c7]/40 shrink-0">
-                      <Network className="w-6 h-6 text-white" />
+                    <div className="w-10 h-10 rounded-2xl bg-[#0284c7]/10 border border-[#0284c7]/30 flex items-center justify-center text-[#0284c7] font-black shadow-xs shrink-0">
+                      <Network className="w-5 h-5 text-[#0284c7]" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#10b981]/20 text-[#34d399] border border-[#10b981]/30 font-bold font-mono flex items-center gap-1">
-                          <Radio className="w-3 h-3 text-[#34d399] animate-pulse" />
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0] font-bold font-mono flex items-center gap-1">
+                          <Radio className="w-3 h-3 text-[#059669] animate-pulse" />
                           <span>P2P DAEMON ONLINE</span>
                         </span>
-                        <span className="text-xs text-[#94a3b8] font-mono">
+                        <span className="text-xs text-[#786653] font-mono">
                           Zero-Config LAN UDP Active
                         </span>
                       </div>
-                      <h3 className="text-base font-extrabold text-white mt-0.5">
+                      <h3 className="text-base font-extrabold text-[#2c231c] mt-0.5">
                         Identitas Node Desentralisasi PC Anda
                       </h3>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0284c7]/20 border border-[#0284c7]/40 text-xs font-semibold text-[#38bdf8]">
-                      <Wifi className="w-3.5 h-3.5 text-[#38bdf8] animate-pulse" />
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#e0f2fe] border border-[#bae6fd] text-xs font-semibold text-[#0369a1]">
+                      <Wifi className="w-3.5 h-3.5 text-[#0284c7] animate-pulse" />
                       <span>Auto-Beacon Aktif (Tiap 12s)</span>
                     </div>
                   </div>
@@ -902,9 +902,9 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
 
                 {/* Node Metrics Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                  <div className="bg-[#121d28] p-3 rounded-xl border border-[#243d5c]">
-                    <div className="text-[10px] text-[#94a3b8]">Node ID Kriptografis</div>
-                    <div className="font-mono text-xs font-bold text-[#38bdf8] mt-1 flex items-center justify-between">
+                  <div className="bg-[#faf5eb] p-3 rounded-xl border border-[#d6c5ad]">
+                    <div className="text-[10px] text-[#786653] font-medium">Node ID Kriptografis</div>
+                    <div className="font-mono text-xs font-bold text-[#0284c7] mt-1 flex items-center justify-between">
                       <span className="truncate">{p2pStatus?.nodeId || 'vigent-node-local'}</span>
                       <button
                         onClick={() => {
@@ -914,59 +914,60 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                             setTimeout(() => setCopiedNodeId(false), 2000);
                           }
                         }}
-                        className="text-[#94a3b8] hover:text-white ml-1 shrink-0"
+                        className="text-[#786653] hover:text-[#2c231c] ml-1 shrink-0"
+                        title="Salin Node ID"
                       >
-                        {copiedNodeId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedNodeId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>
 
-                  <div className="bg-[#121d28] p-3 rounded-xl border border-[#243d5c]">
-                    <div className="text-[10px] text-[#94a3b8]">Port HTTP / Discovery</div>
-                    <div className="font-mono text-xs font-bold text-white mt-1">
+                  <div className="bg-[#faf5eb] p-3 rounded-xl border border-[#d6c5ad]">
+                    <div className="text-[10px] text-[#786653] font-medium">Port HTTP / Discovery</div>
+                    <div className="font-mono text-xs font-bold text-[#2c231c] mt-1">
                       :{p2pStatus?.httpPort || 28483} • UDP:{p2pStatus?.udpPort || 28484}
                     </div>
                   </div>
 
-                  <div className="bg-[#121d28] p-3 rounded-xl border border-[#243d5c]">
-                    <div className="text-[10px] text-[#94a3b8]">Peer Terkoneksi (Mesh)</div>
-                    <div className="font-mono text-sm font-bold text-[#34d399] mt-0.5">
+                  <div className="bg-[#faf5eb] p-3 rounded-xl border border-[#d6c5ad]">
+                    <div className="text-[10px] text-[#786653] font-medium">Peer Terkoneksi (Mesh)</div>
+                    <div className="font-mono text-sm font-bold text-[#059669] mt-0.5">
                       {p2pStatus?.onlinePeersCount || 0} Peer Online
                     </div>
                   </div>
 
-                  <div className="bg-[#121d28] p-3 rounded-xl border border-[#243d5c]">
-                    <div className="text-[10px] text-[#94a3b8]">Regional Sektor Lokal</div>
-                    <div className="font-mono text-xs font-bold text-[#fbbf24] mt-1 truncate">
+                  <div className="bg-[#faf5eb] p-3 rounded-xl border border-[#d6c5ad]">
+                    <div className="text-[10px] text-[#786653] font-medium">Regional Sektor Lokal</div>
+                    <div className="font-mono text-xs font-bold text-[#b45309] mt-1 truncate">
                       {p2pStatus?.regionalSector || 'region-jakarta'}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Card 1: Decentralized Community Global Swarm (Zero-Config) */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#121f2d] to-[#0c1520] border border-[#234263] text-white shadow-md space-y-3">
+              {/* Card 1: Decentralized Community Global Swarm (Vigent Light Theme) */}
+              <div className="p-4 rounded-2xl bg-[#fffdf9] border-2 border-[#d6c5ad] shadow-sm space-y-3 text-[#2c231c]">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#0284c7]/20 border border-[#0284c7]/40 flex items-center justify-center text-[#38bdf8] shrink-0">
-                      <Globe className="w-5 h-5 animate-spin" style={{ animationDuration: '14s' }} />
+                    <div className="w-10 h-10 rounded-2xl bg-[#0284c7]/10 border border-[#0284c7]/30 flex items-center justify-center text-[#0284c7] shrink-0">
+                      <Globe className="w-5 h-5 animate-spin text-[#0284c7]" style={{ animationDuration: '14s' }} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-xs tracking-wide text-white">🌐 Jaringan Komunitas Global Vigent</h3>
-                        <span className="text-[9px] px-2 py-0.5 rounded-full font-mono font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <h3 className="font-bold text-xs tracking-wide text-[#2c231c]">🌐 Jaringan Komunitas Global Vigent</h3>
+                        <span className="text-[9px] px-2 py-0.5 rounded-full font-mono font-semibold bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]">
                           Auto-Connected
                         </span>
                       </div>
-                      <p className="text-[10px] text-[#94a3b8] mt-0.5">
+                      <p className="text-[11px] text-[#786653] mt-0.5">
                         Node Anda otomatis terhubung ke bursa komunitas publik. Seluruh kantor rekan di berbagai regional terdeteksi realtime.
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]">
+                      <span className="w-2 h-2 rounded-full bg-[#059669] animate-ping" />
                       Komunitas Global Online
                     </span>
 
@@ -983,7 +984,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[10px] text-[#64748b] pt-2 border-t border-[#1a2d42]">
+                <div className="flex items-center justify-between text-[10px] text-[#786653] pt-2 border-t border-[#e8decb]">
                   <span>
                     🔒 <strong>100% Zero-Knowledge:</strong> Hanya status presensi publik yang disinkronkan. Dokumen & LLM lokal tetap privat.
                   </span>

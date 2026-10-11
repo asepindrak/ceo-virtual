@@ -128,8 +128,8 @@ export const TopNav: React.FC<TopNavProps> = ({
         </button>
       </div>
 
-      {/* 2. Middle: Simulation Controls (Compact & Clean) */}
-      <div className="hidden md:flex items-center gap-2 bg-[#fffdf9] border border-[#d6c5ad] px-2.5 py-1 rounded-xl text-xs shadow-xs shrink-0">
+      {/* 2. Middle: Simulation Controls (Compact & Clean - Visible on xl+ to prevent overflow) */}
+      <div className="hidden xl:flex items-center gap-2 bg-[#fffdf9] border border-[#d6c5ad] px-2.5 py-1 rounded-xl text-xs shadow-xs shrink-0">
         <span className="font-mono text-[#c85a2b] font-bold text-[11px]" suppressHydrationWarning>
           {timeStr}
         </span>
@@ -166,12 +166,12 @@ export const TopNav: React.FC<TopNavProps> = ({
       </div>
 
       {/* 3. Right: Action Bar (Organized, No Overflow, Prominent Dev Server) */}
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
         {/* Human Decisions Pending Alert (Conditional) */}
         {pendingDecisionsCount > 0 && (
           <button
             onClick={onOpenDecisions}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-[#fef3e7] hover:bg-[#fde9d2] text-[#c85a2b] border-2 border-[#c85a2b] text-xs font-bold rounded-xl animate-bounce shadow-md shrink-0"
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-[#fef3e7] hover:bg-[#fde9d2] text-[#c85a2b] border-2 border-[#c85a2b] text-xs font-bold rounded-xl animate-bounce shadow-md shrink-0"
             title="Ada keputusan penting yang membutuhkan approval Boss"
           >
             <ShieldAlert className="w-3.5 h-3.5 text-[#c85a2b]" />
@@ -185,12 +185,13 @@ export const TopNav: React.FC<TopNavProps> = ({
         {/* 🌟 DEV SERVERS BUTTON (PROMINENT ON EXTERNAL HEADER) */}
         <button
           onClick={onOpenDevServers}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-[#1f6860] hover:bg-[#164e48] text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-[#1f6860]/20 hover:scale-[1.02] border border-[#2ea395] shrink-0 group"
+          className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-[#1f6860] hover:bg-[#164e48] text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-[#1f6860]/20 hover:scale-[1.02] border border-[#2ea395] shrink-0 group"
           title="Buka Dev Server & Open Ports Manager (Docker Desktop Style) - Cek live web port :28483"
         >
           <Radio className="w-3.5 h-3.5 text-emerald-300 animate-pulse shrink-0" />
-          <span className="font-bold hidden sm:inline">Dev Server</span>
-          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-black/30 rounded text-emerald-300 border border-emerald-400/30 font-bold">
+          <span className="font-bold hidden sm:inline md:hidden">Dev</span>
+          <span className="font-bold hidden md:inline">Dev Server</span>
+          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-black/30 rounded text-emerald-300 border border-emerald-400/30 font-bold hidden 2xl:inline">
             :28483
           </span>
         </button>
@@ -198,12 +199,12 @@ export const TopNav: React.FC<TopNavProps> = ({
         {/* Office Group Chat / War Room button */}
         <button
           onClick={onOpenOfficeChat}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-[#4338ca] hover:bg-[#3730a3] text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-[#4338ca]/20 shrink-0 group"
+          className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-[#4338ca] hover:bg-[#3730a3] text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-[#4338ca]/20 shrink-0 group"
           title="Buka Office Group Chat War Room (Bisa tag @ & terhubung bot Telegram)"
         >
           <MessagesSquare className="w-3.5 h-3.5 group-hover:scale-110 transition-transform shrink-0" />
-          <span className="hidden md:inline">War Room</span>
-          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-white/20 rounded text-indigo-100 font-bold">
+          <span className="hidden lg:inline">War Room</span>
+          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-white/20 rounded text-indigo-100 font-bold hidden 2xl:inline">
             @tag • 📱TG
           </span>
         </button>
@@ -211,7 +212,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         {/* Tasks / Kanban button */}
         <button
           onClick={onOpenTasksModal}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#2c231c] text-xs font-medium rounded-xl transition-colors border border-[#d6c5ad] shrink-0"
+          className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#2c231c] text-xs font-medium rounded-xl transition-colors border border-[#d6c5ad] shrink-0"
           title="Buka Kanban Task Management"
         >
           <Kanban className="w-3.5 h-3.5 text-[#c85a2b] shrink-0" />
@@ -226,12 +227,12 @@ export const TopNav: React.FC<TopNavProps> = ({
         {/* 🗺️ Open World Map button */}
         <button
           onClick={onOpenWorldMap}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#2c231c] text-xs font-semibold rounded-xl transition-all border border-[#d6c5ad] shrink-0 group"
+          className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#2c231c] text-xs font-semibold rounded-xl transition-all border border-[#d6c5ad] shrink-0 group"
           title="Buka Peta Dunia Open World & Transit Antar-Regional"
         >
           <Globe className="w-3.5 h-3.5 text-[#c85a2b] group-hover:rotate-45 transition-transform shrink-0" />
-          <span className="hidden md:inline">Peta Kota</span>
-          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-[#fdeed9] text-[#c85a2b] rounded font-bold border border-[#f0c8a5]">
+          <span className="hidden sm:inline">Peta Kota</span>
+          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-[#fdeed9] text-[#c85a2b] rounded font-bold border border-[#f0c8a5] hidden 2xl:inline">
             5 Sektor
           </span>
         </button>
@@ -239,7 +240,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         {/* User Points / Wallet */}
         <button
           onClick={onOpenWallet}
-          className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 bg-[#fffdf9] hover:bg-[#fbf4e8] border border-[#d6c5ad] hover:border-[#c68f23] rounded-xl transition-all shadow-xs shrink-0"
+          className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 bg-[#fffdf9] hover:bg-[#fbf4e8] border border-[#d6c5ad] hover:border-[#c68f23] rounded-xl transition-all shadow-xs shrink-0"
           title="Saldo Token & Topup Akun"
         >
           <Coins className="w-3.5 h-3.5 text-[#ab7a1a]" />
