@@ -8,10 +8,25 @@ services:
     environment:
       - PORT=3000
       - NODE_ENV=production
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.vigent-relay.rule=Host(`relay.commitflow.space`)"
+      - "traefik.http.routers.vigent-relay.entrypoints=websecure"
+      - "traefik.http.routers.vigent-relay.tls=true"
+      - "traefik.http.routers.vigent-relay.tls.certresolver=letsencrypt"
+      - "traefik.http.services.vigent-relay.loadbalancer.server.port=3000"
+      # Auto HTTP to HTTPS Redirect
+      - "traefik.http.routers.vigent-relay-http.rule=Host(`relay.commitflow.space`)"
+      - "traefik.http.routers.vigent-relay-http.entrypoints=web"
+      - "traefik.http.routers.vigent-relay-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -20,3 +35,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+networks:
+  dokploy-network:
+    external: true

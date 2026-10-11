@@ -424,7 +424,16 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+process.on('uncaughtException', (err) => {
+  console.error('[Vigent Relay Hub Uncaught Exception]:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Vigent Relay Hub Unhandled Rejection]:', reason);
+});
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[Vigent Relay Hub]: Running on http://0.0.0.0:${PORT}`);
   console.log(`[Vigent Relay Hub]: Dokploy Healthcheck available at /health`);
 });
+
