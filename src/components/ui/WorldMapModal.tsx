@@ -348,31 +348,40 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
           {/* TAB 1: PETA MAKRO DUNIA */}
           {activeTab === 'atlas' && (
             <div className="space-y-4">
-              {/* Stylized Macro World Map Canvas / Graphic Banner */}
-              <div className="relative rounded-2xl bg-gradient-to-br from-[#12100e] via-[#221c17] to-[#181410] border-2 border-[#3d3126] p-4 text-white overflow-hidden shadow-md">
-                <div className="flex items-center justify-between pb-3 border-b border-[#3d3126] mb-3">
+              {/* Stylized Macro World Map Canvas (Vigent Light Parchment Atlas) */}
+              <div className="relative rounded-2xl bg-[#fffdf9] border-2 border-[#d6c5ad] p-4 text-[#2c231c] overflow-hidden shadow-xs space-y-3">
+                <div className="flex items-center justify-between pb-3 border-b border-[#e8decb]">
                   <div className="flex items-center gap-2 text-xs">
-                    <Radio className="w-3.5 h-3.5 text-[#10b981] animate-pulse" />
-                    <span className="font-mono text-[#a39382]">
+                    <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                    <span className="font-mono text-[#786653] font-medium">
                       Trans-Regional Decentralized Mesh • 5 Sectors Online
                     </span>
                   </div>
-                  <div className="text-[11px] font-mono text-[#fbbf24]">
+                  <div className="text-[11px] font-mono text-[#784620] bg-[#f0e3ce] px-2.5 py-1 rounded-lg border border-[#dccab3]">
                     Kantor Anda: <strong>{currentCompany.name} (Neo-Jakarta)</strong>
                   </div>
                 </div>
 
-                {/* Simulated World Coordinates Grid */}
-                <div className="relative h-56 sm:h-64 w-full bg-[#1a1512]/80 rounded-xl border border-[#3d3126] overflow-hidden flex items-center justify-center">
-                  {/* Subtle Grid Lines */}
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#3d3126_1px,transparent_1px),linear-gradient(to_bottom,#3d3126_1px,transparent_1px)] bg-[size:32px_32px] opacity-20 pointer-events-none" />
+                {/* Simulated World Coordinates Grid (Parchment Paper Canvas) */}
+                <div className="relative h-60 sm:h-72 w-full bg-[#fbf7ee] rounded-xl border border-[#d6c5ad] overflow-hidden flex items-center justify-center shadow-inner">
+                  {/* Subtle Atlas Grid Lines */}
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#e8decb_1px,transparent_1px),linear-gradient(to_bottom,#e8decb_1px,transparent_1px)] bg-[size:32px_32px] opacity-60 pointer-events-none" />
 
-                  {/* SVG Transit Connecting Lines (Railways & Highways) */}
+                  {/* Compass Rose Watermark */}
+                  <Compass className="absolute right-4 bottom-4 w-28 h-28 text-[#d6c5ad]/30 pointer-events-none stroke-1" />
+
+                  {/* SVG Transit Connecting Lines (Railways, Hyperloop & Sea Lanes) */}
                   <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                    <line x1="28%" y1="55%" x2="38%" y2="64%" stroke="#c85a2b" strokeWidth="2" strokeDasharray="4 2" />
-                    <line x1="38%" y1="64%" x2="55%" y2="62%" stroke="#059669" strokeWidth="2" strokeDasharray="4 2" />
-                    <line x1="55%" y1="62%" x2="68%" y2="68%" stroke="#0284c7" strokeWidth="2" strokeDasharray="4 2" />
-                    <line x1="38%" y1="64%" x2="50%" y2="38%" stroke="#7c3aed" strokeWidth="2" strokeDasharray="6 3" />
+                    {/* Whoosh High-Speed Rail: Jakarta -> Bandung */}
+                    <line x1="20%" y1="46%" x2="36%" y2="72%" stroke="#c85a2b" strokeWidth="2.5" strokeDasharray="5 3" />
+                    {/* Trans-Java Rail: Bandung -> Surabaya */}
+                    <line x1="36%" y1="72%" x2="58%" y2="68%" stroke="#059669" strokeWidth="2.5" strokeDasharray="5 3" />
+                    {/* Bali Coastal Transit: Surabaya -> Bali */}
+                    <line x1="58%" y1="68%" x2="78%" y2="74%" stroke="#d97706" strokeWidth="2.5" strokeDasharray="5 3" />
+                    {/* Nusantara Hyperloop Skyway: Jakarta -> IKN */}
+                    <line x1="20%" y1="46%" x2="50%" y2="28%" stroke="#7c3aed" strokeWidth="2.5" strokeDasharray="6 3" />
+                    {/* Nusantara Maritime Corridor: IKN -> Surabaya */}
+                    <line x1="50%" y1="28%" x2="58%" y2="68%" stroke="#0284c7" strokeWidth="2" strokeDasharray="4 2" />
                   </svg>
 
                   {/* Interactive District Nodes */}
@@ -387,24 +396,24 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                           top: `${district.coordinates.y}%`,
                         }}
                         className={`absolute -translate-x-1/2 -translate-y-1/2 group transition-all duration-300 z-10 ${
-                          isSelected ? 'scale-110' : 'hover:scale-105'
+                          isSelected ? 'scale-110 z-20' : 'hover:scale-105 z-10'
                         }`}
                       >
                         <div
-                          className={`px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all ${
+                          className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-sm transition-all ${
                             isSelected
-                              ? 'bg-[#fdeed9] text-[#2c231c] border-[#c85a2b] ring-2 ring-[#c85a2b]/60'
-                              : 'bg-[#241c15]/90 text-white border-[#3d3126] hover:border-[#a39382]'
+                              ? 'bg-[#fdeed9] text-[#784620] border-2 border-[#c85a2b] shadow-md ring-2 ring-[#c85a2b]/30'
+                              : 'bg-[#fffdf9] text-[#2c231c] border-[#d6c5ad] hover:border-[#c85a2b] hover:shadow-md'
                           }`}
                         >
                           <div
-                            className="w-2.5 h-2.5 rounded-full"
+                            className="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-xs shrink-0"
                             style={{ backgroundColor: district.color }}
                           />
-                          <span className="font-bold text-[11px] whitespace-nowrap">
+                          <span className="font-bold text-[11px] whitespace-nowrap text-[#2c231c]">
                             {district.name.split(' ')[0]}
                           </span>
-                          <span className="text-[9px] px-1 bg-black/40 text-amber-300 rounded font-mono">
+                          <span className="text-[9px] px-1.5 py-0.2 bg-[#f0e3ce] text-[#784620] rounded-md font-mono font-bold border border-[#dccab3]">
                             {district.companies.length}
                           </span>
                         </div>
