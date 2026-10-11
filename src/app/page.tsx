@@ -72,6 +72,11 @@ export default function RealAgent3DPage() {
   // Simulation Engine Instance (Ref persisted across renders)
   const simulationRef = useRef<OfficeSimulation>(new OfficeSimulation(1.0, currentCompany));
 
+  // Auto-initialize P2P Node, LAN UDP broadcast, and Global Community Swarm on first launch
+  useEffect(() => {
+    fetch('/api/p2p').catch(() => {});
+  }, []);
+
   // Keep simulation aware of active company for LLM configurations & banter
   useEffect(() => {
     simulationRef.current.setCompany(currentCompany);

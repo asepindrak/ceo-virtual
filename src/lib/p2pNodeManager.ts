@@ -206,9 +206,11 @@ export function startP2PDiscoveryDaemon(): boolean {
     }
 
     isDaemonInitialized = true;
+    ensureRelaySyncLoop();
     return true;
   } catch (err: any) {
     console.warn('[Vigent P2P Node]: Running in fallback direct peering mode:', err?.message);
+    ensureRelaySyncLoop();
     return false;
   }
 }

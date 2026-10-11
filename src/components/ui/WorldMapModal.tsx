@@ -892,13 +892,12 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleBroadcastBeacon}
-                    className="px-3.5 py-2 bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md transition-colors shrink-0"
-                  >
-                    <Wifi className="w-3.5 h-3.5" />
-                    <span>Broadcast Beacon LAN</span>
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0284c7]/20 border border-[#0284c7]/40 text-xs font-semibold text-[#38bdf8]">
+                      <Wifi className="w-3.5 h-3.5 text-[#38bdf8] animate-pulse" />
+                      <span>Auto-Beacon Aktif (Tiap 12s)</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Node Metrics Grid */}
