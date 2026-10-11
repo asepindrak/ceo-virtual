@@ -1,0 +1,12 @@
+{
+  "name": "vigent-relay-hub",
+  "version": "1.0.0",
+  "description": "Public P2P Rendezvous & Signaling Relay Server for Vigent Virtual Offices",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["vigent", "p2p", "relay", "rendezvous", "signaling", "dokploy"],
+  "author": "Vigent",
+  "license": "MIT"
+}

@@ -18,6 +18,7 @@ import { WorkspaceModal } from '@/components/ui/WorkspaceModal';
 import { ExtensionHubModal } from '@/components/ui/ExtensionHubModal';
 import { OfficeChatModal } from '@/components/ui/OfficeChatModal';
 import { DevServersModal } from '@/components/ui/DevServersModal';
+import { WorldMapModal } from '@/components/ui/WorldMapModal';
 import { IsometricOffice } from '@/components/office2d/IsometricOffice';
 import { MessagesSquare } from 'lucide-react';
 
@@ -59,6 +60,7 @@ export default function RealAgent3DPage() {
   const [isOfficeChatOpen, setIsOfficeChatOpen] = useState(false);
   const [officeChatInitialTab, setOfficeChatInitialTab] = useState<'war_room' | 'agent_collabs' | 'activity_logs'>('war_room');
   const [isDevServersModalOpen, setIsDevServersModalOpen] = useState(false);
+  const [isWorldMapOpen, setIsWorldMapOpen] = useState(false);
 
   // Human-in-the-Loop Decision State
   const [pendingDecisions, setPendingDecisions] = useState<HumanDecisionRequest[]>([]);
@@ -677,6 +679,7 @@ export default function RealAgent3DPage() {
         onOpenWorkspace={() => setIsWorkspaceModalOpen(true)}
         onOpenExtensions={() => setIsExtensionsOpen(true)}
         onOpenDevServers={() => setIsDevServersModalOpen(true)}
+        onOpenWorldMap={() => setIsWorldMapOpen(true)}
         onOpenCollabLogs={() => {
           setOfficeChatInitialTab('agent_collabs');
           setIsOfficeChatOpen(true);
@@ -852,6 +855,15 @@ export default function RealAgent3DPage() {
       {/* Docker Desktop-style Open Ports & Dev Servers Modal */}
       {isDevServersModalOpen && (
         <DevServersModal onClose={() => setIsDevServersModalOpen(false)} />
+      )}
+
+      {/* 🗺️ Open World Map & Decentralized Regional Transit Modal */}
+      {isWorldMapOpen && (
+        <WorldMapModal
+          currentCompany={currentCompany}
+          agents={agents}
+          onClose={() => setIsWorldMapOpen(false)}
+        />
       )}
 
 

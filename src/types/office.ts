@@ -328,3 +328,79 @@ export interface CompanyLevelProgress {
   achievements: string[];
 }
 
+// -----------------------------------------------------------------------------
+// OPEN WORLD MAP & REGIONAL DECENTRALIZED TRANSIT TYPES
+// -----------------------------------------------------------------------------
+
+export type CommuteMode = 'bullet_train' | 'company_car';
+export type TravelMissionType = 'b2b_pitch' | 'buy_trade' | 'market_research' | 'friendly_visit';
+
+export interface RegionalCompanyInfo {
+  id: string;
+  name: string;
+  industry: string;
+  level: number;
+  ownerName: string;
+  buildingType: string;
+  specialization: string;
+  reputation: number;
+  status: 'active' | 'in_meeting' | 'open_for_trade';
+  openBounties: {
+    id: string;
+    title: string;
+    rewardXp: number;
+    budgetCoins: number;
+    type: 'coding' | 'design' | 'content' | 'audit';
+  }[];
+  marketOffers: {
+    id: string;
+    title: string;
+    priceCoins: number;
+    category: 'skill_template' | 'api_license' | 'dataset' | 'service';
+    description: string;
+  }[];
+}
+
+export interface RegionalDistrict {
+  id: string;
+  name: string;
+  codename: string;
+  theme: string;
+  description: string;
+  color: string;
+  badge: string;
+  coordinates: { x: number; y: number }; // Percentage position on macro world map
+  transitHubName: string;
+  highwayDistanceKm: number;
+  trainTravelSeconds: number;
+  carTravelSeconds: number;
+  companies: RegionalCompanyInfo[];
+}
+
+export interface TravelMission {
+  id: string;
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  originRegionId: string;
+  originCompanyName: string;
+  targetRegionId: string;
+  targetCompanyId: string;
+  targetCompanyName: string;
+  commuteMode: CommuteMode;
+  missionType: TravelMissionType;
+  status: 'departing' | 'in_transit' | 'arrived_at_lobby' | 'negotiating' | 'returning' | 'completed';
+  departedAt: number;
+  durationSeconds: number;
+  progressPercent: number;
+  currentStepMessage: string;
+  dialogLogs: { time: string; speaker: string; text: string }[];
+  outcome?: {
+    success: boolean;
+    summary: string;
+    earnedXp: number;
+    earnedCoins: number;
+    tradeContract?: string;
+  };
+}
+

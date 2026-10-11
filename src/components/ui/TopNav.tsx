@@ -20,6 +20,7 @@ import {
   Building2,
   Coffee,
   Cpu,
+  Globe,
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 
@@ -42,6 +43,7 @@ interface TopNavProps {
   onOpenWorkspace: () => void;
   onOpenExtensions: () => void;
   onOpenDevServers: () => void;
+  onOpenWorldMap: () => void;
   onOpenCollabLogs?: () => void;
   onOpenActivityLogs?: () => void;
 }
@@ -65,6 +67,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenWorkspace,
   onOpenExtensions,
   onOpenDevServers,
+  onOpenWorldMap,
   onOpenCollabLogs,
   onOpenActivityLogs,
 }) => {
@@ -220,6 +223,19 @@ export const TopNav: React.FC<TopNavProps> = ({
           )}
         </button>
 
+        {/* 🗺️ Open World Map button */}
+        <button
+          onClick={onOpenWorldMap}
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#2c231c] text-xs font-semibold rounded-xl transition-all border border-[#d6c5ad] shrink-0 group"
+          title="Buka Peta Dunia Open World & Transit Antar-Regional"
+        >
+          <Globe className="w-3.5 h-3.5 text-[#c85a2b] group-hover:rotate-45 transition-transform shrink-0" />
+          <span className="hidden md:inline">Peta Kota</span>
+          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-[#fdeed9] text-[#c85a2b] rounded font-bold border border-[#f0c8a5]">
+            5 Sektor
+          </span>
+        </button>
+
         {/* User Points / Wallet */}
         <button
           onClick={onOpenWallet}
@@ -330,6 +346,23 @@ export const TopNav: React.FC<TopNavProps> = ({
               >
                 <Blocks className="w-4 h-4 text-[#7d3b8f]" />
                 <span className="font-medium">Skills & MCP Extensions</span>
+              </button>
+
+              {/* 🗺️ Open World Map Dropdown Item */}
+              <button
+                onClick={() => {
+                  setIsMoreMenuOpen(false);
+                  onOpenWorldMap();
+                }}
+                className="w-full text-left px-2.5 py-2 hover:bg-[#ede2d1] rounded-xl flex items-center justify-between text-[#2c231c] transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-[#c85a2b]" />
+                  <span className="font-medium">Open World Map & Transit</span>
+                </div>
+                <span className="text-[9px] font-mono px-1.5 py-0.2 bg-[#fdeed9] text-[#c85a2b] rounded font-bold">
+                  Kereta & Mobil
+                </span>
               </button>
 
               {/* Log Kegiatan & Diskusi Antar Agent */}
