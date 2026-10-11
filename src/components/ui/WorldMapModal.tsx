@@ -69,8 +69,6 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
   const [isConnectingPeer, setIsConnectingPeer] = useState(false);
   const [p2pNotice, setP2pNotice] = useState('');
   const [copiedNodeId, setCopiedNodeId] = useState(false);
-  const [relayUrlInput, setRelayUrlInput] = useState('');
-  const [isSavingRelay, setIsSavingRelay] = useState(false);
   const [isSyncingRelay, setIsSyncingRelay] = useState(false);
 
   // Fetch P2P Node Data
@@ -80,39 +78,9 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
       const data = await res.json();
       if (data.success) {
         setP2pStatus(data);
-        if (data.publicRelayUrl && !relayUrlInput) {
-          setRelayUrlInput(data.publicRelayUrl);
-        }
       }
     } catch (e) {
       console.error('Error fetching P2P status:', e);
-    }
-  };
-
-  const handleSaveRelay = async (e?: React.FormEvent, overrideUrl?: string) => {
-    if (e) e.preventDefault();
-    setIsSavingRelay(true);
-    const targetUrl = overrideUrl !== undefined ? overrideUrl : relayUrlInput.trim();
-    try {
-      const res = await fetch('/api/p2p', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'set_relay_url', relayUrl: targetUrl }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setP2pNotice(`🌐 ${data.message}`);
-        fetchP2pData();
-        setTimeout(() => setP2pNotice(''), 4000);
-      } else {
-        setP2pNotice(`❌ ${data.error || 'Gagal menyimpan URL Relay'}`);
-        setTimeout(() => setP2pNotice(''), 4000);
-      }
-    } catch (err: any) {
-      setP2pNotice(`❌ Gagal koneksi relay: ${err.message}`);
-      setTimeout(() => setP2pNotice(''), 4000);
-    } finally {
-      setIsSavingRelay(false);
     }
   };
 
@@ -977,96 +945,50 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                 </div>
               </div>
 
-              {/* Card 1: Dokploy VPS Community Relay Hub */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#121f2d] to-[#0c1520] border border-[#234263] text-white shadow-md space-y-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-[#0284c7]/20 border border-[#0284c7]/40 flex items-center justify-center text-[#38bdf8]">
-                      <Globe className="w-4 h-4 animate-spin" style={{ animationDuration: '12s' }} />
+              {/* Card 1: Decentralized Community Global Swarm (Zero-Config) */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#121f2d] to-[#0c1520] border border-[#234263] text-white shadow-md space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#0284c7]/20 border border-[#0284c7]/40 flex items-center justify-center text-[#38bdf8] shrink-0">
+                      <Globe className="w-5 h-5 animate-spin" style={{ animationDuration: '14s' }} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-xs tracking-wide text-white">🌐 Public Community Relay Hub (Dokploy VPS)</h3>
-                        <span className="text-[9px] px-2 py-0.5 rounded-full font-mono font-semibold bg-[#0369a1]/40 text-[#7dd3fc] border border-[#0284c7]/30">
-                          Dokploy Ready
+                        <h3 className="font-bold text-xs tracking-wide text-white">🌐 Jaringan Komunitas Global Vigent</h3>
+                        <span className="text-[9px] px-2 py-0.5 rounded-full font-mono font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          Auto-Connected
                         </span>
                       </div>
                       <p className="text-[10px] text-[#94a3b8] mt-0.5">
-                        Menghubungkan semua node Vigent di seluruh dunia secara otomatis tanpa hambatan router/NAT
+                        Node Anda otomatis terhubung ke bursa komunitas publik. Seluruh kantor rekan di berbagai regional terdeteksi realtime.
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    {p2pStatus?.isRelayConfigured ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                        Terhubung ke Dokploy VPS Hub
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                        <span className="w-2 h-2 rounded-full bg-amber-400" />
-                        Mode LAN / Mandiri (Belum ada VPS Hub)
-                      </span>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      Komunitas Global Online
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={handleSyncRelay}
+                      disabled={isSyncingRelay}
+                      className="px-3 py-1.5 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-40"
+                      title="Tarik pembaruan node komunitas terbaru"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isSyncingRelay ? 'animate-spin' : ''}`} />
+                      <span>{isSyncingRelay ? 'Menyinkronkan...' : 'Refresh Jaringan'}</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Form Input URL Dokploy Relay */}
-                <form onSubmit={(e) => handleSaveRelay(e)} className="flex flex-col sm:flex-row gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type="url"
-                      value={relayUrlInput}
-                      onChange={(e) => setRelayUrlInput(e.target.value)}
-                      placeholder="Masukkan URL Relay Dokploy VPS (contoh: https://relay.domainanda.com atau http://IP_VPS:3000)..."
-                      className="w-full pl-3 pr-8 py-2 bg-[#091119] border border-[#1e3956] rounded-xl text-xs font-mono text-white placeholder-[#64748b] focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
-                    />
-                    {relayUrlInput && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRelayUrlInput('');
-                          handleSaveRelay(undefined, '');
-                        }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-400 text-xs"
-                        title="Hapus dan Nonaktifkan Relay"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex gap-1.5 shrink-0">
-                    <button
-                      type="submit"
-                      disabled={isSavingRelay || !relayUrlInput.trim()}
-                      className="px-3.5 py-2 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-40"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>{isSavingRelay ? 'Menyimpan...' : 'Simpan & Sinkronkan'}</span>
-                    </button>
-
-                    {p2pStatus?.isRelayConfigured && (
-                      <button
-                        type="button"
-                        onClick={handleSyncRelay}
-                        disabled={isSyncingRelay}
-                        className="px-3 py-2 bg-[#1e293b] hover:bg-[#334155] text-[#38bdf8] font-bold text-xs rounded-xl flex items-center gap-1.5 border border-[#334155] transition-all disabled:opacity-40"
-                        title="Tarik daftar peer terbaru dari Dokploy Relay"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isSyncingRelay ? 'animate-spin' : ''}`} />
-                        <span>{isSyncingRelay ? 'Sinkronisasi...' : 'Tarik Peer'}</span>
-                      </button>
-                    )}
-                  </div>
-                </form>
-
-                <div className="flex items-center justify-between text-[10px] text-[#64748b] pt-1 border-t border-[#1a2d42]">
+                <div className="flex items-center justify-between text-[10px] text-[#64748b] pt-2 border-t border-[#1a2d42]">
                   <span>
-                    📦 Template Dokploy sudah siap di folder <code className="text-[#38bdf8] font-mono">relay-server/Dockerfile</code> (Port default: 3000)
+                    🔒 <strong>100% Zero-Knowledge:</strong> Hanya status presensi publik yang disinkronkan. Dokumen & LLM lokal tetap privat.
                   </span>
-                  <span>Otomatis heartbeat setiap 20 detik</span>
+                  <span>Otomatis sinkron setiap 20 detik</span>
                 </div>
               </div>
 

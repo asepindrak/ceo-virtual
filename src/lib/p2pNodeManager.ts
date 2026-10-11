@@ -306,6 +306,8 @@ export async function connectToPeerDirectly(peerUrl: string): Promise<{ success:
   }
 }
 
+const DEFAULT_COMMUNITY_RELAY_URL = 'https://relay.commitflow.space';
+
 /**
  * 6. Public Community Relay Hub Configuration & Auto-Sync
  */
@@ -321,7 +323,7 @@ export function getPublicRelayUrl(): string {
       }
     } catch {}
   }
-  return process.env.NEXT_PUBLIC_VIGENT_RELAY_URL || '';
+  return process.env.NEXT_PUBLIC_VIGENT_RELAY_URL || DEFAULT_COMMUNITY_RELAY_URL;
 }
 
 export function setPublicRelayUrl(relayUrl: string): string {
