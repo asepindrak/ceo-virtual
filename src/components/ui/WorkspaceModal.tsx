@@ -16,6 +16,7 @@ import {
   Layers,
   X,
   Sparkles,
+  Globe,
 } from 'lucide-react';
 
 interface WorkspaceProject {
@@ -32,8 +33,8 @@ interface WorkspaceModalProps {
 
 export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
   const [loading, setLoading] = useState(true);
-  const [homeDir, setHomeDir] = useState<string>('~/.realagent');
-  const [workspacesDir, setWorkspacesDir] = useState<string>('~/.realagent/workspaces');
+  const [homeDir, setHomeDir] = useState<string>('~/.vigent');
+  const [workspacesDir, setWorkspacesDir] = useState<string>('~/.vigent/workspaces');
   const [port, setPort] = useState<number>(28483);
   const [autorun, setAutorun] = useState<boolean>(false);
   const [projects, setProjects] = useState<WorkspaceProject[]>([]);
@@ -384,13 +385,28 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                     </h3>
                     <p className="text-[10px] text-[#786653] font-mono truncate">{selectedProject.folderPath}</p>
                   </div>
-                  <button
-                    onClick={() => handleOpenExplorer(selectedProject.folderPath)}
-                    className="px-2.5 py-1 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#2c231c] text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors border border-[#d6c5ad]"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    <span>Buka Folder</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {(selectedProject.files.some((f) => f.relativePath === 'index.html') ||
+                      selectedProject.name === 'shadowmove-landing-page') && (
+                      <a
+                        href="/preview/shadowmove/index.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 bg-[#1f6860] hover:bg-[#164e48] text-white text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors shadow-xs"
+                        title="Buka preview website di browser baru"
+                      >
+                        <Globe className="w-3 h-3" />
+                        <span>Preview Browser</span>
+                      </a>
+                    )}
+                    <button
+                      onClick={() => handleOpenExplorer(selectedProject.folderPath)}
+                      className="px-2.5 py-1 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#2c231c] text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors border border-[#d6c5ad]"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span>Buka Folder</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* File list tabs */}

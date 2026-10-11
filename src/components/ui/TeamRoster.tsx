@@ -20,7 +20,7 @@ export const TeamRoster: React.FC<TeamRosterProps> = ({
   onClose,
 }) => {
   return (
-    <div className="fixed inset-y-0 left-0 w-80 max-w-[calc(100vw-3rem)] bg-[#faf5eb] border-r-2 border-[#d6c5ad] shadow-2xl z-50 flex flex-col text-[#2c231c] animate-in slide-in-from-left duration-200">
+    <div className="fixed inset-y-0 left-0 w-80 max-w-[calc(100vw-3rem)] bg-[#faf5eb] border-r-2 border-[#d6c5ad] shadow-2xl z-50 flex flex-col overflow-hidden text-[#2c231c] animate-in slide-in-from-left duration-200">
       {/* Header */}
       <div className="p-4 border-b border-[#d6c5ad] bg-[#f4ebe1] flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -75,10 +75,12 @@ export const TeamRoster: React.FC<TeamRosterProps> = ({
                         ? 'bg-[#fdf2fc] text-[#7d3b8f] border border-[#eed0ed]'
                         : agent.state === 'coffee_break'
                         ? 'bg-[#fdeed9] text-[#c85a2b] border border-[#f0c8a5]'
+                        : agent.state === 'idle'
+                        ? 'bg-[#f4ebe1] text-[#786653] border border-[#d6c5ad]'
                         : 'bg-[#ede2d1] text-[#615042]'
                     }`}
                   >
-                    {agent.state.replace('_', ' ')}
+                    {agent.state === 'idle' ? 'STANDBY' : agent.state.replace('_', ' ')}
                   </span>
                 </div>
                 <div className="text-[11px] text-[#c85a2b] font-semibold truncate">{agent.roleTitle}</div>

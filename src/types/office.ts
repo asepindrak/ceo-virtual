@@ -18,6 +18,7 @@ export type AgentState =
   | 'talking' 
   | 'meeting' 
   | 'coffee_break'
+  | 'playing_game'
   | 'seeking_approval'
   | 'leaving_office';
 
@@ -33,6 +34,8 @@ export interface AgentDialog {
   targetId: string;
   targetName: string;
   message: string;
+  categoryTag?: string; // e.g. "🍿 Anime & Film", "🎮 Gaming & Hobi", "☕ Cerita Kehidupan", "🤖 Masa Lalu & Tech"
+  tagColor?: string;
   timestamp: number;
 }
 
@@ -43,6 +46,25 @@ export interface LLMConfig {
   model: string;
   isLocked: boolean; // if true, locked by creator with monthly token subscription
   monthlySubscriptionPoints?: number;
+}
+
+export type LLMCategory = 'text' | 'image' | 'fast' | 'vision' | 'audio';
+
+export interface CategoryLLMSetting {
+  provider: 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'custom';
+  baseUrl?: string;
+  apiKey?: string;
+  model: string;
+  description?: string;
+  isEnabled?: boolean;
+}
+
+export interface CompanyGlobalLLMConfig {
+  text?: CategoryLLMSetting;
+  image?: CategoryLLMSetting;
+  fast?: CategoryLLMSetting;
+  vision?: CategoryLLMSetting;
+  audio?: CategoryLLMSetting;
 }
 
 export interface HumanDecisionRequest {
@@ -60,6 +82,15 @@ export interface HumanDecisionRequest {
   ownerFeedback?: string;
 }
 
+export interface PersonalityProfile {
+  mbti: string; // e.g. "INTJ", "ENFP", "ISTP", "INFJ", "ENTP", etc.
+  enneagram: string; // e.g. "5w6", "7w8", "1w9", "3w2", "4w5", etc.
+  archetype: string; // e.g. "The Mastermind Architect", "The Creative Catalyst", etc.
+  traits: string[]; // e.g. ["Analitis", "Visioner", "Sarkasme Halus"]
+  speakingStyle: string; // e.g. "To-the-point, logis, sesekali nyeletuk analogi sci-fi"
+  interests: string[]; // e.g. ["Cyberpunk", "Rust & Linux", "Custom Keyboard"]
+}
+
 export interface MarketplaceAgent {
   id: string;
   creatorUserId: string;
@@ -68,6 +99,11 @@ export interface MarketplaceAgent {
   role: AgentRole;
   roleTitle: string;
   bio: string;
+  personality?: PersonalityProfile;
+  gender?: 'male' | 'female';
+  hairStyle?: 'undercut' | 'short_messy' | 'slick_back' | 'twintails' | 'bob_cut' | 'long_flowing' | 'ponytail';
+  eyeColor?: string;
+  accessory?: 'glasses' | 'headphone' | 'ribbon' | 'hairclip' | 'cyber_earpiece' | 'none';
   skills: string[];
   pricePoints: number;
   avatarColor: string;
@@ -112,19 +148,27 @@ export interface Agent {
   stateMessage: string;
   
   // Visual appearance
+  gender?: 'male' | 'female';
   avatarColor: string;
   shirtColor: string;
   hairColor: string;
   skinColor: string;
+  hairStyle?: 'undercut' | 'short_messy' | 'slick_back' | 'twintails' | 'bob_cut' | 'long_flowing' | 'ponytail';
+  eyeColor?: string;
+  accessory?: 'glasses' | 'headphone' | 'ribbon' | 'hairclip' | 'cyber_earpiece' | 'none';
   
   // Work data
   currentTaskId?: string;
   activeDialog?: AgentDialog;
+  collabPartnerId?: string;
+  facingDirection?: 'left' | 'right' | 'front';
   skills: string[];
   bio: string;
+  personality?: PersonalityProfile;
   
   // LLM Config per agent
   llmConfig?: LLMConfig;
+  inheritedLLMCategory?: LLMCategory | 'manual';
   creatorId?: string;
   
   // Real output simulation
@@ -158,6 +202,7 @@ export type TaskType = 'coding' | 'content' | 'architecture' | 'qa' | 'design';
 export interface TaskTicket {
   id: string;
   title: string;
+  projectName?: string; // Associated project / workspace name
   description: string;
   type: TaskType;
   departmentId: string;
@@ -170,6 +215,29 @@ export interface TaskTicket {
   completedAt?: number;
 }
 
+export interface TelegramConfig {
+  botToken: string;
+  chatId: string;
+  isEnabled: boolean;
+  botUsername?: string;
+  botFirstName?: string;
+  autoSyncWarRoom?: boolean;
+  lastActiveTime?: number;
+}
+
+export interface OfficeGroupChatMessage {
+  id: string;
+  senderType: 'user' | 'agent' | 'system';
+  agentId?: string;
+  senderName: string;
+  senderAvatarColor?: string;
+  senderRoleTitle?: string;
+  message: string;
+  mentionedAgentIds?: string[];
+  timestamp: number;
+  source?: 'web' | 'telegram';
+}
+
 export interface Company {
   id: string;
   ownerUserId: string;
@@ -179,14 +247,84 @@ export interface Company {
   departments: Department[];
   agents: Agent[];
   tasks: TaskTicket[];
+  telegramConfig?: TelegramConfig;
+  globalLLMConfig?: CompanyGlobalLLMConfig;
 }
 
 export interface ActivityEvent {
   id: string;
   timestamp: number;
-  type: 'movement' | 'collaboration' | 'task_start' | 'task_complete' | 'meeting' | 'break' | 'human_loop' | 'hire' | 'fire';
+  type: 'movement' | 'collaboration' | 'task_start' | 'task_complete' | 'meeting' | 'break' | 'human_loop' | 'hire' | 'fire' | 'casual_talk' | 'system';
   agentId: string;
   agentName: string;
   targetAgentName?: string;
+  categoryTag?: string;
   description: string;
 }
+
+export interface DevServer {
+  id: string;
+  projectName: string;
+  port: number;
+  url: string;
+  status: 'running' | 'stopped' | 'starting';
+  framework: string;
+  description: string;
+  isExternal?: boolean;
+}
+
+export interface AgentCollaborationLog {
+  id: string;
+  timestamp: number;
+  type?: 'casual_talk' | 'collaboration';
+  categoryTag?: string;
+  projectName?: string;
+  senderId: string;
+  senderName: string;
+  senderRoleTitle: string;
+  senderAvatarColor?: string;
+  targetId: string;
+  targetName: string;
+  targetRoleTitle: string;
+  targetAvatarColor?: string;
+  topic: string;
+  dialog: string;
+  outcome?: string;
+}
+
+export type MemoryType = 'episodic' | 'semantic' | 'procedural' | 'lore' | 'rule' | 'milestone' | 'knowledge' | 'task_experience';
+
+export interface CompanyMemoryItem {
+  id: string;
+  companyId: string;
+  type: MemoryType;
+  title: string;
+  content: string;
+  categoryTag?: string;
+  tags: string[];
+  agentId?: string;
+  agentName?: string;
+  authorAgent?: string;
+  sourceTaskId?: string;
+  sourceTaskTitle?: string;
+  importance: number; // 1 (minor note) to 5 (critical core experience)
+  embedding?: number[];
+  createdAt: number;
+  lastRecalledAt?: number;
+  recallCount: number;
+}
+
+export interface CompanyLevelProgress {
+  companyId: string;
+  level: number;
+  levelTitle: string;
+  title?: string;
+  xp: number;
+  nextLevelXp: number;
+  totalTasksCompleted: number;
+  tasksCompletedCount?: number;
+  totalLinesOfCode: number;
+  totalMemoriesCount: number;
+  achievements: string[];
+}
+

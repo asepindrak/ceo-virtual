@@ -63,10 +63,51 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Subtle grid pattern for vintage parquet aesthetic
-    const gridHelper = new THREE.GridHelper(26, 26, 0xd6c5ad, 0xe2d4bf);
-    gridHelper.position.y = 0.01;
-    scene.add(gridHelper);
+    // Area rugs for cozy zones (NO dizzying grid squares!)
+    // Meeting Room Carpet
+    const meetCarpet = new THREE.Mesh(
+      new THREE.PlaneGeometry(6.0, 8.2),
+      new THREE.MeshStandardMaterial({ color: 0xcfe2da, roughness: 0.9 })
+    );
+    meetCarpet.rotation.x = -Math.PI / 2;
+    meetCarpet.position.set(9.2, 0.01, -5.5);
+    scene.add(meetCarpet);
+
+    // Pantry / Cafe Floor Deck
+    const cafeCarpet = new THREE.Mesh(
+      new THREE.PlaneGeometry(6.5, 7.8),
+      new THREE.MeshStandardMaterial({ color: 0xf1dfd0, roughness: 0.85 })
+    );
+    cafeCarpet.rotation.x = -Math.PI / 2;
+    cafeCarpet.position.set(-9.2, 0.01, 5.5);
+    scene.add(cafeCarpet);
+
+    // Workstation Pod Left Rug
+    const pod1Carpet = new THREE.Mesh(
+      new THREE.PlaneGeometry(4.4, 6.8),
+      new THREE.MeshStandardMaterial({ color: 0xe8f2ec, roughness: 0.9 })
+    );
+    pod1Carpet.rotation.x = -Math.PI / 2;
+    pod1Carpet.position.set(-2.7, 0.01, -2.5);
+    scene.add(pod1Carpet);
+
+    // Workstation Pod Right Rug
+    const pod2Carpet = new THREE.Mesh(
+      new THREE.PlaneGeometry(4.4, 6.8),
+      new THREE.MeshStandardMaterial({ color: 0xf0eaf4, roughness: 0.9 })
+    );
+    pod2Carpet.rotation.x = -Math.PI / 2;
+    pod2Carpet.position.set(2.7, 0.01, -2.5);
+    scene.add(pod2Carpet);
+
+    // Boss Suite Rug
+    const bossCarpet = new THREE.Mesh(
+      new THREE.PlaneGeometry(7.0, 3.0),
+      new THREE.MeshStandardMaterial({ color: 0x243b55, roughness: 0.9 })
+    );
+    bossCarpet.rotation.x = -Math.PI / 2;
+    bossCarpet.position.set(0, 0.01, -8.3);
+    scene.add(bossCarpet);
 
     // 2. Perimeter Walls - Warm vintage cream
     const wallMat = new THREE.MeshStandardMaterial({ color: 0xf3e8d8, roughness: 0.9 });
@@ -252,16 +293,16 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
       scene.add(deskGroup);
     };
 
-    // Spawn 8 workstation setups in modern agile pods
-    createWorkstation(-3.5, -5.5, 0);
-    createWorkstation(-1.5, -5.5, 0);
-    createWorkstation(-3.5, -0.5, Math.PI);
-    createWorkstation(-1.5, -0.5, Math.PI);
+    // Spawn 8 workstation setups in modern agile pods with spacious spacing
+    createWorkstation(-3.8, -4.5, 0);
+    createWorkstation(-1.6, -4.5, 0);
+    createWorkstation(-3.8, -0.5, Math.PI);
+    createWorkstation(-1.6, -0.5, Math.PI);
 
-    createWorkstation(1.5, -5.5, 0);
-    createWorkstation(3.5, -5.5, 0);
-    createWorkstation(1.5, -0.5, Math.PI);
-    createWorkstation(3.5, -0.5, Math.PI);
+    createWorkstation(1.6, -4.5, 0);
+    createWorkstation(3.8, -4.5, 0);
+    createWorkstation(1.6, -0.5, Math.PI);
+    createWorkstation(3.8, -0.5, Math.PI);
 
     // 6. Modern Indoor Plants (Green Monstera pots)
     const createPlant = (px: number, pz: number) => {
@@ -465,6 +506,16 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
       agentEntry.group.position.z = agent.currentPosition.z;
       agentEntry.group.rotation.y = agent.rotationY;
 
+      // Face talking partner directly in 3D!
+      if (agent.state === 'talking' && agent.collabPartnerId) {
+        const partner = agents.find((a) => a.id === agent.collabPartnerId);
+        if (partner) {
+          const dx = partner.currentPosition.x - agent.currentPosition.x;
+          const dz = partner.currentPosition.z - agent.currentPosition.z;
+          agentEntry.group.rotation.y = Math.atan2(dx, dz);
+        }
+      }
+
       // Animate character limbs based on state
       const time = performance.now() * 0.005;
 
@@ -486,15 +537,24 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
         agentEntry.leftArm.rotation.x = -Math.PI / 3 + Math.sin(time * 3) * 0.05;
         agentEntry.rightArm.rotation.x = -Math.PI / 3 + Math.cos(time * 3) * 0.05;
         agentEntry.head.rotation.x = 0.12 + Math.sin(time * 1.2) * 0.02;
+      } else if (agent.state === 'idle') {
+        // Sitting calmly at desk without frantic typing, resting hands
+        agentEntry.leftLeg.rotation.x = -Math.PI / 2.2;
+        agentEntry.rightLeg.rotation.x = -Math.PI / 2.2;
+        agentEntry.group.position.y = -0.15; // Sitting on chair
+        agentEntry.leftArm.rotation.x = -0.2;
+        agentEntry.rightArm.rotation.x = -0.2;
+        agentEntry.head.rotation.x = Math.sin(time * 0.8) * 0.02;
+        agentEntry.head.rotation.y = 0;
       } else if (agent.state === 'talking') {
-        // Calm conversation posture, standing still facing colleague
+        // Lively conversation posture facing colleague
         agentEntry.leftLeg.rotation.x = 0;
         agentEntry.rightLeg.rotation.x = 0;
         agentEntry.group.position.y = 0;
-        agentEntry.leftArm.rotation.x = 0;
-        agentEntry.rightArm.rotation.x = 0;
-        agentEntry.head.rotation.y = 0;
-        agentEntry.head.rotation.x = 0;
+        agentEntry.leftArm.rotation.x = -0.2;
+        agentEntry.rightArm.rotation.x = -Math.PI / 4 + Math.sin(time * 5) * 0.18; // Conversational gesture
+        agentEntry.head.rotation.y = Math.sin(time * 2) * 0.08;
+        agentEntry.head.rotation.x = 0.05;
       } else if (agent.state === 'seeking_approval') {
         // Standing at Owner's Executive desk waiting for decision
         agentEntry.leftLeg.rotation.x = 0;
@@ -505,7 +565,7 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
         agentEntry.head.rotation.x = -0.12;
         agentEntry.head.rotation.y = Math.sin(time * 1.5) * 0.08;
       } else {
-        // Idle
+        // Standby standing
         agentEntry.leftLeg.rotation.x = 0;
         agentEntry.rightLeg.rotation.x = 0;
         agentEntry.leftArm.rotation.x = 0;
@@ -632,22 +692,87 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
       lastTime = currentTime;
 
       // Update simulation physics & behaviors
+      const prevAgents = agentsRef.current;
+      const prevTasks = tasksRef.current;
+
       const { updatedAgents, updatedTasks, newEvents } = simulation.update(
-        agentsRef.current,
-        tasksRef.current,
+        prevAgents,
+        prevTasks,
         deltaSeconds
       );
 
+      // Keep internal animation refs in sync each frame
+      agentsRef.current = updatedAgents;
+      tasksRef.current = updatedTasks;
+
       // Sync updated state up to React parent
-      if (
-        newEvents.length > 0 ||
-        updatedAgents.some((a, i) => a.currentPosition.x !== agentsRef.current[i]?.currentPosition.x)
-      ) {
+      const hasMovement = updatedAgents.some(
+        (a, i) =>
+          Math.abs(a.currentPosition.x - (prevAgents[i]?.currentPosition.x ?? 0)) > 0.01 ||
+          Math.abs(a.currentPosition.z - (prevAgents[i]?.currentPosition.z ?? 0)) > 0.01 ||
+          a.state !== prevAgents[i]?.state ||
+          a.currentTaskId !== prevAgents[i]?.currentTaskId ||
+          a.stateMessage !== prevAgents[i]?.stateMessage
+      );
+
+      const hasTaskChange = updatedTasks.some(
+        (t, i) =>
+          Math.floor(t.progress) !== Math.floor(prevTasks[i]?.progress ?? 0) ||
+          t.status !== prevTasks[i]?.status
+      );
+
+      if (newEvents.length > 0 || hasMovement || hasTaskChange) {
         onSimulationUpdate(updatedAgents, updatedTasks, newEvents);
       }
 
       // Update 3D avatar meshes
       updateAgentMeshes(scene, updatedAgents);
+
+      // Render 3D Walking Track Lines for walking agents
+      const existingTrackGroup = scene.getObjectByName('agent-walking-tracks');
+      if (existingTrackGroup) {
+        scene.remove(existingTrackGroup);
+      }
+      const trackGroup = new THREE.Group();
+      trackGroup.name = 'agent-walking-tracks';
+
+      updatedAgents.forEach((agent) => {
+        if (agent.state === 'walking') {
+          const pathState = simulation.getAgentPathState(agent.id);
+          if (pathState && pathState.waypoints.length > 0) {
+            const curIdx = Math.min(pathState.waypoints.length - 1, pathState.currentWaypointIndex);
+            const pts: THREE.Vector3[] = [
+              new THREE.Vector3(agent.currentPosition.x, 0.06, agent.currentPosition.z),
+            ];
+            for (let i = curIdx; i < pathState.waypoints.length; i++) {
+              pts.push(new THREE.Vector3(pathState.waypoints[i].x, 0.06, pathState.waypoints[i].z));
+            }
+            if (pts.length >= 2) {
+              const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+              const lineMat = new THREE.LineBasicMaterial({
+                color: agent.id === selectedAgentId ? 0xec4899 : 0x0284c7,
+                linewidth: 3,
+              });
+              const line = new THREE.Line(lineGeo, lineMat);
+              trackGroup.add(line);
+
+              // Target point beacon
+              const targetPt = pathState.finalTarget;
+              const targetMarker = new THREE.Mesh(
+                new THREE.RingGeometry(0.2, 0.35, 16),
+                new THREE.MeshBasicMaterial({
+                  color: agent.id === selectedAgentId ? 0xec4899 : 0x0284c7,
+                  side: THREE.DoubleSide,
+                })
+              );
+              targetMarker.rotation.x = -Math.PI / 2;
+              targetMarker.position.set(targetPt.x, 0.07, targetPt.z);
+              trackGroup.add(targetMarker);
+            }
+          }
+        }
+      });
+      scene.add(trackGroup);
 
       // Follow Camera Mode
       if (cameraMode === 'follow' && selectedAgentId && controlsRef.current) {

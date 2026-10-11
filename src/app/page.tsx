@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
-import dynamic from 'next/dynamic';
-import { Company, Agent, TaskTicket, ActivityEvent, HumanDecisionRequest, MarketplaceAgent, LLMConfig, UserAccount } from '@/types/office';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Company, Agent, TaskTicket, ActivityEvent, HumanDecisionRequest, MarketplaceAgent, LLMConfig, UserAccount, CompanyGlobalLLMConfig, LLMCategory } from '@/types/office';
 import { PRESET_COMPANIES, DESK_SLOTS } from '@/lib/companyPresets';
 import { CURRENT_USER, INITIAL_MARKETPLACE_AGENTS } from '@/lib/marketplaceData';
 import { OfficeSimulation } from '@/lib/simulationEngine';
@@ -17,21 +16,11 @@ import { WalletModal } from '@/components/ui/WalletModal';
 import { DecisionModal } from '@/components/ui/DecisionModal';
 import { WorkspaceModal } from '@/components/ui/WorkspaceModal';
 import { ExtensionHubModal } from '@/components/ui/ExtensionHubModal';
+import { OfficeChatModal } from '@/components/ui/OfficeChatModal';
+import { DevServersModal } from '@/components/ui/DevServersModal';
 import { IsometricOffice } from '@/components/office2d/IsometricOffice';
+import { MessagesSquare } from 'lucide-react';
 
-// Dynamically import Three.js Canvas to prevent SSR issues
-const OfficeCanvas = dynamic(
-  () => import('@/components/office3d/OfficeCanvas').then((mod) => mod.OfficeCanvas),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-[#fbf7ee] text-[#2c231c]">
-        <div className="w-12 h-12 border-4 border-[#c85a2b] border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="font-mono text-sm tracking-widest text-[#c85a2b] font-bold">MEMUAT LINGKUNGAN 3D KANTOR...</p>
-      </div>
-    ),
-  }
-);
 
 export default function RealAgent3DPage() {
   const [userAccount, setUserAccount] = useState<UserAccount>(CURRENT_USER);
@@ -67,7 +56,9 @@ export default function RealAgent3DPage() {
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const [isExtensionsOpen, setIsExtensionsOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d'); // Default to 2.5D for instant 60fps & reliability
+  const [isOfficeChatOpen, setIsOfficeChatOpen] = useState(false);
+  const [officeChatInitialTab, setOfficeChatInitialTab] = useState<'war_room' | 'agent_collabs' | 'activity_logs'>('war_room');
+  const [isDevServersModalOpen, setIsDevServersModalOpen] = useState(false);
 
   // Human-in-the-Loop Decision State
   const [pendingDecisions, setPendingDecisions] = useState<HumanDecisionRequest[]>([]);
@@ -77,7 +68,110 @@ export default function RealAgent3DPage() {
   const [speed, setSpeed] = useState(1);
 
   // Simulation Engine Instance (Ref persisted across renders)
-  const simulationRef = useRef<OfficeSimulation>(new OfficeSimulation(1.0));
+  const simulationRef = useRef<OfficeSimulation>(new OfficeSimulation(1.0, currentCompany));
+
+  // Keep simulation aware of active company for LLM configurations & banter
+  useEffect(() => {
+    simulationRef.current.setCompany(currentCompany);
+  }, [currentCompany]);
+
+  // 1. Load persisted tasks & events on initial mount or office switch
+  useEffect(() => {
+    try {
+      // A. Load Tasks
+      const tasksStorageKey = `vigent_tasks_${currentCompany.id}`;
+      const savedTasksJson = localStorage.getItem(tasksStorageKey);
+      if (savedTasksJson) {
+        const parsed = JSON.parse(savedTasksJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTasks(parsed);
+        }
+      } else {
+        // Fallback: check server disk tasks
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_tasks', companyId: currentCompany.id }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success && Array.isArray(data.tasks) && data.tasks.length > 0) {
+              setTasks(data.tasks);
+            }
+          })
+          .catch(console.error);
+      }
+
+      // B. Load Activity Events
+      const eventsStorageKey = `vigent_events_${currentCompany.id}`;
+      const savedEventsJson = localStorage.getItem(eventsStorageKey);
+      if (savedEventsJson) {
+        const parsed = JSON.parse(savedEventsJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setEvents(parsed);
+        }
+      } else {
+        // Fallback: check server disk events
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_events', companyId: currentCompany.id }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success && Array.isArray(data.events) && data.events.length > 0) {
+              setEvents(data.events);
+            }
+          })
+          .catch(console.error);
+      }
+    } catch (e) {
+      console.error('Error loading data from storage:', e);
+    }
+  }, [currentCompany.id]);
+
+  // 2. Persist tasks to localStorage & server disk whenever tasks update
+  useEffect(() => {
+    try {
+      if (tasks && tasks.length > 0) {
+        const storageKey = `vigent_tasks_${currentCompany.id}`;
+        localStorage.setItem(storageKey, JSON.stringify(tasks));
+
+        const timer = setTimeout(() => {
+          fetch('/api/workspace', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'save_tasks', companyId: currentCompany.id, tasks }),
+          }).catch(console.error);
+        }, 1200);
+        return () => clearTimeout(timer);
+      }
+    } catch (e) {
+      console.error('Error saving tasks to storage:', e);
+    }
+  }, [tasks, currentCompany.id]);
+
+  // 3. Persist activity events to localStorage & server disk whenever events update
+  useEffect(() => {
+    try {
+      if (events && events.length > 0) {
+        const storageKey = `vigent_events_${currentCompany.id}`;
+        const recentToSave = events.slice(-300);
+        localStorage.setItem(storageKey, JSON.stringify(recentToSave));
+
+        const timer = setTimeout(() => {
+          fetch('/api/workspace', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'save_events', companyId: currentCompany.id, events: recentToSave }),
+          }).catch(console.error);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    } catch (e) {
+      console.error('Error saving events to storage:', e);
+    }
+  }, [events, currentCompany.id]);
 
   // Simulation tick sync callback from 3D Canvas
   const handleSimulationUpdate = useCallback(
@@ -85,7 +179,7 @@ export default function RealAgent3DPage() {
       setAgents(updatedAgents);
       setTasks(updatedTasks);
       if (newEvents.length > 0) {
-        setEvents((prev) => [...prev, ...newEvents]);
+        setEvents((prev) => [...prev, ...newEvents].slice(-300));
 
         // Auto-generate disk artifacts when tasks finish
         const finishedEvents = newEvents.filter((e) => e.type === 'task_complete');
@@ -98,7 +192,7 @@ export default function RealAgent3DPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   action: 'generate_task_code',
-                  projectName: task.title,
+                  projectName: task.projectName || task.title,
                   taskTitle: task.title,
                   taskType: task.type,
                   agentName: ev.agentName,
@@ -142,7 +236,7 @@ export default function RealAgent3DPage() {
     const target = agents.find((a) => a.id === targetId);
     if (!sender || !target) return;
 
-    const { updatedSender, event } = simulationRef.current.triggerCollaboration(sender, target);
+    const { updatedSender, event } = simulationRef.current.triggerCollaboration(sender, target, undefined, tasks);
     setAgents((prev) => prev.map((a) => (a.id === senderId ? updatedSender : a)));
     setEvents((prev) => [...prev, event]);
   };
@@ -152,6 +246,15 @@ export default function RealAgent3DPage() {
     if (!agent) return;
 
     const { updatedAgent, event } = simulationRef.current.triggerCoffeeBreak(agent);
+    setAgents((prev) => prev.map((a) => (a.id === agentId ? updatedAgent : a)));
+    setEvents((prev) => [...prev, event]);
+  };
+
+  const handleSendSprint = (agentId: string) => {
+    const agent = agents.find((a) => a.id === agentId);
+    if (!agent) return;
+
+    const { updatedAgent, event } = simulationRef.current.triggerSprintViewing(agent);
     setAgents((prev) => prev.map((a) => (a.id === agentId ? updatedAgent : a)));
     setEvents((prev) => [...prev, event]);
   };
@@ -312,29 +415,55 @@ export default function RealAgent3DPage() {
   };
 
   // Update Agent's Custom LLM Config
-  const handleUpdateLLMConfig = (agentId: string, updatedConfig: LLMConfig) => {
+  const handleUpdateLLMConfig = (
+    agentId: string,
+    updatedConfig: LLMConfig,
+    inheritedCategory?: LLMCategory | 'manual'
+  ) => {
     setAgents((prev) =>
-      prev.map((a) => (a.id === agentId ? { ...a, llmConfig: updatedConfig } : a))
+      prev.map((a) =>
+        a.id === agentId
+          ? { ...a, llmConfig: updatedConfig, inheritedLLMCategory: inheritedCategory }
+          : a
+      )
     );
+  };
+
+  // Update Company's Global LLM Settings
+  const handleUpdateCompanyLLMConfig = (updatedGlobalLLM: CompanyGlobalLLMConfig) => {
+    setCurrentCompany((prev) => {
+      const updated = { ...prev, globalLLMConfig: updatedGlobalLLM };
+      try {
+        localStorage.setItem(`vigent_company_llm_${prev.id}`, JSON.stringify(updatedGlobalLLM));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
   };
 
   // Add Task to Board
   const handleAddTask = (
     newTaskData: Omit<TaskTicket, 'id' | 'createdAt' | 'progress' | 'artifacts' | 'logs'>
   ) => {
+    const assignedAgent = agents.find((a) => a.id === newTaskData.assignedAgentId);
     const newTicket: TaskTicket = {
       ...newTaskData,
       id: `task-${Date.now()}`,
       progress: 0,
+      status: newTaskData.assignedAgentId ? 'in_progress' : 'backlog',
       artifacts: [],
-      logs: ['Task created and dispatched into sprint system.'],
+      logs: [
+        `Task created into sprint system. ${
+          assignedAgent ? `Assigned to ${assignedAgent.name} (Executing)` : 'Placed in Backlog'
+        }`,
+      ],
       createdAt: Date.now(),
     };
 
     setTasks((prev) => [newTicket, ...prev]);
 
-    // Auto-create dedicated project folder and files on disk in ~/.realagent/workspaces
-    const assignedAgent = agents.find((a) => a.id === newTicket.assignedAgentId);
+    // Auto-create dedicated project folder and files on disk in ~/.vigent/workspaces
     fetch('/api/workspace', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -343,30 +472,56 @@ export default function RealAgent3DPage() {
         projectName: newTicket.title,
         taskTitle: newTicket.title,
         taskType: newTicket.type,
-        agentName: assignedAgent?.name || 'Autonomous Agent',
+        agentName: assignedAgent?.name || 'Autonomous Dev',
       }),
     }).catch(console.error);
 
-    if (newTicket.assignedAgentId) {
+    if (newTicket.assignedAgentId && assignedAgent) {
+      // Actively send agent to desk to execute task
+      const workingAgent = simulationRef.current.returnToDesk({
+        ...assignedAgent,
+        state: 'working',
+        currentTaskId: newTicket.id,
+        stateMessage: `⚡ Working on: "${newTicket.title}"`,
+      });
+
       setAgents((prev) =>
-        prev.map((a) => {
-          if (a.id === newTicket.assignedAgentId) {
-            return {
-              ...a,
-              state: 'working',
-              currentTaskId: newTicket.id,
-              stateMessage: `Working on: "${newTicket.title}"`,
-            };
-          }
-          return a;
-        })
+        prev.map((a) => (a.id === newTicket.assignedAgentId ? workingAgent : a))
       );
+
+      // Add immediate activity event
+      setEvents((prev) => [
+        ...prev,
+        {
+          id: `task-start-${Date.now()}`,
+          timestamp: Date.now(),
+          type: 'task_start',
+          agentId: assignedAgent.id,
+          agentName: assignedAgent.name,
+          description: `⚡ ${assignedAgent.name} reported to desk and actively started executing task: "${newTicket.title}"`,
+        },
+      ]);
     }
   };
 
   // Assign Task
   const handleAssignTask = (taskId: string, agentId: string) => {
     const assignedAgent = agents.find((a) => a.id === agentId);
+    const targetTask = tasks.find((t) => t.id === taskId);
+    if (!assignedAgent || !targetTask) return;
+
+    // Send agent straight to desk to work
+    const workingAgent = simulationRef.current.returnToDesk({
+      ...assignedAgent,
+      state: 'working',
+      currentTaskId: taskId,
+      stateMessage: `⚡ Working on: "${targetTask.title}"`,
+    });
+
+    setAgents((prev) =>
+      prev.map((a) => (a.id === agentId ? workingAgent : a))
+    );
+
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id === taskId) {
@@ -374,26 +529,97 @@ export default function RealAgent3DPage() {
             ...t,
             assignedAgentId: agentId,
             status: 'in_progress' as const,
-            logs: [...t.logs, `Assigned to ${assignedAgent?.name || 'agent'}`],
+            logs: [...t.logs, `Assigned to ${assignedAgent.name} (Sprint execution started)`],
           };
         }
         return t;
       })
     );
 
+    setEvents((prev) => [
+      ...prev,
+      {
+        id: `task-assign-${Date.now()}`,
+        timestamp: Date.now(),
+        type: 'task_start',
+        agentId: agentId,
+        agentName: assignedAgent.name,
+        description: `⚡ ${assignedAgent.name} assigned to task "${targetTask.title}" and started execution at desk.`,
+      },
+    ]);
+  };
+
+  // Delete Task from Board
+  const handleDeleteTask = (taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
     setAgents((prev) =>
-      prev.map((a) => {
-        if (a.id === agentId) {
-          return {
-            ...a,
-            state: 'working',
-            currentTaskId: taskId,
-            stateMessage: `Assigned new task: "${tasks.find((t) => t.id === taskId)?.title || 'task'}"`,
-          };
-        }
-        return a;
-      })
+      prev.map((a) =>
+        a.currentTaskId === taskId
+          ? { ...a, state: 'idle', currentTaskId: undefined, stateMessage: 'Task dibatalkan / dihapus' }
+          : a
+      )
     );
+    fetch('/api/workspace', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_task', companyId: currentCompany.id, taskId }),
+    }).catch(console.error);
+    setEvents((prev) => [
+      ...prev,
+      {
+        id: `task-delete-${Date.now()}`,
+        timestamp: Date.now(),
+        type: 'task_start',
+        agentId: 'user',
+        agentName: 'Project Manager',
+        description: `🗑️ Task berhasil dihapus dari Sprint Board.`,
+      },
+    ]);
+  };
+
+  // Edit Task from Board
+  const handleEditTask = (updatedTask: TaskTicket) => {
+    setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)));
+    fetch('/api/workspace', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'edit_task', companyId: currentCompany.id, updatedTask }),
+    }).catch(console.error);
+
+    if (updatedTask.status === 'in_progress' && updatedTask.assignedAgentId) {
+      const assignedAgent = agents.find((a) => a.id === updatedTask.assignedAgentId);
+      if (assignedAgent) {
+        const workingAgent = simulationRef.current.returnToDesk({
+          ...assignedAgent,
+          state: 'working',
+          currentTaskId: updatedTask.id,
+          stateMessage: `⚡ Working on: "${updatedTask.title}"`,
+        });
+        setAgents((prev) =>
+          prev.map((a) => (a.id === updatedTask.assignedAgentId ? workingAgent : a))
+        );
+      }
+    } else if (updatedTask.status === 'done') {
+      setAgents((prev) =>
+        prev.map((a) =>
+          a.currentTaskId === updatedTask.id
+            ? { ...a, state: 'idle', currentTaskId: undefined, stateMessage: 'Task selesai' }
+            : a
+        )
+      );
+    }
+
+    setEvents((prev) => [
+      ...prev,
+      {
+        id: `task-edit-${Date.now()}`,
+        timestamp: Date.now(),
+        type: 'task_start',
+        agentId: updatedTask.assignedAgentId || 'user',
+        agentName: 'Project Manager',
+        description: `📝 Task "${updatedTask.title}" berhasil diperbarui [Status: ${updatedTask.status}].`,
+      },
+    ]);
   };
 
   // Switch Company / Multi-Office
@@ -417,7 +643,10 @@ export default function RealAgent3DPage() {
   };
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
-  const selectedAgentTask = tasks.find((t) => t.id === selectedAgent?.currentTaskId);
+  const selectedAgentTask =
+    tasks.find((t) => t.id === selectedAgent?.currentTaskId) ||
+    tasks.find((t) => t.assignedAgentId === selectedAgent?.id && t.status === 'in_progress') ||
+    tasks.filter((t) => t.assignedAgentId === selectedAgent?.id && t.status === 'done').slice(-1)[0];
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-[#f4ebe1] text-[#2c231c] font-sans">
@@ -429,13 +658,15 @@ export default function RealAgent3DPage() {
         speed={speed}
         userPoints={userAccount.pointsBalance}
         pendingDecisionsCount={pendingDecisions.length}
-        viewMode={viewMode}
-        onToggleViewMode={() => setViewMode((v) => (v === '2d' ? '3d' : '2d'))}
         onTogglePause={handleTogglePause}
         onChangeSpeed={handleChangeSpeed}
         onOpenCompanyModal={() => setIsCompanyModalOpen(true)}
         onOpenTasksModal={() => setIsTasksModalOpen(true)}
         onOpenRosterModal={() => setIsRosterModalOpen(true)}
+        onOpenOfficeChat={() => {
+          setOfficeChatInitialTab('war_room');
+          setIsOfficeChatOpen(true);
+        }}
         onOpenMarketplace={() => setIsMarketplaceOpen(true)}
         onOpenWallet={() => setIsWalletOpen(true)}
         onOpenDecisions={() => {
@@ -445,31 +676,45 @@ export default function RealAgent3DPage() {
         }}
         onOpenWorkspace={() => setIsWorkspaceModalOpen(true)}
         onOpenExtensions={() => setIsExtensionsOpen(true)}
+        onOpenDevServers={() => setIsDevServersModalOpen(true)}
+        onOpenCollabLogs={() => {
+          setOfficeChatInitialTab('agent_collabs');
+          setIsOfficeChatOpen(true);
+        }}
+        onOpenActivityLogs={() => {
+          setOfficeChatInitialTab('activity_logs');
+          setIsOfficeChatOpen(true);
+        }}
       />
 
-      {/* Office Simulation Viewport: 2.5D Isometric (Ultra-Fast) vs 3D WebGL */}
-      {viewMode === '2d' ? (
-        <IsometricOffice
-          agents={agents}
-          tasks={tasks}
-          simulation={simulationRef.current}
-          selectedAgentId={selectedAgentId}
-          onSelectAgent={(agentId) => setSelectedAgentId(agentId)}
-          onSimulationUpdate={handleSimulationUpdate}
-        />
-      ) : (
-        <OfficeCanvas
-          agents={agents}
-          tasks={tasks}
-          simulation={simulationRef.current}
-          selectedAgentId={selectedAgentId}
-          onSelectAgent={(agentId) => setSelectedAgentId(agentId)}
-          onSimulationUpdate={handleSimulationUpdate}
-        />
-      )}
+      {/* Office Simulation Viewport: 2.5D Isometric (Ultra-Fast & Ringan) */}
+      <IsometricOffice
+        agents={agents}
+        tasks={tasks}
+        simulation={simulationRef.current}
+        selectedAgentId={selectedAgentId}
+        onSelectAgent={(agentId) => setSelectedAgentId(agentId)}
+        onSimulationUpdate={handleSimulationUpdate}
+        onOpenChat={() => {
+          setOfficeChatInitialTab('war_room');
+          setIsOfficeChatOpen(true);
+        }}
+        onOpenTasks={() => setIsTasksModalOpen(true)}
+        onOpenSettings={() => setIsWorkspaceModalOpen(true)}
+      />
 
       {/* Office Live Activity Feed Ticker (Bottom-Left) */}
-      <ActivityFeed events={events} />
+      <ActivityFeed
+        events={events}
+        onOpenActivityLogs={() => {
+          setOfficeChatInitialTab('activity_logs');
+          setIsOfficeChatOpen(true);
+        }}
+        onOpenCollabLogs={() => {
+          setOfficeChatInitialTab('agent_collabs');
+          setIsOfficeChatOpen(true);
+        }}
+      />
 
       {/* Agent Inspector Modal (Right Sidebar) */}
       {selectedAgent && (
@@ -477,9 +722,13 @@ export default function RealAgent3DPage() {
           agent={selectedAgent}
           allAgents={agents}
           currentTask={selectedAgentTask}
+          allTasks={tasks}
+          companyName={currentCompany.name}
+          company={currentCompany}
           onClose={() => setSelectedAgentId(undefined)}
           onSendCollab={handleSendCollab}
           onSendCoffee={handleSendCoffee}
+          onSendSprint={handleSendSprint}
           onReturnDesk={handleReturnDesk}
           onTriggerHumanDecision={handleTriggerHumanDecision}
           onFireAgent={handleFireAgent}
@@ -495,6 +744,8 @@ export default function RealAgent3DPage() {
           onClose={() => setIsTasksModalOpen(false)}
           onAddTask={handleAddTask}
           onAssignTask={handleAssignTask}
+          onDeleteTask={handleDeleteTask}
+          onEditTask={handleEditTask}
         />
       )}
 
@@ -518,6 +769,7 @@ export default function RealAgent3DPage() {
           currentCompany={currentCompany}
           onClose={() => setIsCompanyModalOpen(false)}
           onSelectCompany={handleSelectCompany}
+          onUpdateCompanyLLMConfig={handleUpdateCompanyLLMConfig}
         />
       )}
 
@@ -565,6 +817,44 @@ export default function RealAgent3DPage() {
       {isExtensionsOpen && (
         <ExtensionHubModal onClose={() => setIsExtensionsOpen(false)} />
       )}
+
+      {/* Office Group Chat / War Room & Collaboration History Modal */}
+      {isOfficeChatOpen && (
+        <OfficeChatModal
+          company={currentCompany}
+          agents={agents}
+          tasks={tasks}
+          events={events}
+          initialTab={officeChatInitialTab}
+          onClose={() => setIsOfficeChatOpen(false)}
+          onSelectAgent={(id) => {
+            setSelectedAgentId(id);
+            setIsOfficeChatOpen(false);
+          }}
+          onTriggerCollab={handleSendCollab}
+          onOpenDevServers={() => setIsDevServersModalOpen(true)}
+          onClearEvents={() => {
+            setEvents([]);
+            try {
+              localStorage.removeItem(`vigent_events_${currentCompany.id}`);
+            } catch (e) {
+              console.error(e);
+            }
+            fetch('/api/workspace', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'save_events', companyId: currentCompany.id, events: [] }),
+            }).catch(console.error);
+          }}
+        />
+      )}
+
+      {/* Docker Desktop-style Open Ports & Dev Servers Modal */}
+      {isDevServersModalOpen && (
+        <DevServersModal onClose={() => setIsDevServersModalOpen(false)} />
+      )}
+
+
     </main>
   );
 }

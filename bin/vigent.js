@@ -380,6 +380,103 @@ async function handleCommand() {
       console.log(`Usage: vigent skill [list]`);
     }
 
+  } else if (cmd === 'memory' || cmd === 'memories') {
+    const sub = args[1] || 'list';
+    printBanner();
+    console.log(`${colors.bold}🧠 Vigent Company Memory Engine & Vector DB:${colors.reset}\n`);
+
+    if (sub === 'list' || sub === 'stats') {
+      const files = fs.readdirSync(VIGENT_HOME).filter((f) => f.startsWith('memories_') && f.endsWith('.json'));
+      console.log(`  Vector Engine:  ${colors.green}● Active (Dual-Mode: Zero-Setup Local Vector + Remote LLM /v1/embeddings)${colors.reset}`);
+      console.log(`  Dimension:      ${colors.cyan}64D Semantic Trigram Hash (Local) / Custom Provider (Remote)${colors.reset}`);
+      console.log(`  Storage Root:   ${colors.dim}${VIGENT_HOME}${colors.reset}\n`);
+
+      if (files.length === 0) {
+        console.log(`  ${colors.yellow}Belum ada file memori tersimpan. Inisialisasi sekarang dengan: vigent memory init${colors.reset}\n`);
+      } else {
+        files.forEach((f) => {
+          const compId = f.replace('memories_', '').replace('.json', '');
+          try {
+            const data = JSON.parse(fs.readFileSync(path.join(VIGENT_HOME, f), 'utf-8'));
+            const progFile = path.join(VIGENT_HOME, `progression_${compId}.json`);
+            let levelInfo = 'Level 1 (0 XP)';
+            if (fs.existsSync(progFile)) {
+              const prog = JSON.parse(fs.readFileSync(progFile, 'utf-8'));
+              levelInfo = `Level ${prog.level || 1} (${prog.xp || 0} XP, "${prog.title || 'Startup'}")`;
+            }
+            console.log(`  🏢 Perusahaan: ${colors.bold}${compId}${colors.reset}`);
+            console.log(`     Tingkat:    ${colors.yellow}${levelInfo}${colors.reset}`);
+            console.log(`     Total Item: ${colors.green}${data.length} memori terindeks${colors.reset}`);
+            console.log(`     File:       ${colors.dim}${f}${colors.reset}\n`);
+          } catch {}
+        });
+      }
+    } else if (sub === 'init') {
+      console.log(`${colors.green}► Inisialisasi memori bawaan & level untuk seluruh perusahaan...${colors.reset}`);
+      const defaultPresetIds = ['shadowmove-hq', 'nexus-flow', 'aether-labs'];
+      defaultPresetIds.forEach((id) => {
+        const memFile = path.join(VIGENT_HOME, `memories_${id}.json`);
+        const progFile = path.join(VIGENT_HOME, `progression_${id}.json`);
+        if (!fs.existsSync(memFile)) {
+          fs.writeFileSync(
+            memFile,
+            JSON.stringify(
+              [
+                {
+                  id: `mem-${id}-init-1`,
+                  companyId: id,
+                  type: 'lore',
+                  title: 'Prinsip Budaya & Visi Kantor',
+                  content: 'Fokus pada eksekusi cepat, arsitektur modular, kualitas visual tinggi, dan iterasi sprint otonom.',
+                  tags: ['culture', 'vision', 'autonomous'],
+                  createdAt: Date.now(),
+                  authorAgent: 'Founder',
+                  importance: 10,
+                },
+                {
+                  id: `mem-${id}-init-2`,
+                  companyId: id,
+                  type: 'rule',
+                  title: 'Standar Kualitas Sprint & Kode',
+                  content: 'Setiap file harus bersih dari syntax error, responsif di mobile/desktop, dan deliverable terdokumentasi rapi.',
+                  tags: ['standard', 'quality', 'sop'],
+                  createdAt: Date.now(),
+                  authorAgent: 'Founder',
+                  importance: 9,
+                },
+              ],
+              null,
+              2
+            ),
+            'utf-8'
+          );
+        }
+        if (!fs.existsSync(progFile)) {
+          fs.writeFileSync(
+            progFile,
+            JSON.stringify(
+              {
+                companyId: id,
+                level: 1,
+                xp: 300,
+                nextLevelXp: 1000,
+                title: 'Startup Visioner',
+                tasksCompletedCount: 2,
+                totalMemoriesCount: 2,
+                achievements: ['Kantor Berdiri', 'Memori Pertama Diindeks'],
+              },
+              null,
+              2
+            ),
+            'utf-8'
+          );
+        }
+      });
+      console.log(`${colors.green}✓ Memory Engine berhasil diinisialisasi untuk development & pengguna baru!${colors.reset}\n`);
+    } else {
+      console.log(`Usage: vigent memory [list | stats | init]`);
+    }
+
   } else {
     printBanner();
     console.log(`${colors.bold}Commands:${colors.reset}
@@ -387,6 +484,8 @@ async function handleCommand() {
   ${colors.cyan}vigent status${colors.reset}             Check if server is active, PID, and project stats
   ${colors.cyan}vigent stop${colors.reset}               Stop running server
   ${colors.cyan}vigent workspace${colors.reset}          Open ~/.vigent/workspaces in OS File Explorer
+  ${colors.cyan}vigent memory list${colors.reset}        Lihat arsip memori, level perusahaan, dan status Vector DB
+  ${colors.cyan}vigent memory init${colors.reset}        Inisialisasi memori seed & progression default
   ${colors.cyan}vigent mcp list${colors.reset}           List Model Context Protocol (MCP) servers
   ${colors.cyan}vigent mcp enable <id>${colors.reset}    Enable an MCP server (e.g. postgres, github, brave-search)
   ${colors.cyan}vigent mcp disable <id>${colors.reset}   Disable an MCP server

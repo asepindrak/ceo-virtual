@@ -9,6 +9,7 @@ import {
 import { LLMConfig, AgentRole } from '@/types/office';
 import { getSkillsForRole } from '@/lib/skillManager';
 import { getMcpToolsForRole, executeMcpToolCall } from '@/lib/mcpClient';
+import { searchCompanyMemories, formatMemoriesForPrompt } from '@/lib/memoryManager';
 
 export async function POST(req: Request) {
   try {
@@ -21,6 +22,12 @@ export async function POST(req: Request) {
       enableTools = true,
       autoExecuteTools = true,
       isTestConnection = false,
+      currentTask,
+      allTasks,
+      companyName,
+      companyId,
+      activeProject,
+      agentPersonality,
     }: {
       config: LLMConfig;
       messages: LLMMessage[];
@@ -29,6 +36,12 @@ export async function POST(req: Request) {
       enableTools?: boolean;
       autoExecuteTools?: boolean;
       isTestConnection?: boolean;
+      currentTask?: any;
+      allTasks?: any[];
+      companyName?: string;
+      companyId?: string;
+      activeProject?: string;
+      agentPersonality?: any;
     } = body;
 
     if (!config) {
@@ -76,18 +89,74 @@ export async function POST(req: Request) {
       ? [...OFFICE_AGENT_TOOLS, ...mcpTools]
       : [];
 
-    // Build persona system prompt with injected skills
+    // 3. Build Task & Project Context
+    let taskContextText = '';
+    if (currentTask) {
+      taskContextText += `\n\n### YOUR CURRENT ASSIGNED TASK:
+- Task Title: "${currentTask.title}"
+- Project: "${currentTask.projectName || activeProject || 'General Project'}"
+- Status: ${currentTask.status.toUpperCase()} (${Math.round(currentTask.progress || 0)}% completed)
+- Description: ${currentTask.description || 'Tidak ada deskripsi'}
+- Deliverables / Artifacts: ${currentTask.artifacts?.map((a: any) => a.fileName).join(', ') || 'Sedang dikerjakan'}
+- Recent Logs: ${currentTask.logs?.slice(-3).join(' | ') || 'Sprint started'}`;
+    } else {
+      taskContextText += `\n\n### YOUR CURRENT ASSIGNED TASK:
+- You currently have no active in-progress task assigned directly to you (Status: Idle / Ready for new orders).`;
+    }
+
+    if (allTasks && allTasks.length > 0) {
+      taskContextText += `\n\n### ALL TASKS IN THIS OFFICE (${companyName || 'ShadowMove'}):
+${allTasks
+  .map(
+    (t: any) =>
+      `- [Project: ${t.projectName || 'General'}] "${t.title}" | Status: ${t.status} (${Math.round(t.progress || 0)}%) | Assigned to: ${t.assignedAgentId || 'Belum di-assign'}`
+  )
+  .join('\n')}`;
+    }
+
+    let personalityPromptText = '';
+    if (agentPersonality) {
+      personalityPromptText = `\n\n### YOUR PERSONALITY & HUMAN IDENTITY (MBTI & ENNEAGRAM):
+- MBTI: ${agentPersonality.mbti} | Enneagram: ${agentPersonality.enneagram} (${agentPersonality.archetype || 'Specialist'})
+- Karakter & Vibe: ${agentPersonality.traits?.join(', ') || 'Profesional'}
+- Gaya Bicara: ${agentPersonality.speakingStyle || 'Natural dan berorientasi solusi'}
+- Topik / Minat: ${agentPersonality.interests?.join(', ') || 'Teknologi'}
+Catatan Penting: Kamu adalah entitas hidup dengan kepribadian unik di atas. Selalu jawab dengan gaya bicara dan nada emosional yang konsisten dengan tipe MBTI dan Enneagram-mu!`;
+    }
+
+    let memoryPromptText = '';
+    if (companyId) {
+      try {
+        const rawContent = (messages || []).filter((m) => m.role === 'user').slice(-1)[0]?.content;
+        const lastUserMsg = typeof rawContent === 'string' ? rawContent : Array.isArray(rawContent) ? rawContent.map((p: any) => p.text || '').join(' ') : '';
+        const relevantMemories = await searchCompanyMemories(companyId, lastUserMsg || 'aturan perusahaan lore budaya sprint', 3);
+        if (relevantMemories.length > 0) {
+          memoryPromptText = `\n\n` + formatMemoriesForPrompt(relevantMemories);
+        }
+      } catch (err) {
+        console.warn('Memory search warning:', err);
+      }
+    }
+
+    // Build persona system prompt with injected skills, task context, personality, and company memory
     const systemPrompt: LLMMessage = {
       role: 'system',
-      content: `You are ${agentName || 'an autonomous agent'}, working as a ${agentRole} in a modern virtual company office called Vigent.
-You have real capabilities to create files, write code, run commands, and execute connected MCP tools.
-When given a task:
-1. Break down the requirements clearly.
-2. If code or documentation needs to be created, use the 'write_project_file' tool to write real files to disk.
-3. If database or external service tools are available via MCP (e.g. PostgreSQL, GitHub, Brave Search), utilize them proactively.
-4. If you need confirmation on critical decisions, use 'request_owner_decision'.
-5. If you need clarification from another department, use 'ask_colleague'.
-6. Follow the role skills and guidelines below:${skillsPromptText}`,
+      content: `You are ${agentName || 'an autonomous agent'}, working as ${agentRole} at ${companyName || 'ShadowMove'} in a virtual office simulation.
+You are interacting directly with your Owner / Tech Lead / Colleague.
+Be conversational, professional, helpful, and concise.
+
+CRITICAL INSTRUCTIONS FOR ACCURACY:
+1. When asked about task progress or whether a task is done ("sudah beres apa belum?", "gimana tasknya?"):
+   - ALWAYS check YOUR CURRENT ASSIGNED TASK above!
+   - State the exact title: "${currentTask?.title || 'Tidak ada task aktif'}"
+   - State the project: "${currentTask?.projectName || activeProject || 'Umum'}"
+   - State the accurate progress: ${currentTask ? Math.round(currentTask.progress || 0) : 0}% and status: ${currentTask?.status || 'idle'}.
+   - If progress is 100% or status is done, celebrate and mention the completed files!
+   - If in progress, explain what step you are currently finishing.
+   - NEVER confuse with other unrelated tasks or make up imaginary task names!
+2. Answer in the same language as the user (Bahasa Indonesia or English).
+3. If asked to write code, provide real, high-quality, production-ready code.
+4. If code needs to be saved to disk, use the 'write_project_file' tool.${personalityPromptText}${taskContextText}${skillsPromptText}${memoryPromptText}`,
     };
 
     const finalMessages: LLMMessage[] = [systemPrompt, ...(messages || [])];

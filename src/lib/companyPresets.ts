@@ -1,31 +1,389 @@
-import { Company, Department, Agent, TaskTicket } from '@/types/office';
+import { Company, Department, Agent, TaskTicket, LLMConfig, CompanyGlobalLLMConfig, LLMCategory } from '@/types/office';
 
-// Predefined desk locations in the office (matching open areas in pathfinding)
+// Predefined dedicated desk locations in the office (spacious layout: Highest-ranking agent gets private suite, others get open workspace)
 export const DESK_SLOTS = [
-  { x: -3.5, z: -5.5 }, // Cluster 1 Desk A
-  { x: -1.5, z: -5.5 }, // Cluster 1 Desk B
-  { x: -3.5, z: -0.5 }, // Cluster 2 Desk A
-  { x: -1.5, z: -0.5 }, // Cluster 2 Desk B
-  { x: 1.5, z: -5.5 },  // Cluster 3 Desk A
-  { x: 3.5, z: -5.5 },  // Cluster 3 Desk B
-  { x: 1.5, z: -0.5 },  // Cluster 4 Desk A
-  { x: 3.5, z: -0.5 },  // Cluster 4 Desk B
+  { x: 11.5, z: -7.0 }, // Meja 1: Agent Tertinggi (Founder / Lead Architect) di Ruangan Terpisah Eksekutif
+  { x: 3.6, z: -8.0 },  // Meja 2: Senior Creative Frontend Lead (Open Workspace Pod Kanan - Row 1)
+  { x: -3.6, z: -8.0 }, // Meja 3: Lead Backend & Cloud Architect (Open Workspace Pod Kiri - Row 1)
+  { x: 3.6, z: -3.5 },  // Meja 4: QA & AI Automation Engineer (Open Workspace Pod Kanan - Row 2)
+  { x: -3.6, z: -3.5 }, // Meja 5: Cloud & DevOps Platform (Open Workspace Pod Kiri - Row 2)
+  { x: 3.6, z: 1.2 },   // Meja 6: UI/UX & Design Systems (Open Workspace Pod Kanan - Row 3)
+  { x: -3.6, z: 1.2 },  // Meja 7: AI & Data Science (Open Workspace Pod Kiri - Row 3)
+  { x: 3.6, z: 5.6 },   // Meja 8: Mobile & Fullstack (Open Workspace Pod Kanan - Row 4)
+  { x: -3.6, z: 5.6 },  // Meja 9: Security & Reliability (Open Workspace Pod Kiri - Row 4)
 ];
 
-export const MEETING_ROOM_CENTER = { x: 8.5, z: -5.5 };
-export const PANTRY_CENTER = { x: -8.5, z: 5.5 };
-export const WATER_COOLER_SPOT = { x: -7.0, z: 3.5 };
-export const OWNER_DESK_POSITION = { x: 0.0, z: -8.5 };
-export const OWNER_INTERACTION_SPOT = { x: 0.0, z: -7.2 };
-export const EXIT_DOOR_SPOT = { x: 0.0, z: 9.2 };
+export const MEETING_ROOM_CENTER = { x: 11.0, z: 5.5 };
+export const PANTRY_CENTER = { x: -11.5, z: 5.5 };
+export const COFFEE_MACHINE_SPOT = { x: -11.8, z: 6.8 };
+export const PANTRY_TABLE_SPOT = { x: -9.5, z: 8.8 };
+export const GAME_ROOM_SPOT = { x: -8.8, z: -3.8 };
+export const SOFA_LOUNGE_SPOT = { x: -11.8, z: -8.8 };
+export const LOBBY_SPOT = { x: 0.0, z: 8.5 };
+export const SPRINT_STATION_SPOT = { x: 13.5, z: 4.5 };
+export const WATER_COOLER_SPOT = { x: -13.5, z: -8.0 };
+export const OWNER_DESK_POSITION = { x: 11.5, z: -7.0 };
+export const OWNER_INTERACTION_SPOT = { x: 9.2, z: -5.5 };
+export const EXIT_DOOR_SPOT = { x: 0.0, z: 10.0 };
+
+export const SHADOWMOVE_LLM_CONFIG: LLMConfig = {
+  provider: (process.env.NEXT_PUBLIC_DEFAULT_LLM_PROVIDER as any) || 'openai',
+  baseUrl: process.env.NEXT_PUBLIC_DEFAULT_LLM_BASE_URL || undefined,
+  apiKey: process.env.NEXT_PUBLIC_DEFAULT_LLM_API_KEY || undefined,
+  model: process.env.NEXT_PUBLIC_DEFAULT_LLM_MODEL || 'gpt-4o',
+  isLocked: false,
+};
+
+export const DEFAULT_SHADOWMOVE_GLOBAL_LLM: CompanyGlobalLLMConfig = {
+  text: {
+    provider: 'openai',
+    model: 'gpt-4o',
+    description: 'Model utama penalaran, arsitektur software, fullstack code, dan sprint logic.',
+    isEnabled: true,
+  },
+  image: {
+    provider: 'openai',
+    model: 'dall-e-3',
+    description: 'Model kreasi visual, moodboard estetika, wireframe UI, dan ilustrasi digital.',
+    isEnabled: true,
+  },
+  fast: {
+    provider: 'groq',
+    model: 'llama-3.3-70b-versatile',
+    description: 'Model sub-second untuk triage tiket cepat, audit bug, dan evaluasi otomatis.',
+    isEnabled: true,
+  },
+  vision: {
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet-20241022',
+    description: 'Model multimodal untuk audit visual layout mobile/desktop dan inspeksi screenshot UI.',
+    isEnabled: true,
+  },
+  audio: {
+    provider: 'openai',
+    model: 'whisper-1',
+    description: 'Transkripsi audio meeting, voice notes, dan rekaman war room.',
+    isEnabled: false,
+  },
+};
+
+/**
+ * Resolve effective LLM configuration for an agent:
+ * If the agent inherits from a company global category (text/image/fast/vision/audio),
+ * it dynamically pulls from company.globalLLMConfig. Otherwise, uses agent's manual BYOK config.
+ */
+export function getEffectiveAgentLLMConfig(agent: Agent, company?: Company): LLMConfig {
+  const category = agent.inheritedLLMCategory;
+  if (category && category !== 'manual' && company?.globalLLMConfig) {
+    const categorySetting = company.globalLLMConfig[category as LLMCategory];
+    if (categorySetting && categorySetting.isEnabled) {
+      return {
+        provider: categorySetting.provider,
+        baseUrl: categorySetting.baseUrl,
+        apiKey: categorySetting.apiKey,
+        model: categorySetting.model,
+        isLocked: false,
+      };
+    }
+  }
+
+  if (agent.llmConfig) {
+    return agent.llmConfig;
+  }
+
+  if (company?.globalLLMConfig?.text && company.globalLLMConfig.text.isEnabled) {
+    return {
+      provider: company.globalLLMConfig.text.provider,
+      baseUrl: company.globalLLMConfig.text.baseUrl,
+      apiKey: company.globalLLMConfig.text.apiKey,
+      model: company.globalLLMConfig.text.model,
+      isLocked: false,
+    };
+  }
+
+  return SHADOWMOVE_LLM_CONFIG;
+}
 
 export const PRESET_COMPANIES: Company[] = [
+  {
+    id: 'company-shadowmove',
+    ownerUserId: 'usr-sang-01',
+    name: 'ShadowMove',
+    industry: 'Stealth Software House & AI Product Studio',
+    description: 'Elite software engineering house delivering sub-second web applications, autonomous AI agents, and cybernetic digital experiences.',
+    globalLLMConfig: DEFAULT_SHADOWMOVE_GLOBAL_LLM,
+    departments: [
+      { id: 'dept-sm-eng', name: 'Engineering & Cloud', color: '#3b82f6', iconName: 'Code', description: 'Architecture, frontend, backend & cloud infra' },
+      { id: 'dept-sm-design', name: 'UI/UX & Product Design', color: '#8b5cf6', iconName: 'Sparkles', description: 'Cybernetic interface systems & design prototypes' },
+      { id: 'dept-sm-qa', name: 'Quality, AI & Ops', color: '#10b981', iconName: 'ShieldCheck', description: 'Zero-defect QA, performance testing & AI pipeline' },
+    ],
+    agents: [
+      {
+        id: 'agent-sm-kenji',
+        name: 'Kenji Sato',
+        role: 'project_manager',
+        roleTitle: 'Founder & System Architect',
+        departmentId: 'dept-sm-eng',
+        deskPosition: DESK_SLOTS[0],
+        currentPosition: DESK_SLOTS[0],
+        rotationY: 0,
+        state: 'idle',
+        stateMessage: 'Standby: Tiket "Arsitektur & Wireframe Landing Page ShadowMove" selesai 100%. Siap menerima sprint baru.',
+        gender: 'male',
+        hairStyle: 'undercut',
+        hairColor: '#0f172a',
+        eyeColor: '#475569',
+        accessory: 'cyber_earpiece',
+        avatarColor: '#6366f1',
+        shirtColor: '#1e1b4b',
+        skinColor: '#fcd34d',
+        personality: {
+          mbti: 'INTJ',
+          enneagram: '5w6',
+          archetype: 'The Mastermind Architect',
+          traits: ['Analitis', 'Visioner', 'Stoik', 'Humor Kering'],
+          speakingStyle: 'To-the-point, logis, menyisipkan analogi arsitektur & sci-fi klasik',
+          interests: ['Sub-second Latency', 'Cyberpunk Tech', 'Custom Mechanical Keyboard', 'Filosofi AI'],
+        },
+        skills: ['System Architecture', 'Sprint Orchestration', 'Tech Stack Selection', 'AI Integrations'],
+        bio: 'Founder of ShadowMove (Male, INTJ 5w6), orchestrating next-gen software systems with extreme performance standards.',
+        llmConfig: SHADOWMOVE_LLM_CONFIG,
+        liveCodeOutput: [
+          '// ShadowMove Architecture Spec 1.0',
+          'export const shadowmoveStack = {',
+          '  framework: "Next.js 15 App Router",',
+          '  styling: "Tailwind CSS v4 + Cybernetic Design System",',
+          '  aiEngine: "Gemini 3.6 Flash via OpenAI Compatibility",',
+          '  targetPerformance: "100/100 Lighthouse & sub-100ms TTFB"',
+          '};',
+        ],
+        stats: { tasksCompleted: 19, linesOfCode: 1420, wordsWritten: 12500, collabCount: 31 },
+      },
+      {
+        id: 'agent-sm-rei',
+        name: 'Rei Kasumi',
+        role: 'frontend_dev',
+        roleTitle: 'Senior Creative Frontend Engineer',
+        departmentId: 'dept-sm-design',
+        deskPosition: DESK_SLOTS[1],
+        currentPosition: DESK_SLOTS[1],
+        rotationY: 0,
+        state: 'working',
+        currentTaskId: 'task-sm-02',
+        stateMessage: '⚡ Working on: "Kembangkan Hero Section & Cybernetic UI Landing Page"',
+        gender: 'female',
+        hairStyle: 'twintails',
+        hairColor: '#f43f5e',
+        eyeColor: '#9333ea',
+        accessory: 'hairclip',
+        avatarColor: '#ec4899',
+        shirtColor: '#831843',
+        skinColor: '#fde047',
+        personality: {
+          mbti: 'ENFP',
+          enneagram: '7w8',
+          archetype: 'The Creative Catalyst',
+          traits: ['Energik', 'Ekspresif', 'Spontan', 'Penuh Ide Visual'],
+          speakingStyle: 'Hangat, antusias, sering pakai perumpamaan anime & estetika visual',
+          interests: ['Cybernetic UI', 'Anime & Manga', 'Vaporwave Aesthetics', 'Indie Pixel RPG'],
+        },
+        skills: ['Next.js 15', 'Tailwind CSS', 'Framer Motion', 'Cybernetic UI/UX', 'Three.js'],
+        bio: 'Creative frontend artisan (Female, ENFP 7w8) crafting sub-second load times and immersive landing pages.',
+        llmConfig: SHADOWMOVE_LLM_CONFIG,
+        liveCodeOutput: [
+          '// HeroSection.tsx - ShadowMove Interactive Visuals',
+          'export function HeroSection() {',
+          '  return (',
+          '    <section className="relative min-h-screen bg-slate-950 text-white flex items-center justify-center">',
+          '      <GlowingGrid />',
+          '      <HeroTypography title="Move Fast. Scale Silently." />',
+          '    </section>',
+          '  );',
+          '}',
+        ],
+        stats: { tasksCompleted: 27, linesOfCode: 4890, wordsWritten: 3400, collabCount: 42 },
+      },
+      {
+        id: 'agent-sm-damian',
+        name: 'Damian Vance',
+        role: 'backend_dev',
+        roleTitle: 'Lead Backend & Cloud Architect',
+        departmentId: 'dept-sm-eng',
+        deskPosition: DESK_SLOTS[2],
+        currentPosition: DESK_SLOTS[2],
+        rotationY: 0,
+        state: 'working',
+        currentTaskId: 'task-sm-03',
+        stateMessage: '⚡ Working on: "Integrasi Service Showcase & Client Inquiry API"',
+        gender: 'male',
+        hairStyle: 'short_messy',
+        hairColor: '#3f3f46',
+        eyeColor: '#78350f',
+        accessory: 'none',
+        avatarColor: '#059669',
+        shirtColor: '#064e3b',
+        skinColor: '#fcd34d',
+        personality: {
+          mbti: 'ISTP',
+          enneagram: '9w8',
+          archetype: 'The Pragmatic Craftsman',
+          traits: ['Tenang', 'Observan', 'Anti Basa-basi', 'Problem Solver'],
+          speakingStyle: 'Santai, lugas, hemat kata tapi selalu solutif dan tepat sasaran',
+          interests: ['Distributed Systems', 'Kopi Espresso Manual', 'Homelab Server', 'Motor Vintage'],
+        },
+        skills: ['FastAPI', 'Node.js', 'PostgreSQL', 'Docker', 'OpenAI API Protocol'],
+        bio: 'Senior backend architect (Male, ISTP 9w8) handling high-throughput APIs and LLM inference pipelines.',
+        llmConfig: SHADOWMOVE_LLM_CONFIG,
+        liveCodeOutput: [
+          '// api/inquiry.ts - High-Throughput Lead Capture',
+          'export async function handleInquiry(req: Request) {',
+          '  const { clientName, projectScope, budgetRange } = await req.json();',
+          '  await db.inquiries.insert({ clientName, projectScope, status: "DISPATCHED" });',
+          '  return Response.json({ success: true, message: "Inquiry received by ShadowMove" });',
+          '}',
+        ],
+        stats: { tasksCompleted: 34, linesOfCode: 8710, wordsWritten: 2100, collabCount: 56 },
+      },
+      {
+        id: 'agent-sm-yuki',
+        name: 'Yuki Tanaka',
+        role: 'qa_engineer',
+        roleTitle: 'QA & AI Workflow Automation Engineer',
+        departmentId: 'dept-sm-qa',
+        deskPosition: DESK_SLOTS[3],
+        currentPosition: DESK_SLOTS[3],
+        rotationY: 0,
+        state: 'idle',
+        stateMessage: 'Standby: Menunggu implementasi landing page selesai untuk testing.',
+        gender: 'female',
+        hairStyle: 'bob_cut',
+        hairColor: '#18181b',
+        eyeColor: '#d97706',
+        accessory: 'glasses',
+        avatarColor: '#e11d48',
+        shirtColor: '#881337',
+        skinColor: '#fef08a',
+        personality: {
+          mbti: 'ISTJ',
+          enneagram: '1w9',
+          archetype: 'The Resilient Perfectionist',
+          traits: ['Teliti', 'Disiplin', 'Penyayang Kucing', 'Standar Kualitas Tinggi'],
+          speakingStyle: 'Sopan, terstruktur, senang berbagi tips ketelitian dan cerita lucu kucing kantor',
+          interests: ['Zero-Defect Testing', 'Kucing Kantor (Si Oyen)', 'Matcha Latte', 'Cybersecurity'],
+        },
+        skills: ['Playwright E2E', 'Lighthouse 100/100', 'Security Auditing', 'Load Testing'],
+        bio: 'Ensuring ShadowMove projects (Female, ISTJ 1w9) pass zero-defect benchmarks with perfect responsiveness.',
+        llmConfig: SHADOWMOVE_LLM_CONFIG,
+        liveCodeOutput: [
+          '// e2e/landing-page.spec.ts',
+          'test("Landing page mobile responsiveness & CTA check", async ({ page }) => {',
+          '  await page.goto("http://localhost:28483/preview/shadowmove");',
+          '  await expect(page.locator("h1")).toContainText("ShadowMove");',
+          '  await expect(page.locator("#inquiry-form")).toBeVisible();',
+          '});',
+        ],
+        stats: { tasksCompleted: 22, linesOfCode: 3120, wordsWritten: 5800, collabCount: 29 },
+      },
+    ],
+    tasks: [
+      {
+        id: 'task-sm-01',
+        title: 'Arsitektur & Wireframe Landing Page ShadowMove',
+        projectName: 'ShadowMove Landing Page',
+        description: 'Menyusun wireframe, struktur komponen, copywriting value proposition, dan panduan brand untuk landing page software house ShadowMove.',
+        type: 'architecture',
+        departmentId: 'dept-sm-eng',
+        assignedAgentId: 'agent-sm-kenji',
+        status: 'done',
+        progress: 100,
+        artifacts: [
+          {
+            id: 'art-sm-1',
+            fileName: 'docs/SHADOWMOVE_ARCHITECTURE.md',
+            type: 'markdown',
+            content: '# ShadowMove Architecture Specification\n\n- Vision: High-performance software house\n- Stack: Next.js + Tailwind + Autonomous AI\n',
+          },
+        ],
+        logs: [
+          'Spesifikasi wireframe disetujui oleh Kenji Sato.',
+          'Copywriting headline dan service catalog difinalisasi.',
+          'Status: Selesai 100%.',
+        ],
+        createdAt: Date.now() - 3600000,
+        completedAt: Date.now() - 1800000,
+      },
+      {
+        id: 'task-sm-02',
+        title: 'Kembangkan Hero Section & Cybernetic UI Landing Page',
+        projectName: 'ShadowMove Landing Page',
+        description: 'Implementasi antarmuka landing page dengan Tailwind CSS, efek glow neon, kartu service interaktif, dan navigasi responsif.',
+        type: 'coding',
+        departmentId: 'dept-sm-design',
+        assignedAgentId: 'agent-sm-rei',
+        status: 'in_progress',
+        progress: 85,
+        artifacts: [
+          {
+            id: 'art-sm-2',
+            fileName: 'public/preview/shadowmove/index.html',
+            type: 'code',
+            content: '<!-- ShadowMove Official Landing Page -->',
+          },
+        ],
+        logs: [
+          'Rei Kasumi memulai pengkodean landing page ShadowMove.',
+          'Mengintegrasikan Tailwind CSS CDN & Lucide Icons.',
+          'Menambahkan efek micro-animation pada kartu layanan.',
+        ],
+        createdAt: Date.now() - 2400000,
+      },
+      {
+        id: 'task-sm-03',
+        title: 'Integrasi Service Showcase & Client Inquiry API',
+        projectName: 'ShadowMove Landing Page',
+        description: 'Membangun form pemesanan proyek interaktif dengan validasi data dan integrasi API pengiriman inquiry.',
+        type: 'coding',
+        departmentId: 'dept-sm-eng',
+        assignedAgentId: 'agent-sm-damian',
+        status: 'in_progress',
+        progress: 60,
+        artifacts: [
+          {
+            id: 'art-sm-3',
+            fileName: 'src/api/inquiry.ts',
+            type: 'code',
+            content: 'export async function handleInquiry() { ... }',
+          },
+        ],
+        logs: [
+          'Damian Vance mengonfigurasi skema endpoint inquiry.',
+          'Menghubungkan form input interaktif.',
+        ],
+        createdAt: Date.now() - 1800000,
+      },
+      {
+        id: 'task-sm-04',
+        title: 'Audit Lighthouse 100/100 & Responsiveness Testing',
+        projectName: 'ShadowMove Landing Page',
+        description: 'Menguji performa rendering di berbagai ukuran layar (mobile, tablet, desktop) dan verifikasi aksesibilitas.',
+        type: 'qa',
+        departmentId: 'dept-sm-qa',
+        assignedAgentId: 'agent-sm-yuki',
+        status: 'backlog',
+        progress: 10,
+        artifacts: [],
+        logs: ['Menunggu implementasi landing page selesai.'],
+        createdAt: Date.now() - 1200000,
+      },
+    ],
+  },
   {
     id: 'company-devnova',
     ownerUserId: 'usr-sang-01',
     name: 'DevNova Systems',
     industry: 'Software & AI Product Studio',
     description: 'Autonomous development agency building Next-generation web apps, microservices, and AI integrations.',
+    globalLLMConfig: DEFAULT_SHADOWMOVE_GLOBAL_LLM,
     departments: [
       { id: 'dept-eng', name: 'Engineering', color: '#3b82f6', iconName: 'Code', description: 'Architecture, frontend, backend & devops' },
       { id: 'dept-prod', name: 'Product & Design', color: '#8b5cf6', iconName: 'Sparkles', description: 'UX research, UI system, task planning' },
@@ -41,14 +399,26 @@ export const PRESET_COMPANIES: Company[] = [
         deskPosition: DESK_SLOTS[0],
         currentPosition: DESK_SLOTS[0],
         rotationY: 0,
-        state: 'working',
-        stateMessage: 'Planning sprint backlog & reviewing ticket specifications',
+        state: 'idle',
+        stateMessage: 'Standby: Meninjau backlog sprint & menunggu tugas baru.',
+        gender: 'male',
+        hairStyle: 'slick_back',
+        hairColor: '#1e293b',
+        eyeColor: '#0284c7',
+        accessory: 'none',
         avatarColor: '#4f46e5',
         shirtColor: '#312e81',
-        hairColor: '#1e293b',
         skinColor: '#fcd34d',
+        personality: {
+          mbti: 'ENTJ',
+          enneagram: '8w7',
+          archetype: 'The Strategic Commander',
+          traits: ['Tegas', 'Visioner', 'Eksekutor Cepat', 'Komunikatif'],
+          speakingStyle: 'Tegas, direktif, berorientasi hasil dan pencapaian target sprint',
+          interests: ['Microservice Architecture', 'Agile Optimization', 'Espresso', 'Strategic Gaming'],
+        },
         skills: ['Agile Roadmap', 'Technical Architecture', 'Code Review', 'Task Delegation'],
-        bio: 'Senior technical PM orchestrating cross-functional autonomous AI workflows with precision.',
+        bio: 'Senior technical PM (Male, ENTJ 8w7) orchestrating cross-functional autonomous AI workflows with precision.',
         liveCodeOutput: [
           '// Sprint Spec 4.2 - Distributed Microservice Architecture',
           'export interface FeatureSpec {',
@@ -71,12 +441,24 @@ export const PRESET_COMPANIES: Company[] = [
         rotationY: 0,
         state: 'working',
         stateMessage: 'Developing responsive 3D dashboard & Three.js canvas hooks',
+        gender: 'female',
+        hairStyle: 'twintails',
+        hairColor: '#0f172a',
+        eyeColor: '#ec4899',
+        accessory: 'hairclip',
         avatarColor: '#ec4899',
         shirtColor: '#9d174d',
-        hairColor: '#0f172a',
         skinColor: '#fde047',
+        personality: {
+          mbti: 'ENFP',
+          enneagram: '7w8',
+          archetype: 'The Creative Catalyst',
+          traits: ['Ekspresif', 'Antusias', 'Inovatif', 'Spontan'],
+          speakingStyle: 'Ceria, bersemangat, suka eksplorasi visual futuristik dan animasi halus',
+          interests: ['WebGL Shaders', 'Vaporwave UI', 'Matcha Latte', 'Indie Games'],
+        },
         skills: ['React 19', 'Next.js App Router', 'Three.js / WebGL', 'Tailwind CSS', 'Framer Motion'],
-        bio: 'Creative frontend developer crafting hyper-performant 3D digital experiences and sleek glassmorphism interfaces.',
+        bio: 'Creative frontend developer (Female, ENFP 7w8) crafting hyper-performant 3D digital experiences and sleek glassmorphism interfaces.',
         liveCodeOutput: [
           '// OfficeCanvas.tsx - WebGL Render Loop',
           'function renderScene(delta: number) {',
@@ -100,12 +482,24 @@ export const PRESET_COMPANIES: Company[] = [
         rotationY: Math.PI,
         state: 'working',
         stateMessage: 'Writing high-throughput WebSocket state synchronizer & REST endpoints',
+        gender: 'male',
+        hairStyle: 'undercut',
+        hairColor: '#475569',
+        eyeColor: '#06b6d4',
+        accessory: 'cyber_earpiece',
         avatarColor: '#06b6d4',
         shirtColor: '#164e63',
-        hairColor: '#475569',
         skinColor: '#fbcfe8',
+        personality: {
+          mbti: 'INTP',
+          enneagram: '5w4',
+          archetype: 'The Logical Logician',
+          traits: ['Analitis Mendalam', 'Pemikir Tenang', 'Skeptis Konstruktif', 'Presisi'],
+          speakingStyle: 'Sederhana, berbasis data, menyukai algoritma elegan dan arsitektur modular',
+          interests: ['Distributed Systems', 'Rust & Golang', 'Mechanical Keyboards', 'Sci-Fi'],
+        },
         skills: ['Node.js TypeScript', 'PostgreSQL', 'Redis Pub/Sub', 'REST & GraphQL', 'A* Algorithms'],
-        bio: 'Database and distributed systems specialist ensuring sub-10ms latency across office events.',
+        bio: 'Database and distributed systems specialist (Male, INTP 5w4) ensuring sub-10ms latency across office events.',
         liveCodeOutput: [
           '// backend/src/engine/dispatcher.ts',
           'export class EventDispatcher {',
@@ -129,12 +523,24 @@ export const PRESET_COMPANIES: Company[] = [
         rotationY: Math.PI,
         state: 'idle',
         stateMessage: 'Running automated end-to-end integration test suites',
+        gender: 'female',
+        hairStyle: 'bob_cut',
+        hairColor: '#334155',
+        eyeColor: '#10b981',
+        accessory: 'glasses',
         avatarColor: '#10b981',
         shirtColor: '#064e3b',
-        hairColor: '#334155',
         skinColor: '#fed7aa',
+        personality: {
+          mbti: 'ISTJ',
+          enneagram: '1w9',
+          archetype: 'The Resilient Sentinel',
+          traits: ['Disiplin Tinggi', 'Metodis', 'Anti-Bug', 'Tenang'],
+          speakingStyle: 'Terstruktur, objektif, selalu menyertakan langkah reproduksi dan verifikasi',
+          interests: ['Zero-Defect CI/CD', 'Automated Penetration Tests', 'Chess', 'Teh Hijau'],
+        },
         skills: ['Playwright', 'Jest / Vitest', 'Security Penetration Testing', 'Load Testing'],
-        bio: 'Vigilant QA engineer catching race conditions and edge cases before code hits production.',
+        bio: 'Vigilant QA engineer (Female, ISTJ 1w9) catching race conditions and edge cases before code hits production.',
         liveCodeOutput: [
           '// test/agents/pathfinding.spec.ts',
           'describe("Agent Obstacle Avoidance", () => {',
@@ -157,12 +563,24 @@ export const PRESET_COMPANIES: Company[] = [
         rotationY: 0,
         state: 'working',
         stateMessage: 'Drafting API documentation & developer quickstart guide',
+        gender: 'male',
+        hairStyle: 'short_messy',
+        hairColor: '#0f172a',
+        eyeColor: '#f59e0b',
+        accessory: 'glasses',
         avatarColor: '#f59e0b',
         shirtColor: '#78350f',
-        hairColor: '#0f172a',
         skinColor: '#fef08a',
+        personality: {
+          mbti: 'INFJ',
+          enneagram: '2w1',
+          archetype: 'The Insightful Counselor',
+          traits: ['Empatik', 'Artikulatif', 'Reflektif', 'Teratur'],
+          speakingStyle: 'Hangat, mendalam, komunikatif dan suka mempermudah penjelasan konsep rumit',
+          interests: ['Technical Storytelling', 'Human-Computer Interaction', 'Coffee Brewing', 'Filosofi'],
+        },
         skills: ['Technical Documentation', 'Copywriting', 'SEO Architecture', 'Release Notes'],
-        bio: 'Clear and persuasive communicator transforming complex engineering systems into accessible docs.',
+        bio: 'Clear and persuasive communicator (Male, INFJ 2w1) transforming complex engineering systems into accessible docs.',
         liveCodeOutput: [
           '# Real Agent 3D Quickstart Manual',
           '## Autonomous Office Orchestration',
@@ -267,6 +685,7 @@ export const PRESET_COMPANIES: Company[] = [
     name: 'Pulse Viral Agency',
     industry: 'Digital Marketing & Viral Creative Studio',
     description: 'Dynamic growth agency focusing on viral copywriting, brand strategy, and multi-channel campaigns.',
+    globalLLMConfig: DEFAULT_SHADOWMOVE_GLOBAL_LLM,
     departments: [
       { id: 'dept-creat', name: 'Creative & Copy', color: '#f43f5e', iconName: 'PenTool', description: 'Copywriting, storytelling, viral hooks' },
       { id: 'dept-growth', name: 'Growth & Social', color: '#eab308', iconName: 'TrendingUp', description: 'Distribution, performance ads, outreach' },
@@ -284,12 +703,24 @@ export const PRESET_COMPANIES: Company[] = [
         rotationY: 0,
         state: 'working',
         stateMessage: 'Crafting viral hook templates for Q4 campaign launch',
+        gender: 'female',
+        hairStyle: 'long_flowing',
+        hairColor: '#451a03',
+        eyeColor: '#f43f5e',
+        accessory: 'ribbon',
         avatarColor: '#f43f5e',
         shirtColor: '#881337',
-        hairColor: '#451a03',
         skinColor: '#fde047',
+        personality: {
+          mbti: 'ENFJ',
+          enneagram: '3w2',
+          archetype: 'The Charismatic Visionary',
+          traits: ['Karismatik', 'Inspiratif', 'Persuasif', 'Trendsetter'],
+          speakingStyle: 'Emosional, membakar semangat, penuh metafora viral dan storytelling memikat',
+          interests: ['Viral Psychology', 'Neuromarketing', 'Pop Culture', 'Fashion Aesthetics'],
+        },
         skills: ['Viral Storytelling', 'Brand Messaging', 'Creative Direction'],
-        bio: 'Ex-advertising director specializing in emotive hooks and high-retention campaigns.',
+        bio: 'Ex-advertising director (Female, ENFJ 3w2) specializing in emotive hooks and high-retention campaigns.',
         liveCodeOutput: [
           '# Campaign Brief: "Future of Work 2026"',
           'Hook 1: "Why traditional office jobs are becoming autonomous AI studios."',
@@ -308,12 +739,24 @@ export const PRESET_COMPANIES: Company[] = [
         rotationY: 0,
         state: 'working',
         stateMessage: 'Analyzing high-intent search queries and keyword clusters',
+        gender: 'male',
+        hairStyle: 'short_messy',
+        hairColor: '#172554',
+        eyeColor: '#eab308',
+        accessory: 'glasses',
         avatarColor: '#eab308',
         shirtColor: '#713f12',
-        hairColor: '#172554',
         skinColor: '#fbcfe8',
+        personality: {
+          mbti: 'ENTP',
+          enneagram: '7w6',
+          archetype: 'The Growth Hacker',
+          traits: ['Kreatif Eksperimental', 'Cepat Adaptasi', 'Berani Ambil Risiko', 'Cerdas'],
+          speakingStyle: 'Cepat, humoris, selalu melempar hipotesis baru dan data eksperimen A/B testing',
+          interests: ['Search Algorithms', 'Growth Hacking', 'AI Content Loops', 'Stand-up Comedy'],
+        },
         skills: ['Keyword Research', 'Technical SEO', 'Content Clustering', 'Competitor Audits'],
-        bio: 'Search algorithm expert driving exponential organic visibility across Google & AI engines.',
+        bio: 'Search algorithm expert (Male, ENTP 7w6) driving exponential organic visibility across Google & AI engines.',
         liveCodeOutput: [
           'Keywords target: ["virtual ai office", "autonomous coding agent", "threejs agent 3d"]',
           'Search Volume: 145,000 / mo | Competition: Low-Medium | Intent: High Commercial',
@@ -331,12 +774,24 @@ export const PRESET_COMPANIES: Company[] = [
         rotationY: Math.PI,
         state: 'idle',
         stateMessage: 'Optimizing landing page load time and micro-animations',
+        gender: 'female',
+        hairStyle: 'bob_cut',
+        hairColor: '#020617',
+        eyeColor: '#3b82f6',
+        accessory: 'headphone',
         avatarColor: '#3b82f6',
         shirtColor: '#1e3a8a',
-        hairColor: '#020617',
         skinColor: '#fed7aa',
+        personality: {
+          mbti: 'INFP',
+          enneagram: '4w5',
+          archetype: 'The Aesthetic Idealist',
+          traits: ['Artistik', 'Sensitif Visual', 'Perhatian pada Detail', 'Tenang'],
+          speakingStyle: 'Lembut, reflektif, memprioritaskan estetika emosional dan kenyamanan pengguna',
+          interests: ['Micro-interactions', 'Lo-Fi Chill Beats', 'Minimalist Architecture', 'Typography'],
+        },
         skills: ['Tailwind CSS', 'High-Conversion UI', 'Web Vitals Optimization'],
-        bio: 'Speed-obsessed frontend specialist turning traffic into high-converting subscribers.',
+        bio: 'Speed-obsessed frontend specialist (Female, INFP 4w5) turning traffic into high-converting subscribers.',
         liveCodeOutput: [
           '// HeroSection.tsx with Smooth CTA Parallax',
           'export const HeroBanner = () => (',
@@ -401,54 +856,70 @@ export function generateCustomCompany(name: string, industry: string): Company {
   const agentTemplates = [
     {
       name: 'Marcus Vance',
+      gender: 'male' as const,
+      hairStyle: 'slick_back' as const,
+      hair: '#1e293b',
+      eyeColor: '#0284c7',
+      accessory: 'none' as const,
       role: 'project_manager' as const,
       roleTitle: `${cleanIndustry} Director`,
       dept: departments[0].id,
       color: '#6366f1',
       shirt: '#3730a3',
-      hair: '#1e293b',
       skin: '#fde047',
       skills: ['Roadmap Architecture', 'Resource Scheduling', 'System Strategy'],
-      bio: `Overseeing strategic direction and task delegation for ${cleanName}.`,
+      bio: `Overseeing strategic direction and task delegation for ${cleanName} (Male, ENTJ 8w7).`,
       sampleCode: `// ${cleanName} Executive Roadmap\nexport const MilestoneQ4 = {\n  goal: "Autonomous Operations",\n  status: "ACTIVE"\n};`,
     },
     {
       name: 'Aria Thorne',
+      gender: 'female' as const,
+      hairStyle: 'bob_cut' as const,
+      hair: '#0f172a',
+      eyeColor: '#8b5cf6',
+      accessory: 'cyber_earpiece' as const,
       role: 'fullstack_dev' as const,
       roleTitle: 'Lead Software Architect',
       dept: departments[1].id,
       color: '#06b6d4',
       shirt: '#155e75',
-      hair: '#0f172a',
       skin: '#fbcfe8',
       skills: ['TypeScript', 'Fullstack Architecture', 'Data Pipelines', 'API Design'],
-      bio: `Building robust autonomous software engines powering ${cleanName}.`,
+      bio: `Building robust autonomous software engines powering ${cleanName} (Female, INTJ 5w6).`,
       sampleCode: `// core/engine.ts\nexport async function executeAutonomousPipeline(context: TaskContext) {\n  return await engine.dispatch(context);\n}`,
     },
     {
       name: 'Sofia Valdes',
+      gender: 'female' as const,
+      hairStyle: 'twintails' as const,
+      hair: '#ec4899',
+      eyeColor: '#d97706',
+      accessory: 'hairclip' as const,
       role: 'content_writer' as const,
       roleTitle: 'Content & Narrative Strategist',
       dept: departments[2].id,
       color: '#f59e0b',
       shirt: '#854d0e',
-      hair: '#334155',
       skin: '#fed7aa',
       skills: ['Long-form Content', 'Copywriting', 'SEO Research', 'Brand Tone'],
-      bio: `Crafting authoritative articles and compelling literature for ${cleanIndustry}.`,
+      bio: `Crafting authoritative articles and compelling literature for ${cleanIndustry} (Female, ENFP 7w8).`,
       sampleCode: `# ${cleanName} Press Release\n\nAnnouncing the next breakthrough in ${cleanIndustry}.\nOur dedicated autonomous agents are collaborating around the clock.`,
     },
     {
-      name: 'Kenji Sato',
+      name: 'Ren Takahashi',
+      gender: 'male' as const,
+      hairStyle: 'short_messy' as const,
+      hair: '#18181b',
+      eyeColor: '#10b981',
+      accessory: 'glasses' as const,
       role: 'qa_engineer' as const,
       roleTitle: 'Quality Assurance & Reviewer',
       dept: departments[1].id,
       color: '#10b981',
       shirt: '#065f46',
-      hair: '#020617',
       skin: '#fef08a',
       skills: ['Code Audits', 'Unit & End-to-End Testing', 'Security Validation'],
-      bio: `Ensuring bug-free and ultra-resilient outputs across all tasks.`,
+      bio: `Ensuring bug-free and ultra-resilient outputs across all tasks (Male, ISTJ 1w9).`,
       sampleCode: `describe("${cleanName} Quality Verification", () => {\n  test("verifies 100% test coverage", () => expect(true).toBe(true));\n});`,
     },
   ];
@@ -456,6 +927,11 @@ export function generateCustomCompany(name: string, industry: string): Company {
   const agents: Agent[] = agentTemplates.map((t, idx) => ({
     id: `agent-${companyId}-${idx + 1}`,
     name: t.name,
+    gender: t.gender,
+    hairStyle: t.hairStyle,
+    hairColor: t.hair,
+    eyeColor: t.eyeColor,
+    accessory: t.accessory,
     role: t.role,
     roleTitle: t.roleTitle,
     departmentId: t.dept,
@@ -466,8 +942,15 @@ export function generateCustomCompany(name: string, industry: string): Company {
     stateMessage: `Executing initial ${t.roleTitle} assignments`,
     avatarColor: t.color,
     shirtColor: t.shirt,
-    hairColor: t.hair,
     skinColor: t.skin,
+    personality: {
+      mbti: idx === 0 ? 'ENTJ' : idx === 1 ? 'INTJ' : idx === 2 ? 'ENFP' : 'ISTJ',
+      enneagram: idx === 0 ? '8w7' : idx === 1 ? '5w6' : idx === 2 ? '7w8' : '1w9',
+      archetype: idx === 0 ? 'The Strategic Commander' : idx === 1 ? 'The Mastermind Architect' : idx === 2 ? 'The Creative Catalyst' : 'The Resilient Sentinel',
+      traits: idx === 0 ? ['Strategis', 'Tegas', 'Visioner'] : idx === 1 ? ['Analitis', 'Problem Solver', 'Presisi'] : idx === 2 ? ['Ekspresif', 'Kreatif', 'Antusias'] : ['Teliti', 'Disiplin', 'Zero Defect'],
+      speakingStyle: idx === 0 ? 'Visioner, tegas dan terarah' : idx === 1 ? 'Logis, to-the-point dan analitis' : idx === 2 ? 'Hangat, ekspresif dan penuh ide' : 'Sopan, terstruktur dan teliti',
+      interests: ['Teknologi Terkini', 'Kopi', 'Game', 'Masa Depan AI', 'Otomasi'],
+    },
     skills: t.skills,
     bio: t.bio,
     liveCodeOutput: t.sampleCode.split('\n'),
@@ -526,5 +1009,6 @@ export function generateCustomCompany(name: string, industry: string): Company {
     departments,
     agents,
     tasks,
+    globalLLMConfig: DEFAULT_SHADOWMOVE_GLOBAL_LLM,
   };
 }

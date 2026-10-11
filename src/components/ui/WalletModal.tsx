@@ -40,7 +40,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-[#2c231c]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-      <div className="bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden text-[#2c231c] flex flex-col">
+      <div className="bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-3xl w-full max-w-xl max-h-[90vh] shadow-2xl overflow-hidden text-[#2c231c] flex flex-col">
         {/* Header */}
         <div className="p-5 border-b border-[#d6c5ad] bg-[#f4ebe1] flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -84,7 +84,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
             <p className="text-xs text-[#1f6860] font-semibold">{successMsg}</p>
           </div>
         ) : (
-          <div className="p-6 space-y-5 text-xs overflow-y-auto">
+          <div className="p-6 space-y-5 text-xs overflow-y-auto flex-1">
             {/* Packages */}
             <div>
               <div className="font-semibold text-[#2c231c] mb-2.5 flex items-center gap-1.5">

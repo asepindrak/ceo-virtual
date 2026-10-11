@@ -1,12 +1,12 @@
 import { Position3D } from '@/types/office';
 
-// Office world bounds and grid settings
-export const GRID_WIDTH = 26; // X: -13 to 13
-export const GRID_HEIGHT = 20; // Z: -10 to 10
+// Office world bounds and grid settings (Spacious Expanded Office Layout)
+export const GRID_WIDTH = 35; // X: -17 to 17
+export const GRID_HEIGHT = 27; // Z: -13 to 13
 export const CELL_SIZE = 1.0;
 
-export const WORLD_OFFSET_X = -13;
-export const WORLD_OFFSET_Z = -10;
+export const WORLD_OFFSET_X = -17;
+export const WORLD_OFFSET_Z = -13;
 
 export function worldToGrid(x: number, z: number): { gx: number; gz: number } {
   const gx = Math.round(x - WORLD_OFFSET_X);
@@ -30,78 +30,29 @@ export function createDefaultCollisionGrid(): number[][] {
     Array(GRID_WIDTH).fill(0)
   );
 
-  // Outer Office Perimeter Walls (except doors)
+  // Outer Office Perimeter Walls (except main entrance doorway at bottom center)
   for (let x = 0; x < GRID_WIDTH; x++) {
     grid[0][x] = 1; // Top Wall
-    grid[GRID_HEIGHT - 1][x] = 1; // Bottom Wall
+    if (x < 14 || x > 20) {
+      grid[GRID_HEIGHT - 1][x] = 1; // Bottom Wall with wide door
+    }
   }
   for (let z = 0; z < GRID_HEIGHT; z++) {
     grid[z][0] = 1; // Left Wall
     grid[z][GRID_WIDTH - 1] = 1; // Right Wall
   }
 
-  // Internal Glass Partition Wall separating Meeting Room (Right side: X >= 18, Z between 1 and 9)
-  for (let z = 1; z <= 9; z++) {
-    if (z !== 5) { // Doorway at z=5
-      grid[z][18] = 1;
-    }
-  }
-  for (let x = 18; x < GRID_WIDTH - 1; x++) {
-    grid[9][x] = 1; // Meeting room bottom wall
-  }
+  // Large Round Conference Table Core in Sprint Station (X: 11.5, Z: 6.0)
+  grid[19][28] = 1;
+  grid[19][29] = 1;
 
-  // Internal Partition Wall for Pantry / Breakroom (Left side: X <= 7, Z between 12 and 18)
-  for (let x = 1; x <= 7; x++) {
-    if (x !== 4) { // Doorway at x=4
-      grid[12][x] = 1;
-    }
-  }
+  // Lead Executive Desk Core (X: 11.5, Z: -7.0)
+  grid[6][28] = 1;
+  grid[6][29] = 1;
 
-  // Meeting Room Conference Table (Center of meeting room: X: 20-22, Z: 3-6)
-  for (let z = 3; z <= 6; z++) {
-    for (let x = 20; x <= 22; x++) {
-      grid[z][x] = 1;
-    }
-  }
-
-  // Workstation Desks Cluster 1 (Developers / Engineering: X: 8-11, Z: 3-5)
-  for (let z = 3; z <= 5; z++) {
-    for (let x = 9; x <= 11; x++) {
-      grid[z][x] = 1;
-    }
-  }
-
-  // Workstation Desks Cluster 2 (Design & Content: X: 8-11, Z: 8-10)
-  for (let z = 8; z <= 10; z++) {
-    for (let x = 9; x <= 11; x++) {
-      grid[z][x] = 1;
-    }
-  }
-
-  // Workstation Desks Cluster 3 (Management & QA: X: 13-15, Z: 3-5)
-  for (let z = 3; z <= 5; z++) {
-    for (let x = 14; x <= 15; x++) {
-      grid[z][x] = 1;
-    }
-  }
-
-  // Workstation Desks Cluster 4 (Ops & Analytics: X: 13-15, Z: 8-10)
-  for (let z = 8; z <= 10; z++) {
-    for (let x = 14; x <= 15; x++) {
-      grid[z][x] = 1;
-    }
-  }
-
-  // Pantry Kitchen Counter & Coffee Machine (X: 2-3, Z: 14-16)
-  for (let z = 14; z <= 16; z++) {
-    grid[z][2] = 1;
-    grid[z][3] = 1;
-  }
-
-  // Water Dispenser & Plant Pots Obstacles
-  grid[2][2] = 1; // Corner Plant
-  grid[17][23] = 1; // Corner Plant
-  grid[13][6] = 1; // Water Dispenser
+  // Pantry Barista Counter back wall & Refrigerator (X: -15, Z: 3..6)
+  grid[17][2] = 1;
+  grid[18][2] = 1;
 
   return grid;
 }

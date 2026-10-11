@@ -86,15 +86,20 @@ try {
     npm link --silent
 } catch {}
 
+# 7. Initialize Company Memory Engine & Vector DB
+Write-Host "► Inisialisasi Company Memory Engine & Zero-Setup Vector DB..." -ForegroundColor Cyan
+node "$ProjectRoot\bin\vigent.js" memory init
+
 Write-Host "`n✓ VIGENT (Virtual Office Agent) Berhasil Terinstall!" -ForegroundColor Green
 Write-Host "========================================================" -ForegroundColor Gray
 Write-Host "  Dedicated Port:   http://localhost:$Port" -ForegroundColor Cyan
 Write-Host "  Workspaces Home:  $WorkspacesDir" -ForegroundColor Cyan
-Write-Host "  Perintah CLI:     vigent start / status / workspace" -ForegroundColor Cyan
+Write-Host "  Vector Memory:    Zero-Setup Dual Mode (Local + Custom LLM)" -ForegroundColor Green
+Write-Host "  Perintah CLI:     vigent start / status / workspace / memory" -ForegroundColor Cyan
 Write-Host "  Autorun Boot:     AKTIF" -ForegroundColor Green
 Write-Host "  GitHub Repo:      $RepoUrl" -ForegroundColor Cyan
 Write-Host "========================================================`n" -ForegroundColor Gray
 
-# 7. Start server now
+# 8. Start server now
 Write-Host "Menjalankan Vigent sekarang..." -ForegroundColor Yellow
 node "$ProjectRoot\bin\vigent.js" start

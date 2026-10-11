@@ -87,6 +87,10 @@ fi
 cd "$TARGET_DIR"
 npm link --silent 2>/dev/null || true
 
+# Initialize Company Memory Engine & Vector DB
+echo -e "► Initializing Company Memory Engine & Zero-Setup Vector DB..."
+node "$TARGET_DIR/bin/vigent.js" memory init || true
+
 # Enable autorun
 echo -e "► Configuring autorun at startup..."
 node "$TARGET_DIR/bin/vigent.js" autorun enable || true
@@ -95,12 +99,14 @@ echo -e "\n${GREEN}${BOLD}✓ VIGENT (Virtual Office Agent) Successfully Install
 echo -e "========================================================"
 echo -e "  Dedicated Port:   ${CYAN}http://localhost:$PORT${RESET}"
 echo -e "  Workspaces Home:  ${CYAN}$VIGENT_WORKSPACES${RESET}"
+echo -e "  Vector Memory:    ${CYAN}Zero-Setup Dual Mode (Local + Custom LLM)${RESET}"
 echo -e "  CLI Executable:   ${CYAN}vigent${RESET}"
 echo -e "  GitHub Repo:      ${CYAN}$REPO_URL${RESET}"
 echo -e "========================================================"
 echo -e "\nTry running:"
 echo -e "  ${CYAN}vigent start${RESET}       (Start server and open browser)"
 echo -e "  ${CYAN}vigent workspace${RESET}   (Open code folder in File Explorer)"
+echo -e "  ${CYAN}vigent memory list${RESET} (Check company memories & vector DB)"
 echo -e "  ${CYAN}vigent status${RESET}      (Check running agent state)"
 echo -e "\nLaunching Vigent now...\n"
 

@@ -164,6 +164,95 @@ export const OFFICE_AGENT_TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'create_office_task',
+      description: 'Project Manager / Lead Architect tool to create a new task ticket in the office Kanban board.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Clear, actionable title of the task to be created',
+          },
+          description: {
+            type: 'string',
+            description: 'Detailed requirements, specifications, and acceptance criteria',
+          },
+          projectName: {
+            type: 'string',
+            description: 'Target project name (e.g. "ShadowMove Landing Page", "API Gateway")',
+          },
+          taskType: {
+            type: 'string',
+            enum: ['coding', 'content', 'qa', 'design'],
+            description: 'Type of work',
+          },
+          assignedAgentId: {
+            type: 'string',
+            description: 'ID or Name of the agent to assign, or leave empty for Backlog',
+          },
+          companyId: {
+            type: 'string',
+            description: 'Target company ID (e.g. "company-shadowmove")',
+          },
+        },
+        required: ['title'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_office_task',
+      description: 'Project Manager tool to delete or cancel an obsolete, completed, or duplicated task from the Kanban board.',
+      parameters: {
+        type: 'object',
+        properties: {
+          taskId: {
+            type: 'string',
+            description: 'Exact task ID or keyword from the task title to remove',
+          },
+          taskTitle: {
+            type: 'string',
+            description: 'Title of the task to delete if ID is unknown',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_office_task',
+      description: 'Project Manager tool to update task status, progress, or assigned agent.',
+      parameters: {
+        type: 'object',
+        properties: {
+          taskId: {
+            type: 'string',
+            description: 'The ID or Title of the task to update',
+          },
+          status: {
+            type: 'string',
+            enum: ['backlog', 'in_progress', 'done'],
+            description: 'New status for the task',
+          },
+          assignedAgentId: {
+            type: 'string',
+            description: 'Agent ID or name to reassign to',
+          },
+          progress: {
+            type: 'number',
+            description: 'Progress percentage (0-100)',
+          },
+        },
+        required: ['taskId'],
+      },
+    },
+  },
 ];
 
 // Execute a tool locally on the machine
@@ -185,6 +274,144 @@ export async function executeToolCall(
         return { success: false, result: null, error: `File ${filePath} not found in project ${projectName}` };
       }
       return { success: true, result: content };
+    }
+
+    if (name === 'create_office_task') {
+      const { title, description, projectName, taskType, assignedAgentId, companyId } = args;
+      const fs = await import('fs');
+      const os = await import('os');
+      const pathMod = await import('path');
+      const vigentHome = pathMod.join(os.homedir(), '.vigent');
+      const targetCompanyId = companyId || 'company-shadowmove';
+      const tasksFile = pathMod.join(vigentHome, `tasks_${targetCompanyId}.json`);
+
+      let currentTasks: any[] = [];
+      if (fs.existsSync(tasksFile)) {
+        try {
+          currentTasks = JSON.parse(fs.readFileSync(tasksFile, 'utf-8'));
+        } catch {
+          currentTasks = [];
+        }
+      }
+
+      // Resolve agent ID if name was passed instead of ID
+      let resolvedAgentId = assignedAgentId;
+      if (resolvedAgentId) {
+        const lower = resolvedAgentId.toLowerCase();
+        if (lower.includes('kenji')) resolvedAgentId = 'agent-sm-kenji';
+        else if (lower.includes('rei')) resolvedAgentId = 'agent-sm-rei';
+        else if (lower.includes('damian')) resolvedAgentId = 'agent-sm-damian';
+        else if (lower.includes('yuki')) resolvedAgentId = 'agent-sm-yuki';
+        else if (lower.includes('marcus')) resolvedAgentId = `agent-${targetCompanyId}-1`;
+        else if (lower.includes('aria')) resolvedAgentId = `agent-${targetCompanyId}-2`;
+        else if (lower.includes('sofia')) resolvedAgentId = `agent-${targetCompanyId}-3`;
+        else if (lower.includes('ren')) resolvedAgentId = `agent-${targetCompanyId}-4`;
+      }
+
+      const newTask = {
+        id: `task-${Date.now()}`,
+        title,
+        projectName: projectName || 'ShadowMove Platform',
+        description: description || '',
+        type: taskType || 'coding',
+        departmentId: 'dept-eng',
+        assignedAgentId: resolvedAgentId || undefined,
+        status: resolvedAgentId ? 'in_progress' : 'backlog',
+        progress: 0,
+        artifacts: [],
+        logs: [`Task created by Project Manager / Lead Architect on ${new Date().toLocaleString()}`],
+        createdAt: Date.now(),
+      };
+
+      currentTasks.unshift(newTask);
+      if (!fs.existsSync(vigentHome)) fs.mkdirSync(vigentHome, { recursive: true });
+      fs.writeFileSync(tasksFile, JSON.stringify(currentTasks, null, 2), 'utf-8');
+
+      return {
+        success: true,
+        result: `Task "${title}" created successfully by Lead Agent (ID: ${newTask.id}, Status: ${newTask.status}, Assigned: ${resolvedAgentId || 'Backlog'}). Tim akan mengeksekusinya secara paralel.`,
+      };
+    }
+
+    if (name === 'delete_office_task') {
+      const { taskId, taskTitle, companyId } = args;
+      const fs = await import('fs');
+      const os = await import('os');
+      const pathMod = await import('path');
+      const vigentHome = pathMod.join(os.homedir(), '.vigent');
+      const targetCompanyId = companyId || 'company-shadowmove';
+      const tasksFile = pathMod.join(vigentHome, `tasks_${targetCompanyId}.json`);
+
+      if (!fs.existsSync(tasksFile)) {
+        return { success: false, result: null, error: 'No tasks file found' };
+      }
+
+      let currentTasks: any[] = [];
+      try {
+        currentTasks = JSON.parse(fs.readFileSync(tasksFile, 'utf-8'));
+      } catch {
+        return { success: false, result: null, error: 'Failed to read tasks file' };
+      }
+
+      const initialCount = currentTasks.length;
+      const targetQuery = (taskId || taskTitle || '').toLowerCase().trim();
+      currentTasks = currentTasks.filter(
+        (t) => t.id !== targetQuery && !t.title.toLowerCase().includes(targetQuery)
+      );
+
+      const deletedCount = initialCount - currentTasks.length;
+      fs.writeFileSync(tasksFile, JSON.stringify(currentTasks, null, 2), 'utf-8');
+
+      return {
+        success: true,
+        result: `Project Manager deleted ${deletedCount} matching task(s) for query "${targetQuery}". Remaining tasks: ${currentTasks.length}.`,
+      };
+    }
+
+    if (name === 'update_office_task') {
+      const { taskId, status, assignedAgentId, progress } = args;
+      const fs = await import('fs');
+      const os = await import('os');
+      const pathMod = await import('path');
+      const vigentHome = pathMod.join(os.homedir(), '.vigent');
+      const tasksFile = pathMod.join(vigentHome, 'tasks_company-shadowmove.json');
+
+      if (!fs.existsSync(tasksFile)) {
+        return { success: false, result: null, error: 'No tasks file found' };
+      }
+
+      let currentTasks: any[] = [];
+      try {
+        currentTasks = JSON.parse(fs.readFileSync(tasksFile, 'utf-8'));
+      } catch {
+        return { success: false, result: null, error: 'Failed to read tasks file' };
+      }
+
+      const targetQuery = (taskId || '').toLowerCase().trim();
+      let found = false;
+      currentTasks = currentTasks.map((t) => {
+        if (t.id === targetQuery || t.title.toLowerCase().includes(targetQuery)) {
+          found = true;
+          return {
+            ...t,
+            ...(status ? { status } : {}),
+            ...(assignedAgentId !== undefined ? { assignedAgentId } : {}),
+            ...(progress !== undefined ? { progress } : {}),
+            logs: [...(t.logs || []), `Updated by Project Manager: status=${status || t.status}, progress=${progress ?? t.progress}`],
+          };
+        }
+        return t;
+      });
+
+      if (!found) {
+        return { success: false, result: null, error: `Task "${taskId}" not found` };
+      }
+
+      fs.writeFileSync(tasksFile, JSON.stringify(currentTasks, null, 2), 'utf-8');
+      return {
+        success: true,
+        result: `Task "${taskId}" updated successfully by Project Manager.`,
+      };
     }
 
     if (name === 'ask_colleague') {
@@ -265,7 +492,11 @@ async function callOpenAICompatible(
   let defaultModel = 'gpt-4o';
   let apiKey = config.apiKey || process.env.OPENAI_API_KEY || '';
 
-  if (config.provider === 'groq') {
+  if (config.baseUrl) {
+    let base = config.baseUrl.replace(/\/+$/, '');
+    endpoint = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
+    defaultModel = config.model || 'gemini-3.6-flash-medium';
+  } else if (config.provider === 'groq') {
     endpoint = 'https://api.groq.com/openai/v1/chat/completions';
     defaultModel = 'llama-3.3-70b-versatile';
     apiKey = config.apiKey || process.env.GROQ_API_KEY || '';
@@ -274,10 +505,13 @@ async function callOpenAICompatible(
     defaultModel = 'deepseek-chat';
     apiKey = config.apiKey || process.env.DEEPSEEK_API_KEY || '';
   } else if (config.provider === 'custom') {
-    let base = config.baseUrl || 'http://localhost:11434/v1';
+    let base = config.baseUrl || process.env.CUSTOM_LLM_BASE_URL || '';
+    if (!base) {
+      throw new Error('Custom LLM Provider membutuhkan Base URL. Silakan atur Base URL di pengaturan Provider LLM.');
+    }
     base = base.replace(/\/+$/, '');
     endpoint = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
-    defaultModel = config.model || 'llama3';
+    defaultModel = config.model || 'gpt-4o';
   }
 
   const model = config.model || defaultModel;

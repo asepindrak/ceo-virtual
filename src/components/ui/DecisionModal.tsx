@@ -34,7 +34,7 @@ export const DecisionModal: React.FC<DecisionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-[#2c231c]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-      <div className="bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden text-[#2c231c] ring-4 ring-[#c85a2b]/10">
+      <div className="bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-3xl w-full max-w-xl max-h-[90vh] shadow-2xl overflow-hidden text-[#2c231c] ring-4 ring-[#c85a2b]/10 flex flex-col">
         {/* Header */}
         <div className="p-5 border-b border-[#d6c5ad] bg-[#f4ebe1] flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -73,7 +73,7 @@ export const DecisionModal: React.FC<DecisionModalProps> = ({
         </div>
 
         {/* Body Context */}
-        <div className="p-6 space-y-4 text-xs">
+        <div className="p-6 space-y-4 text-xs flex-1 overflow-y-auto">
           <div>
             <div className="text-[#615042] font-semibold mb-1">Pertanyaan / Keputusan Kritis:</div>
             <p className="text-sm font-semibold text-[#2c231c] bg-[#fffdf9] p-3 rounded-xl border border-[#d6c5ad]">

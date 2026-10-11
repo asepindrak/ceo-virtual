@@ -37,6 +37,19 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   const [shirtColor, setShirtColor] = useState('#2563eb');
   const [avatarColor, setAvatarColor] = useState('#3b82f6');
   
+  // Gender & Visual styling setup
+  const [gender, setGender] = useState<'male' | 'female'>('male');
+  const [hairStyle, setHairStyle] = useState<string>('undercut');
+  const [hairColor, setHairColor] = useState('#0f172a');
+  const [eyeColor, setEyeColor] = useState('#38bdf8');
+  const [accessory, setAccessory] = useState<string>('none');
+
+  // Personality MBTI & Enneagram setup
+  const [mbti, setMbti] = useState('INTJ');
+  const [enneagram, setEnneagram] = useState('5w6');
+  const [archetype, setArchetype] = useState('The Mastermind Architect');
+  const [speakingStyle, setSpeakingStyle] = useState('To-the-point, logis dan solutif');
+  
   // LLM setup
   const [llmProvider, setLlmProvider] = useState<LLMConfig['provider']>('openai');
   const [baseUrl, setBaseUrl] = useState('');
@@ -100,11 +113,23 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       role,
       roleTitle,
       bio,
+      personality: {
+        mbti,
+        enneagram,
+        archetype,
+        traits: ['Profesional', 'Adaptif', 'Fokus'],
+        speakingStyle,
+        interests: ['Teknologi', 'Problem Solving', 'Inovasi'],
+      },
+      gender,
+      hairStyle: hairStyle as any,
+      hairColor,
+      eyeColor,
+      accessory: accessory as any,
       skills: skills.length > 0 ? skills : ['Autonomous Execution', 'Problem Solving'],
       pricePoints,
       avatarColor,
       shirtColor,
-      hairColor: '#0f172a',
       skinColor: '#fde047',
       llmConfig: {
         provider: llmProvider,
@@ -296,14 +321,53 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                             {mktAgent.name.split(' ').map((n) => n[0]).join('')}
                           </div>
                           <div>
-                            <h3 className="font-bold text-[#2c231c] text-sm font-mono">{mktAgent.name}</h3>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h3 className="font-bold text-[#2c231c] text-sm font-mono">{mktAgent.name}</h3>
+                              <span
+                                className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold ${
+                                  mktAgent.gender === 'female'
+                                    ? 'bg-[#fce7f3] text-[#be185d] border border-[#fbcfe8]'
+                                    : 'bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]'
+                                }`}
+                              >
+                                {mktAgent.gender === 'female' ? '♀ Perempuan' : '♂ Laki-laki'}
+                              </span>
+                            </div>
                             <div className="text-[#c85a2b] font-semibold text-xs">{mktAgent.roleTitle}</div>
                           </div>
                         </div>
 
-                        <p className="text-[#5c4a3d] text-xs mb-3 leading-relaxed line-clamp-2">
+                        <p className="text-[#5c4a3d] text-xs mb-2.5 leading-relaxed line-clamp-2">
                           {mktAgent.bio}
                         </p>
+
+                        {/* Personality MBTI & Enneagram Profile */}
+                        {mktAgent.personality && (
+                          <div className="mb-2.5 p-2 bg-[#fdf2f8]/70 border border-[#fbcfe8] rounded-xl text-[11px]">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-1.5 font-bold text-[#be185d]">
+                                <Sparkles className="w-3.5 h-3.5 text-[#ec4899]" />
+                                <span>MBTI: {mktAgent.personality.mbti} • Enneagram: {mktAgent.personality.enneagram}</span>
+                              </div>
+                              <span className="text-[10px] text-[#9d174d] font-semibold bg-[#fce7f3] px-1.5 py-0.2 rounded-md font-mono">
+                                {mktAgent.personality.archetype}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-[#5c4a3d] italic mb-1.5">
+                              "{mktAgent.personality.speakingStyle}"
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {mktAgent.personality.traits.map((t, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-1.5 py-0.2 rounded bg-white/80 border border-[#fbcfe8] text-[9px] text-[#be185d] font-semibold"
+                                >
+                                  #{t}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Skills */}
                         <div className="flex flex-wrap gap-1 mb-3">
@@ -423,23 +487,110 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[#5c4a3d] font-bold mb-1">Warna Avatar & Baju</label>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="color"
-                      value={avatarColor}
-                      onChange={(e) => setAvatarColor(e.target.value)}
-                      className="w-9 h-9 rounded-lg bg-transparent cursor-pointer border-2 border-[#d6c5ad]"
-                      title="Warna Avatar"
-                    />
-                    <input
-                      type="color"
-                      value={shirtColor}
-                      onChange={(e) => setShirtColor(e.target.value)}
-                      className="w-9 h-9 rounded-lg bg-transparent cursor-pointer border-2 border-[#d6c5ad]"
-                      title="Warna Baju"
-                    />
-                    <span className="text-[#6e5d4f] text-[11px]">Pilih palet visual 3D</span>
+                  <label className="block text-[#5c4a3d] font-bold mb-1">Gender / Jenis Kelamin</label>
+                  <select
+                    value={gender}
+                    onChange={(e) => {
+                      const newGender = e.target.value as 'male' | 'female';
+                      setGender(newGender);
+                      if (newGender === 'female' && (hairStyle === 'undercut' || hairStyle === 'short_messy')) {
+                        setHairStyle('twintails');
+                      } else if (newGender === 'male' && (hairStyle === 'twintails' || hairStyle === 'bob_cut')) {
+                        setHairStyle('undercut');
+                      }
+                    }}
+                    className="w-full bg-[#fffdf9] border-2 border-[#d6c5ad] rounded-xl px-3 py-1.5 text-[#2c231c]"
+                  >
+                    <option value="male">♂ Laki-laki</option>
+                    <option value="female">♀ Perempuan</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Visual Hair, Eyes, & Colors */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-[#fdfaf5] border-2 border-[#d6c5ad] rounded-xl">
+                <div>
+                  <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Gaya Rambut</label>
+                  <select
+                    value={hairStyle}
+                    onChange={(e) => setHairStyle(e.target.value)}
+                    className="w-full bg-[#fffdf9] border-2 border-[#d6c5ad] rounded-xl px-2.5 py-1.5 text-[#2c231c] text-xs font-mono"
+                  >
+                    {gender === 'female' ? (
+                      <>
+                        <option value="twintails">🎀 Twintails (Kuncir Dua)</option>
+                        <option value="bob_cut">💇 Bob Cut (Hime Cut)</option>
+                        <option value="long_flowing">✨ Long Flowing (Panjang Terurai)</option>
+                        <option value="ponytail">🐎 Ponytail (Kuncir Belakang)</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="undercut">⚡ Undercut (Modern Sharp)</option>
+                        <option value="short_messy">🌪️ Short Messy (Anime Spikes)</option>
+                        <option value="slick_back">👔 Slick Back (Eksekutif)</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Aksesori Karakter</label>
+                  <select
+                    value={accessory}
+                    onChange={(e) => setAccessory(e.target.value)}
+                    className="w-full bg-[#fffdf9] border-2 border-[#d6c5ad] rounded-xl px-2.5 py-1.5 text-[#2c231c] text-xs"
+                  >
+                    <option value="none">Tanpa Aksesori</option>
+                    <option value="glasses">👓 Kacamata (Glasses)</option>
+                    <option value="cyber_earpiece">🎧 Cyber Earpiece</option>
+                    <option value="hairclip">🌸 Jepit Rambut (Hairclip)</option>
+                    <option value="ribbon">🎀 Pita Rambut (Ribbon)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Warna Karakter</label>
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex flex-col items-center">
+                      <input
+                        type="color"
+                        value={hairColor}
+                        onChange={(e) => setHairColor(e.target.value)}
+                        className="w-7 h-7 rounded-md cursor-pointer border border-[#d6c5ad]"
+                        title="Warna Rambut"
+                      />
+                      <span className="text-[9px] text-[#6e5d4f]">Rambut</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <input
+                        type="color"
+                        value={eyeColor}
+                        onChange={(e) => setEyeColor(e.target.value)}
+                        className="w-7 h-7 rounded-md cursor-pointer border border-[#d6c5ad]"
+                        title="Warna Mata"
+                      />
+                      <span className="text-[9px] text-[#6e5d4f]">Mata</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <input
+                        type="color"
+                        value={shirtColor}
+                        onChange={(e) => setShirtColor(e.target.value)}
+                        className="w-7 h-7 rounded-md cursor-pointer border border-[#d6c5ad]"
+                        title="Warna Baju"
+                      />
+                      <span className="text-[9px] text-[#6e5d4f]">Baju</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <input
+                        type="color"
+                        value={avatarColor}
+                        onChange={(e) => setAvatarColor(e.target.value)}
+                        className="w-7 h-7 rounded-md cursor-pointer border border-[#d6c5ad]"
+                        title="Warna Aksen"
+                      />
+                      <span className="text-[9px] text-[#6e5d4f]">Aksen</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -465,6 +616,62 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   onChange={(e) => setSkillsStr(e.target.value)}
                   className="w-full bg-[#fffdf9] border-2 border-[#d6c5ad] rounded-xl px-3 py-2 text-[#2c231c] placeholder-[#9c8978] focus:outline-none focus:border-[#c85a2b]"
                 />
+              </div>
+
+              {/* Personality: MBTI & Enneagram */}
+              <div className="p-3.5 rounded-xl bg-[#fdf2f8]/60 border-2 border-[#fbcfe8] space-y-2.5">
+                <div className="font-bold text-[#be185d] flex items-center gap-1.5 text-xs font-mono">
+                  <Sparkles className="w-4 h-4 text-[#ec4899]" />
+                  <span>Kepribadian Manusiawi (MBTI & Enneagram)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">Tipe MBTI</label>
+                    <select
+                      value={mbti}
+                      onChange={(e) => setMbti(e.target.value)}
+                      className="w-full bg-[#fffdf9] border-2 border-[#fbcfe8] rounded-xl px-3 py-1.5 text-[#2c231c] text-xs font-mono"
+                    >
+                      {['INTJ', 'INTP', 'ENTJ', 'ENTP', 'INFJ', 'INFP', 'ENFJ', 'ENFP', 'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'ISTP', 'ISFP', 'ESTP', 'ESFP'].map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">Tipe Enneagram</label>
+                    <select
+                      value={enneagram}
+                      onChange={(e) => setEnneagram(e.target.value)}
+                      className="w-full bg-[#fffdf9] border-2 border-[#fbcfe8] rounded-xl px-3 py-1.5 text-[#2c231c] text-xs font-mono"
+                    >
+                      {['1w9', '1w2', '2w1', '2w3', '3w2', '3w4', '4w3', '4w5', '5w4', '5w6', '6w5', '6w7', '7w6', '7w8', '8w7', '8w9', '9w8', '9w1'].map((e) => (
+                        <option key={e} value={e}>{e}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">Archetype / Julukan</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. The Mastermind Architect"
+                      value={archetype}
+                      onChange={(e) => setArchetype(e.target.value)}
+                      className="w-full bg-[#fffdf9] border-2 border-[#fbcfe8] rounded-xl px-3 py-1.5 text-[#2c231c] text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">Gaya Bicara Unik</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. To-the-point, logis dan santai"
+                      value={speakingStyle}
+                      onChange={(e) => setSpeakingStyle(e.target.value)}
+                      className="w-full bg-[#fffdf9] border-2 border-[#fbcfe8] rounded-xl px-3 py-1.5 text-[#2c231c] text-xs"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* LLM Configuration Box */}

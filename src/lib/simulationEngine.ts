@@ -1,16 +1,48 @@
-import { Agent, TaskTicket, Position3D, ActivityEvent, AgentDialog, HumanDecisionRequest, MarketplaceAgent } from '@/types/office';
+import { Agent, AgentState, TaskTicket, Position3D, ActivityEvent, AgentDialog, HumanDecisionRequest, MarketplaceAgent, Company } from '@/types/office';
 import { findPath } from '@/lib/pathfinding';
-import { PANTRY_CENTER, MEETING_ROOM_CENTER, WATER_COOLER_SPOT, OWNER_INTERACTION_SPOT, EXIT_DOOR_SPOT } from '@/lib/companyPresets';
+import {
+  PANTRY_CENTER,
+  MEETING_ROOM_CENTER,
+  WATER_COOLER_SPOT,
+  OWNER_INTERACTION_SPOT,
+  EXIT_DOOR_SPOT,
+  COFFEE_MACHINE_SPOT,
+  PANTRY_TABLE_SPOT,
+  GAME_ROOM_SPOT,
+  SOFA_LOUNGE_SPOT,
+  LOBBY_SPOT,
+  SPRINT_STATION_SPOT,
+  getEffectiveAgentLLMConfig,
+} from '@/lib/companyPresets';
+import { generateProceduralCollabBanter } from '@/lib/collabDialogGenerator';
+
+export type AgentArrivalState = Exclude<AgentState, 'walking'>;
 
 export interface AgentPathState {
   agentId: string;
   waypoints: Position3D[];
   currentWaypointIndex: number;
   finalTarget: Position3D;
-  onArrivalState: 'idle' | 'working' | 'talking' | 'meeting' | 'coffee_break' | 'seeking_approval' | 'leaving_office';
+  onArrivalState: AgentArrivalState;
   targetAgentId?: string;
   dialogContext?: string;
+  dialogCategory?: string;
+  dialogColor?: string;
   decisionRequest?: HumanDecisionRequest;
+}
+
+export interface MultiTurnDialogState {
+  senderId: string;
+  targetId: string;
+  turn: number;
+  turn1Msg?: string;
+  turn2Msg?: string;
+  categoryTag?: string;
+  tagColor?: string;
+  suggestedAction?: 'play_game' | 'coffee' | 'none';
+  turnTimer: number;
+  turn1Timestamp?: number;
+  turn2Timestamp?: number;
 }
 
 export class OfficeSimulation {
@@ -18,27 +50,51 @@ export class OfficeSimulation {
   private speedMultiplier: number = 1.0;
   private isPaused: boolean = false;
   private lastCollabTime: number = Date.now();
-  private activeDialogs: Map<string, AgentDialog> = new Map();
+  private lastLlmCollabTime: number = 0;
+  private isLlmCollabPending: boolean = false;
+  private lastIdleActivityTime: number = Date.now();
+  private activeMultiTurnDialog?: MultiTurnDialogState;
+  private idleTimers: Map<string, { startTime: number; duration: number; nextSpot?: Position3D; nextState?: AgentArrivalState; nextMessage?: string }> = new Map();
+  public currentCompany?: Company;
 
-  constructor(speed: number = 1.0) {
+  constructor(speed: number = 1.0, company?: Company) {
     this.speedMultiplier = speed;
+    this.currentCompany = company;
+  }
+
+  public setCompany(company: Company) {
+    this.currentCompany = company;
   }
 
   public setSpeed(speed: number) {
     this.speedMultiplier = speed;
   }
 
+  public getSpeed(): number {
+    return this.speedMultiplier;
+  }
+
   public setPaused(paused: boolean) {
     this.isPaused = paused;
+  }
+
+  public getAgentPathState(agentId: string): AgentPathState | undefined {
+    return this.pathStates.get(agentId);
+  }
+
+  public getAllPathStates(): Map<string, AgentPathState> {
+    return this.pathStates;
   }
 
   // Instruct an agent to walk to a destination
   public sendAgentTo(
     agent: Agent,
     destination: Position3D,
-    onArrivalState: 'idle' | 'working' | 'talking' | 'meeting' | 'coffee_break',
+    onArrivalState: AgentArrivalState,
     targetAgentId?: string,
-    dialogContext?: string
+    dialogContext?: string,
+    dialogCategory?: string,
+    dialogColor?: string
   ): Agent {
     const waypoints = findPath(agent.currentPosition, destination);
     if (waypoints.length <= 1) {
@@ -57,6 +113,8 @@ export class OfficeSimulation {
       onArrivalState,
       targetAgentId,
       dialogContext,
+      dialogCategory,
+      dialogColor,
     });
 
     return {
@@ -73,57 +131,256 @@ export class OfficeSimulation {
     };
   }
 
-  // Trigger a physical collaboration where agent A walks to agent B
+  // Trigger a physical collaboration where agent A walks to agent B with REAL LLM / Personality DIALOGUE
   public triggerCollaboration(
     sender: Agent,
     target: Agent,
-    context?: string
+    context?: string,
+    tasks: TaskTicket[] = []
   ): { updatedSender: Agent; event: ActivityEvent } {
-    const dialogText = context || this.generateCollabDialogue(sender, target);
+    // 1. Instantly generate personality-tailored opening banter (0ms latency, authentic MBTI)
+    const initialBanter = generateProceduralCollabBanter(
+      sender,
+      target,
+      1,
+      undefined,
+      tasks,
+      this.currentCompany?.name
+    );
+    const chosenContext = context || initialBanter.message;
+    const categoryTag = initialBanter.categoryTag;
+    const tagColor = initialBanter.tagColor;
     
-    // Target position next to colleague's desk
+    // Pre-seed Turn 2 counter-response so two-way banter is guaranteed even if offline
+    const initialTurn2 = generateProceduralCollabBanter(
+      target,
+      sender,
+      2,
+      chosenContext,
+      tasks,
+      this.currentCompany?.name
+    );
+
+    // Target position next to colleague's desk with clear, non-overlapping spacing
     const colDesk = target.deskPosition;
-    const dest = { x: colDesk.x + 0.8, z: colDesk.z + 0.6 };
+    const offsetX = colDesk.x < 0 ? 1.4 : -1.4;
+    const offsetZ = 0.2;
+    const dest = { x: Number((colDesk.x + offsetX).toFixed(2)), z: Number((colDesk.z + offsetZ).toFixed(2)) };
 
     const updatedSender = this.sendAgentTo(
       sender,
       dest,
       'talking',
       target.id,
-      dialogText
+      chosenContext,
+      categoryTag,
+      tagColor
     );
+    updatedSender.stateMessage = `Menghampiri meja ${target.name} untuk mengobrol (${categoryTag})...`;
+
+    // Record multi-turn state immediately with rich personality seed
+    this.activeMultiTurnDialog = {
+      senderId: sender.id,
+      targetId: target.id,
+      turn: 1,
+      turn1Msg: chosenContext,
+      turn2Msg: initialTurn2.message,
+      categoryTag,
+      tagColor,
+      suggestedAction: initialBanter.suggestedAction || 'none',
+      turnTimer: 0,
+    };
+
+    // Asynchronously call LLM for dynamic live conversation
+    const now = Date.now();
+    this.lastLlmCollabTime = now;
+    this.isLlmCollabPending = true;
+
+    if (typeof window !== 'undefined') {
+      const inProgressTask = tasks.find((t) => t.status === 'in_progress');
+      const effectiveConfig = getEffectiveAgentLLMConfig(sender, this.currentCompany);
+
+      fetch('/api/agent/collab', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          speaker: {
+            name: sender.name,
+            roleTitle: sender.roleTitle,
+            personality: sender.personality,
+          },
+          listener: {
+            name: target.name,
+            roleTitle: target.roleTitle,
+            personality: target.personality,
+          },
+          config: effectiveConfig,
+          companyName: this.currentCompany?.name || 'ShadowMove',
+          inProgressTaskTitle: inProgressTask?.title,
+          turn: 1,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          this.isLlmCollabPending = false;
+          if (data.success && data.message) {
+            const currentPath = this.pathStates.get(sender.id);
+            if (currentPath && (currentPath.targetAgentId === target.id || currentPath.onArrivalState === 'talking')) {
+              currentPath.dialogContext = data.message;
+              currentPath.dialogCategory = data.categoryTag || categoryTag;
+              currentPath.dialogColor = data.tagColor || tagColor;
+            }
+
+            // Update multi-turn state with LLM's dynamic response
+            if (this.activeMultiTurnDialog && this.activeMultiTurnDialog.senderId === sender.id) {
+              this.activeMultiTurnDialog.turn1Msg = data.message;
+              this.activeMultiTurnDialog.categoryTag = data.categoryTag || categoryTag;
+              this.activeMultiTurnDialog.tagColor = data.tagColor || tagColor;
+              if (data.suggestedAction && data.suggestedAction !== 'none') {
+                this.activeMultiTurnDialog.suggestedAction = data.suggestedAction;
+              }
+            }
+
+            // Pre-fetch Turn 2 (Target's live response to Sender's LLM message)
+            const targetConfig = getEffectiveAgentLLMConfig(target, this.currentCompany);
+            fetch('/api/agent/collab', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                speaker: {
+                  name: target.name,
+                  roleTitle: target.roleTitle,
+                  personality: target.personality,
+                },
+                listener: {
+                  name: sender.name,
+                  roleTitle: sender.roleTitle,
+                  personality: sender.personality,
+                },
+                config: targetConfig,
+                companyName: this.currentCompany?.name || 'ShadowMove',
+                inProgressTaskTitle: inProgressTask?.title,
+                previousMessage: data.message,
+                turn: 2,
+              }),
+            })
+              .then((r) => r.json())
+              .then((t2Data) => {
+                if (t2Data.success && t2Data.message && this.activeMultiTurnDialog) {
+                  this.activeMultiTurnDialog.turn2Msg = t2Data.message;
+                  if (t2Data.suggestedAction && t2Data.suggestedAction !== 'none') {
+                    this.activeMultiTurnDialog.suggestedAction = t2Data.suggestedAction;
+                  }
+                }
+              })
+              .catch(() => {});
+          }
+        })
+        .catch(() => {
+          this.isLlmCollabPending = false;
+        });
+    }
 
     const event: ActivityEvent = {
-      id: `ev-${Date.now()}-${Math.random()}`,
+      id: `ev-walk-${Date.now()}-${Math.random()}`,
       timestamp: Date.now(),
-      type: 'collaboration',
+      type: 'movement',
+      categoryTag,
       agentId: sender.id,
       agentName: sender.name,
       targetAgentName: target.name,
-      description: `${sender.name} is walking to ${target.name}'s desk to collaborate on ${dialogText.slice(0, 45)}...`,
+      description: `${categoryTag}: ${sender.name} menghampiri meja ${target.name} untuk berdiskusi santai.`,
     };
 
     return { updatedSender, event };
   }
 
-  // Send an agent for coffee break
+  // Send an agent to brew coffee at espresso machine in pantry
   public triggerCoffeeBreak(agent: Agent): { updatedAgent: Agent; event: ActivityEvent } {
-    const dest = Math.random() > 0.5 ? PANTRY_CENTER : WATER_COOLER_SPOT;
-    const updatedAgent = this.sendAgentTo(agent, dest, 'coffee_break');
+    const updatedAgent = this.sendAgentTo(agent, COFFEE_MACHINE_SPOT, 'coffee_break');
+    updatedAgent.stateMessage = '☕ Menuju mesin kopi pantry untuk menyeduh espresso segar';
+
+    // After brewing at machine, move to table to enjoy coffee
+    this.idleTimers.set(agent.id, {
+      startTime: Date.now() + 4500,
+      duration: 5500,
+      nextSpot: PANTRY_TABLE_SPOT,
+      nextState: 'coffee_break',
+      nextMessage: '☕ Menikmati kopi hangat hasil seduhan sendiri di meja pantry.',
+    });
 
     const event: ActivityEvent = {
-      id: `ev-${Date.now()}-${Math.random()}`,
+      id: `ev-coffee-${Date.now()}-${Math.random()}`,
       timestamp: Date.now(),
       type: 'break',
+      categoryTag: '☕ Kopi & Pantry',
       agentId: agent.id,
       agentName: agent.name,
-      description: `${agent.name} is heading to the pantry for a coffee break.`,
+      description: `☕ ${agent.name} menuju mesin kopi pantry untuk menyeduh espresso segar.`,
     };
 
     return { updatedAgent, event };
   }
 
-  // Trigger human approval: agent walks to owner executive desk
+  // Send an agent to play retro games in Game Corner
+  public triggerPlayGame(agent: Agent): { updatedAgent: Agent; event: ActivityEvent } {
+    const updatedAgent = this.sendAgentTo(agent, GAME_ROOM_SPOT, 'playing_game');
+    updatedAgent.stateMessage = '🎮 Menuju Game Corner untuk bermain retro arcade';
+    this.idleTimers.set(agent.id, { startTime: Date.now() + 4000, duration: 9000 });
+
+    const event: ActivityEvent = {
+      id: `ev-game-${Date.now()}-${Math.random()}`,
+      timestamp: Date.now(),
+      type: 'break',
+      categoryTag: '🎮 Gaming & Hobi',
+      agentId: agent.id,
+      agentName: agent.name,
+      description: `🎮 ${agent.name} menuju Game Corner untuk bermain game retro arcade.`,
+    };
+
+    return { updatedAgent, event };
+  }
+
+  // Send an agent to stroll in the lobby
+  public triggerLobbyStroll(agent: Agent): { updatedAgent: Agent; event: ActivityEvent } {
+    const updatedAgent = this.sendAgentTo(agent, LOBBY_SPOT, 'idle');
+    updatedAgent.stateMessage = '🚶 Berjalan santai ke lobby melihat resepsionis AI';
+    this.idleTimers.set(agent.id, { startTime: Date.now() + 4000, duration: 6000 });
+
+    const event: ActivityEvent = {
+      id: `ev-lobby-${Date.now()}-${Math.random()}`,
+      timestamp: Date.now(),
+      type: 'movement',
+      categoryTag: '🚶 Santai di Lobby',
+      agentId: agent.id,
+      agentName: agent.name,
+      description: `🚶 ${agent.name} berjalan santai ke lobby menyapa resepsionis AI.`,
+    };
+
+    return { updatedAgent, event };
+  }
+
+  // Send an agent to view sprint station
+  public triggerSprintViewing(agent: Agent): { updatedAgent: Agent; event: ActivityEvent } {
+    const updatedAgent = this.sendAgentTo(agent, SPRINT_STATION_SPOT, 'meeting');
+    updatedAgent.stateMessage = '🚶 Menuju Sprint Station untuk meninjau papan kanban & roadmap';
+    // Walking takes ~8.5s; dwell at kanban whiteboard for 14s to review deliverables
+    this.idleTimers.set(agent.id, { startTime: Date.now() + 8500, duration: 14000 });
+
+    const event: ActivityEvent = {
+      id: `ev-sprint-${Date.now()}-${Math.random()}`,
+      timestamp: Date.now(),
+      type: 'movement',
+      categoryTag: '📊 Sprint Station',
+      agentId: agent.id,
+      agentName: agent.name,
+      description: `📊 ${agent.name} menuju Sprint Station untuk meninjau backlog tiket & progres sprint.`,
+    };
+
+    return { updatedAgent, event };
+  }
+
+  // Trigger human approval: agent walks to lead executive suite
   public triggerHumanApproval(
     agent: Agent,
     request: HumanDecisionRequest
@@ -141,7 +398,7 @@ export class OfficeSimulation {
     const updatedAgent: Agent = {
       ...agent,
       state: 'walking',
-      stateMessage: `Walking to Owner's Executive Desk for decision approval: "${request.title}"`,
+      stateMessage: `Berjalan ke Lead Suite untuk persetujuan keputusan: "${request.title}"`,
       targetPosition: OWNER_INTERACTION_SPOT,
     };
 
@@ -151,7 +408,7 @@ export class OfficeSimulation {
       type: 'human_loop',
       agentId: agent.id,
       agentName: agent.name,
-      description: `⚠️ ${agent.name} is walking to Boss desk seeking Owner decision on "${request.title}"`,
+      description: `⚠️ ${agent.name} berjalan ke Lead Suite meminta persetujuan: "${request.title}"`,
     };
 
     return { updatedAgent, event };
@@ -164,15 +421,15 @@ export class OfficeSimulation {
     feedback?: string
   ): { updatedAgent: Agent; event: ActivityEvent } {
     const ackMessage = approved
-      ? `Siap Bos! Disetujui, langsung kami eksekusi.`
-      : `Baik Bos! Kami revisi pendekatannya sesuai instruksi.`;
+      ? `Siap! Keputusan disetujui, langsung kami eksekusi.`
+      : `Baik! Kami revisi pendekatannya sesuai arahan sprint.`;
 
     const dialog: AgentDialog = {
       id: `dlg-${Date.now()}`,
       speakerId: agent.id,
       speakerName: agent.name,
-      targetId: 'owner',
-      targetName: 'Owner (Boss)',
+      targetId: 'lead_architect',
+      targetName: 'Lead Architect',
       message: ackMessage,
       timestamp: Date.now(),
     };
@@ -192,7 +449,7 @@ export class OfficeSimulation {
       type: 'human_loop',
       agentId: agent.id,
       agentName: agent.name,
-      description: `Owner ${approved ? 'APPROVED' : 'REJECTED'} request from ${agent.name}: "${feedback || ackMessage}"`,
+      description: `Lead Architect ${approved ? 'MENYETUJUI' : 'MENOLAK'} permintaan ${agent.name}: "${feedback || ackMessage}"`,
     };
 
     return { updatedAgent: returningAgent, event };
@@ -212,7 +469,7 @@ export class OfficeSimulation {
     const updatedAgent: Agent = {
       ...agent,
       state: 'walking',
-      stateMessage: `Terminated by Owner. Packing up and heading to exit door.`,
+      stateMessage: `Kontrak diakhiri oleh Lead. Bersiap meninggalkan kantor.`,
       targetPosition: EXIT_DOOR_SPOT,
     };
 
@@ -222,7 +479,7 @@ export class OfficeSimulation {
       type: 'fire',
       agentId: agent.id,
       agentName: agent.name,
-      description: `🛑 ${agent.name} (${agent.roleTitle}) was fired by Owner and is leaving the office.`,
+      description: `🛑 ${agent.name} (${agent.roleTitle}) telah mengakhiri sprint dan meninggalkan kantor.`,
     };
 
     return { updatedAgent, event };
@@ -285,8 +542,9 @@ export class OfficeSimulation {
   }
 
   // Send agent back to desk
-  public returnToDesk(agent: Agent): Agent {
-    return this.sendAgentTo(agent, agent.deskPosition, 'working');
+  public returnToDesk(agent: Agent, onArrivalState?: 'idle' | 'working'): Agent {
+    const targetState: 'idle' | 'working' = onArrivalState || (agent.currentTaskId ? 'working' : 'idle');
+    return this.sendAgentTo(agent, agent.deskPosition, targetState);
   }
 
   // Simulation step tick
@@ -339,7 +597,18 @@ export class OfficeSimulation {
 
               if (pathState.onArrivalState === 'talking' && pathState.targetAgentId) {
                 const targetAgent = agents.find((a) => a.id === pathState.targetAgentId);
-                const dialogMsg = pathState.dialogContext || 'Checking in on sprint deliverables.';
+                const fallbackBanter = generateProceduralCollabBanter(
+                  currentAgent,
+                  targetAgent || currentAgent,
+                  1,
+                  undefined,
+                  tasks,
+                  this.currentCompany?.name
+                );
+                const dialogMsg = pathState.dialogContext || fallbackBanter.message;
+                const dialogCat = pathState.dialogCategory || fallbackBanter.categoryTag;
+                const dialogColor = pathState.dialogColor || fallbackBanter.tagColor;
+
                 const dialog: AgentDialog = {
                   id: `dlg-${Date.now()}`,
                   speakerId: currentAgent.id,
@@ -347,21 +616,31 @@ export class OfficeSimulation {
                   targetId: pathState.targetAgentId,
                   targetName: targetAgent ? targetAgent.name : 'Colleague',
                   message: dialogMsg,
+                  categoryTag: dialogCat,
+                  tagColor: dialogColor,
                   timestamp: Date.now(),
                 };
 
                 currentAgent.activeDialog = dialog;
-                currentAgent.stateMessage = `Discussing: "${dialogMsg}"`;
+                currentAgent.stateMessage = `${dialogCat}: "${dialogMsg}"`;
                 currentAgent.stats.collabCount += 1;
+                currentAgent.collabPartnerId = pathState.targetAgentId;
+                if (targetAgent) {
+                  currentAgent.facingDirection = currentAgent.currentPosition.x < targetAgent.currentPosition.x ? 'right' : 'left';
+                }
+                if (this.activeMultiTurnDialog && this.activeMultiTurnDialog.senderId === currentAgent.id) {
+                  this.activeMultiTurnDialog.turn1Timestamp = Date.now();
+                }
 
                 newEvents.push({
                   id: `ev-${Date.now()}-${Math.random()}`,
                   timestamp: Date.now(),
-                  type: 'collaboration',
+                  type: dialogCat.includes('Sprint') ? 'collaboration' : 'casual_talk',
+                  categoryTag: dialogCat,
                   agentId: currentAgent.id,
                   agentName: currentAgent.name,
                   targetAgentName: targetAgent?.name,
-                  description: `${currentAgent.name} talking to ${targetAgent?.name}: "${dialogMsg}"`,
+                  description: `${dialogCat}: ${currentAgent.name} & ${targetAgent?.name}: "${dialogMsg}"`,
                 });
               } else if (pathState.onArrivalState === 'seeking_approval') {
                 const dialogMsg = pathState.decisionRequest?.question || 'Boss, butuh persetujuan keputusan penting!';
@@ -375,13 +654,30 @@ export class OfficeSimulation {
                   timestamp: Date.now(),
                 };
                 currentAgent.stateMessage = `Waiting for Owner approval at Executive Desk: "${dialogMsg}"`;
+                currentAgent.facingDirection = 'front';
               } else if (pathState.onArrivalState === 'leaving_office') {
                 currentAgent.stateMessage = 'Has left the office premises.';
               } else if (pathState.onArrivalState === 'coffee_break') {
-                currentAgent.stateMessage = 'Taking a sip of freshly brewed espresso';
+                currentAgent.stateMessage = '☕ Menikmati espresso segar hasil seduhan mesin pantry';
+              } else if (pathState.onArrivalState === 'playing_game') {
+                currentAgent.state = 'playing_game';
+                currentAgent.stateMessage = '👾 Bermain game retro arcade di Game Corner';
+                currentAgent.facingDirection = 'front';
+              } else if (pathState.onArrivalState === 'meeting') {
+                currentAgent.state = 'meeting';
+                currentAgent.stateMessage = '📊 Mengamati papan kanban & sticky notes di Sprint Station';
+                currentAgent.facingDirection = 'left';
               } else if (pathState.onArrivalState === 'working') {
                 currentAgent.stateMessage = 'Focused on coding and implementation';
                 currentAgent.activeDialog = undefined;
+                currentAgent.collabPartnerId = undefined;
+                currentAgent.facingDirection = 'front';
+              } else if (pathState.onArrivalState === 'idle') {
+                currentAgent.state = 'idle';
+                currentAgent.stateMessage = 'Standby di meja kerja, siap menerima tugas sprint.';
+                currentAgent.activeDialog = undefined;
+                currentAgent.collabPartnerId = undefined;
+                currentAgent.facingDirection = 'front';
               }
             }
           } else {
@@ -395,19 +691,17 @@ export class OfficeSimulation {
         }
       }
 
-      // Dialog timeout handling: after talking for ~4.5 seconds, wrap up and walk back to desk
-      if (currentAgent.state === 'talking' && currentAgent.activeDialog) {
+      // Dialog timeout handling for non-multiturn dialogs
+      if (currentAgent.state === 'talking' && currentAgent.activeDialog && !this.activeMultiTurnDialog) {
         const dialogAge = (Date.now() - currentAgent.activeDialog.timestamp) / 1000;
         if (dialogAge > 4.5 / this.speedMultiplier) {
           currentAgent.activeDialog = undefined;
-          currentAgent = this.returnToDesk(currentAgent);
-        }
-      }
-
-      // Coffee break timeout: after 5 seconds, walk back to desk
-      if (currentAgent.state === 'coffee_break') {
-        if (!currentAgent.targetPosition && Math.random() < 0.02 * effectiveDelta) {
-          currentAgent = this.returnToDesk(currentAgent);
+          currentAgent.collabPartnerId = undefined;
+          currentAgent.facingDirection = 'front';
+          const hasActiveTask = tasks.some(
+            (t) => t.assignedAgentId === currentAgent.id && t.status === 'in_progress'
+          );
+          currentAgent = this.returnToDesk(currentAgent, hasActiveTask ? 'working' : 'idle');
         }
       }
 
@@ -417,57 +711,469 @@ export class OfficeSimulation {
     // Remove agents who have left the office completely
     updatedAgents = updatedAgents.filter((a) => a.stateMessage !== 'Has left the office premises.');
 
+    // Synchronize mutual talking partners so both face each other and participate
+    updatedAgents.forEach((agent) => {
+      if (agent.state === 'talking' && agent.collabPartnerId) {
+        const partner = updatedAgents.find((a) => a.id === agent.collabPartnerId);
+        if (partner && partner.state !== 'walking' && partner.state !== 'leaving_office') {
+          partner.state = 'talking';
+          partner.collabPartnerId = agent.id;
+          if (agent.currentPosition.x < partner.currentPosition.x) {
+            agent.facingDirection = 'right';
+            partner.facingDirection = 'left';
+          } else {
+            agent.facingDirection = 'left';
+            partner.facingDirection = 'right';
+          }
+        } else if (!partner || partner.state === 'working' || partner.state === 'idle' || partner.state === 'walking') {
+          const hasActiveTask = tasks.some(
+            (t) => t.assignedAgentId === agent.id && t.status === 'in_progress'
+          );
+          agent.state = hasActiveTask ? 'working' : 'idle';
+          agent.activeDialog = undefined;
+          agent.collabPartnerId = undefined;
+          agent.facingDirection = 'front';
+          if (!hasActiveTask && !agent.stateMessage.startsWith('Standby')) {
+            agent.stateMessage = 'Standby di meja kerja, siap menerima tugas.';
+          }
+        }
+      }
+    });
+
     // Update tasks progress when assigned agent is working
-    const updatedTasks = tasks.map((task) => {
+    const updatedTasks: TaskTicket[] = tasks.map((t) => ({ ...t }));
+
+    for (let i = 0; i < updatedTasks.length; i++) {
+      const task = updatedTasks[i];
       const assigned = updatedAgents.find((a) => a.id === task.assignedAgentId);
-      if (task.status === 'in_progress' && assigned && assigned.state === 'working') {
-        const newProgress = Math.min(100, task.progress + (1.2 * effectiveDelta));
-        
-        // Periodic code output lines generation
-        if (Math.random() < 0.1 * effectiveDelta) {
-          assigned.stats.linesOfCode += Math.floor(Math.random() * 8) + 2;
-          if (task.type === 'content') {
-            assigned.stats.wordsWritten += Math.floor(Math.random() * 25) + 10;
+
+      if (task.status === 'in_progress' && assigned) {
+        // If assigned agent is not yet working or walking, send them back to desk to work immediately
+        if (assigned.state !== 'working' && assigned.state !== 'walking') {
+          // Cancel any idle timer or multi-turn dialog involving this agent
+          this.idleTimers.delete(assigned.id);
+          if (
+            this.activeMultiTurnDialog &&
+            (this.activeMultiTurnDialog.senderId === assigned.id ||
+              this.activeMultiTurnDialog.targetId === assigned.id)
+          ) {
+            this.activeMultiTurnDialog = undefined;
+          }
+
+          const sent = this.returnToDesk(assigned, 'working');
+          const aIdx = updatedAgents.findIndex((a) => a.id === assigned.id);
+          if (aIdx !== -1) {
+            updatedAgents[aIdx] = {
+              ...sent,
+              currentTaskId: task.id,
+              stateMessage: `⚡ Dipanggil sistem: Segera kembali ke meja kerja untuk mengeksekusi "${task.title}"`,
+            };
+            newEvents.push({
+              id: `ev-dispatch-${Date.now()}-${Math.random()}`,
+              timestamp: Date.now(),
+              type: 'system',
+              categoryTag: '📢 Sistem Memanggil',
+              agentId: assigned.id,
+              agentName: assigned.name,
+              description: `📢 Sistem otomatis memanggil ${assigned.name} kembali ke meja kerja untuk mengeksekusi tiket "${task.title}"!`,
+            });
           }
         }
 
-        if (newProgress >= 100 && task.progress < 100) {
-          assigned.stats.tasksCompleted += 1;
-          newEvents.push({
-            id: `ev-done-${Date.now()}-${Math.random()}`,
-            timestamp: Date.now(),
-            type: 'task_complete',
-            agentId: assigned.id,
-            agentName: assigned.name,
-            description: `🎉 ${assigned.name} successfully completed ticket: "${task.title}"!`,
-          });
+        if (assigned.state === 'working') {
+          assigned.currentTaskId = task.id;
+          if (!assigned.stateMessage.startsWith('⚡')) {
+            assigned.stateMessage = `⚡ Working on: "${task.title}"`;
+          }
 
+          // Active progress rate: 2.4 * effectiveDelta (~42 seconds for 100% at 1x speed, ~8s at 5x)
+          const newProgress = Math.min(100, task.progress + (2.4 * effectiveDelta));
+
+          // Periodic live code output lines generation reflecting the active task
+          if (Math.random() < 0.22 * effectiveDelta) {
+            assigned.stats.linesOfCode += Math.floor(Math.random() * 8) + 3;
+            if (task.type === 'content') {
+              assigned.stats.wordsWritten += Math.floor(Math.random() * 25) + 12;
+            }
+            if (!assigned.liveCodeOutput) assigned.liveCodeOutput = [];
+            const safeFn = task.title.replace(/[^a-zA-Z0-9]/g, '');
+            const snippets = [
+              `// [${assigned.name}] Executing task: ${task.title}`,
+              `export async function handle${safeFn || 'Service'}(req: Request) {`,
+              `  console.log("[Sprint] Processing step at progress: ${Math.round(newProgress)}%");`,
+              `  const res = await dispatchAgentPipeline("${task.type}");`,
+              `  return Response.json({ success: true, task: "${task.title}" });`,
+              `}`,
+            ];
+            const nextLine = snippets[Math.floor(Math.random() * snippets.length)];
+            assigned.liveCodeOutput = [...assigned.liveCodeOutput.slice(-8), nextLine];
+          }
+
+          if (newProgress >= 100 && task.progress < 100) {
+            // Task completed 100%!
+            assigned.stats.tasksCompleted += 1;
+            task.progress = 100;
+            task.status = 'done';
+            task.completedAt = Date.now();
+
+            const safeTitle = task.title.toLowerCase().replace(/[^a-z0-9_-]/g, '-').slice(0, 24);
+            const generatedArtifact = {
+              id: `art-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              fileName: task.type === 'coding' ? `src/${safeTitle}.ts` : `docs/${safeTitle}.md`,
+              type: task.type === 'coding' ? ('code' as const) : ('markdown' as const),
+              content: `// 🚀 Autonomously implemented by ${assigned.name}\n// Task: ${task.title}\n// Status: COMPLETED 100%\n\nexport const sprintDeliverable = {\n  task: "${task.title}",\n  completedBy: "${assigned.name}",\n  completedAt: "${new Date().toISOString()}",\n  artifactsLocation: "~/.vigent/workspaces/${safeTitle}"\n};\n`,
+            };
+            if (task.artifacts.length === 0) {
+              task.artifacts = [generatedArtifact];
+            }
+            task.logs = [...task.logs, `Completed and verified 100% by ${assigned.name}.`];
+
+            // Check if this agent has another task waiting in the backlog
+            const nextBacklogTask = updatedTasks.find(
+              (t) => t.id !== task.id && t.assignedAgentId === assigned.id && t.status === 'backlog'
+            );
+
+            if (nextBacklogTask) {
+              // Auto-promote next backlog task for this agent
+              nextBacklogTask.status = 'in_progress';
+              assigned.currentTaskId = nextBacklogTask.id;
+              assigned.state = 'working';
+              assigned.stateMessage = `⚡ Working on: "${nextBacklogTask.title}"`;
+              newEvents.push({
+                id: `ev-next-${Date.now()}-${Math.random()}`,
+                timestamp: Date.now(),
+                type: 'task_start',
+                agentId: assigned.id,
+                agentName: assigned.name,
+                description: `⚡ ${assigned.name} selesai tiket "${task.title}" dan otomatis lanjut mengerjakan: "${nextBacklogTask.title}"!`,
+              });
+            } else {
+              // Cleanly transition agent to IDLE standby
+              assigned.state = 'idle';
+              assigned.currentTaskId = undefined;
+              assigned.stateMessage = `Standby: Tiket "${task.title}" selesai 100%. Menunggu tugas baru.`;
+            }
+
+            newEvents.push({
+              id: `ev-done-${Date.now()}-${Math.random()}`,
+              timestamp: Date.now(),
+              type: 'task_complete',
+              agentId: assigned.id,
+              agentName: assigned.name,
+              description: `🎉 ${assigned.name} successfully completed ticket: "${task.title}"! (+150 Company XP)`,
+            });
+
+            // Auto-record company episodic memory & XP progression
+            if (this.currentCompany?.id && typeof fetch !== 'undefined') {
+              fetch('/api/company/memory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  companyId: this.currentCompany.id,
+                  action: 'experience',
+                  taskTitle: task.title,
+                  agentName: assigned.name,
+                  agentRole: assigned.role,
+                  summary: `Berhasil menyelesaikan sprint task "${task.title}" (${task.type}). Artifact tersimpan di ruang kerja perusahaan.`,
+                  xpGained: 150,
+                }),
+              }).catch((err) => {
+                console.warn('[MemoryEngine] Gagal sinkronisasi memori tugas:', err);
+              });
+            }
+          } else {
+            task.progress = newProgress;
+          }
+        }
+      }
+    }
+
+    // Reconcile all agents to ensure no agent is stuck in 'working' state without an active in_progress task
+    updatedAgents = updatedAgents.map((agent) => {
+      // Preserve agents currently in transit or interactive states
+      if (
+        agent.state === 'walking' ||
+        agent.state === 'talking' ||
+        agent.state === 'coffee_break' ||
+        agent.state === 'seeking_approval' ||
+        agent.state === 'leaving_office'
+      ) {
+        return agent;
+      }
+
+      // Check if this agent has an active in_progress task
+      const activeTask = updatedTasks.find(
+        (t) => t.assignedAgentId === agent.id && t.status === 'in_progress'
+      );
+
+      if (activeTask) {
+        if (agent.state !== 'working' || agent.currentTaskId !== activeTask.id) {
           return {
-            ...task,
-            progress: 100,
-            status: 'done' as const,
-            completedAt: Date.now(),
-            logs: [...task.logs, `Completed and verified by ${assigned.name}.`],
+            ...agent,
+            state: 'working',
+            currentTaskId: activeTask.id,
+            stateMessage: `⚡ Working on: "${activeTask.title}"`,
           };
         }
-
-        return { ...task, progress: newProgress };
+        return agent;
+      } else {
+        // Agent has NO active in-progress task!
+        if (agent.state === 'working') {
+          const lastDoneTask = updatedTasks.find(
+            (t) => t.assignedAgentId === agent.id && t.status === 'done'
+          );
+          const standbyMsg = lastDoneTask
+            ? `Standby: Tiket "${lastDoneTask.title}" selesai 100%. Menunggu tugas baru.`
+            : 'Standby: Siap menerima tugas baru.';
+          return {
+            ...agent,
+            state: 'idle',
+            currentTaskId: undefined,
+            stateMessage: standbyMsg,
+          };
+        }
+        return agent;
       }
-      return task;
     });
 
-    // Auto-trigger spontaneous interaction every ~15-25 seconds if idle
     const now = Date.now();
-    if (now - this.lastCollabTime > 20000 / this.speedMultiplier && updatedAgents.length >= 2) {
+
+    // 1. Multi-turn Dialog Step Handling (Back-and-forth LLM conversation)
+    if (this.activeMultiTurnDialog) {
+      const dialog = this.activeMultiTurnDialog;
+      const senderAgent = updatedAgents.find((a) => a.id === dialog.senderId);
+      const targetAgent = updatedAgents.find((a) => a.id === dialog.targetId);
+
+      // Check if both agents are still valid and neither has an emergency task interrupt
+      const senderHasTask = tasks.some((t) => t.assignedAgentId === dialog.senderId && t.status === 'in_progress');
+      const targetHasTask = tasks.some((t) => t.assignedAgentId === dialog.targetId && t.status === 'in_progress');
+
+      if (senderHasTask || targetHasTask || !senderAgent || !targetAgent) {
+        this.activeMultiTurnDialog = undefined;
+      } else if (dialog.turn === 1 && dialog.turn1Timestamp) {
+        // Turn 1 elapsed?
+        const turn1Elapsed = (now - dialog.turn1Timestamp) / 1000;
+        if (turn1Elapsed > 4.2 / this.speedMultiplier) {
+          const turn2MsgText = dialog.turn2Msg || generateProceduralCollabBanter(
+            targetAgent,
+            senderAgent,
+            2,
+            dialog.turn1Msg || '',
+            tasks,
+            this.currentCompany?.name
+          ).message;
+
+          // Switch speaker: Target responds to Sender
+          senderAgent.activeDialog = undefined;
+          senderAgent.stateMessage = `Mendengarkan tanggapan ${targetAgent.name}...`;
+
+          targetAgent.activeDialog = {
+            id: `dlg-${now}`,
+            speakerId: targetAgent.id,
+            speakerName: targetAgent.name,
+            targetId: senderAgent.id,
+            targetName: senderAgent.name,
+            message: turn2MsgText,
+            categoryTag: dialog.categoryTag,
+            tagColor: dialog.tagColor,
+            timestamp: now,
+          };
+          targetAgent.state = 'talking';
+          targetAgent.stateMessage = `${dialog.categoryTag}: "${turn2MsgText}"`;
+
+          dialog.turn = 2;
+          dialog.turn2Timestamp = now;
+
+          newEvents.push({
+            id: `ev-resp-${now}-${Math.random()}`,
+            timestamp: now,
+            type: 'casual_talk',
+            categoryTag: dialog.categoryTag,
+            agentId: targetAgent.id,
+            agentName: targetAgent.name,
+            targetAgentName: senderAgent.name,
+            description: `💬 ${targetAgent.name} (${targetAgent.personality?.mbti || 'Agent'}) menanggapi ${senderAgent.name}: "${turn2MsgText}"`,
+          });
+        }
+      } else if (dialog.turn === 2 && dialog.turn2Timestamp) {
+        const turn2Elapsed = (now - dialog.turn2Timestamp) / 1000;
+        if (turn2Elapsed > 4.5 / this.speedMultiplier) {
+          // Turn 2 complete! Resolve mutually agreed action
+          targetAgent.activeDialog = undefined;
+          senderAgent.activeDialog = undefined;
+          const action = dialog.suggestedAction;
+          this.activeMultiTurnDialog = undefined;
+
+          if (action === 'play_game') {
+            const r1 = this.triggerPlayGame(senderAgent);
+            const r2 = this.triggerPlayGame(targetAgent);
+            const sIdx = updatedAgents.findIndex((a) => a.id === senderAgent.id);
+            const tIdx = updatedAgents.findIndex((a) => a.id === targetAgent.id);
+            if (sIdx !== -1) updatedAgents[sIdx] = r1.updatedAgent;
+            if (tIdx !== -1) updatedAgents[tIdx] = r2.updatedAgent;
+            newEvents.push({
+              id: `ev-game-both-${now}`,
+              timestamp: now,
+              type: 'break',
+              categoryTag: '🎮 Game Corner',
+              agentId: senderAgent.id,
+              agentName: senderAgent.name,
+              targetAgentName: targetAgent.name,
+              description: `🎮 ${senderAgent.name} & ${targetAgent.name} sepakat mabar retro arcade bersama di Game Corner!`,
+            });
+          } else if (action === 'coffee') {
+            const r1 = this.triggerCoffeeBreak(senderAgent);
+            const r2 = this.triggerCoffeeBreak(targetAgent);
+            const sIdx = updatedAgents.findIndex((a) => a.id === senderAgent.id);
+            const tIdx = updatedAgents.findIndex((a) => a.id === targetAgent.id);
+            if (sIdx !== -1) updatedAgents[sIdx] = r1.updatedAgent;
+            if (tIdx !== -1) updatedAgents[tIdx] = r2.updatedAgent;
+            newEvents.push({
+              id: `ev-coffee-both-${now}`,
+              timestamp: now,
+              type: 'break',
+              categoryTag: '☕ Kopi & Pantry',
+              agentId: senderAgent.id,
+              agentName: senderAgent.name,
+              targetAgentName: targetAgent.name,
+              description: `☕ ${senderAgent.name} & ${targetAgent.name} istirahat ngopi bareng di pantry!`,
+            });
+          } else {
+            // Both return to desk peacefully
+            const r1 = this.returnToDesk(senderAgent, 'idle');
+            const r2 = this.returnToDesk(targetAgent, 'idle');
+            const sIdx = updatedAgents.findIndex((a) => a.id === senderAgent.id);
+            const tIdx = updatedAgents.findIndex((a) => a.id === targetAgent.id);
+            if (sIdx !== -1) updatedAgents[sIdx] = r1;
+            if (tIdx !== -1) updatedAgents[tIdx] = r2;
+          }
+        }
+      }
+    }
+
+    // 2. Idle Activities Timer Sequencer (Pantry Espresso -> Table, Gaming, Lobby stroll, Sprint board)
+    for (const [agentId, timer] of Array.from(this.idleTimers.entries())) {
+      const agent = updatedAgents.find((a) => a.id === agentId);
+      if (!agent) {
+        this.idleTimers.delete(agentId);
+        continue;
+      }
+
+      // Check task interrupt
+      const hasTask = tasks.some((t) => t.assignedAgentId === agentId && t.status === 'in_progress');
+      if (hasTask) {
+        this.idleTimers.delete(agentId);
+        const sent = this.returnToDesk(agent, 'working');
+        const idx = updatedAgents.findIndex((a) => a.id === agentId);
+        if (idx !== -1) updatedAgents[idx] = sent;
+        continue;
+      }
+
+      if (now >= timer.startTime + timer.duration) {
+        if (timer.nextSpot) {
+          const nextSpot = timer.nextSpot;
+          const nextState = timer.nextState || 'coffee_break';
+          const nextMessage = timer.nextMessage || 'Menikmati waktu istirahat';
+          this.idleTimers.set(agentId, {
+            startTime: now + 3500,
+            duration: 6000,
+          });
+          const sent = this.sendAgentTo(agent, nextSpot, nextState);
+          sent.stateMessage = nextMessage;
+          const idx = updatedAgents.findIndex((a) => a.id === agentId);
+          if (idx !== -1) updatedAgents[idx] = sent;
+
+          newEvents.push({
+            id: `ev-next-${agentId}-${now}`,
+            timestamp: now,
+            type: 'break',
+            categoryTag: '☕ Kopi & Pantry',
+            agentId: agent.id,
+            agentName: agent.name,
+            description: `☕ ${agent.name} menuju meja pantry untuk menikmati kopi hangat.`,
+          });
+        } else {
+          // Break finished, return to desk
+          this.idleTimers.delete(agentId);
+          const sent = this.returnToDesk(agent, 'idle');
+          sent.stateMessage = 'Standby di meja kerja, segar kembali dan siap sprint.';
+          const idx = updatedAgents.findIndex((a) => a.id === agentId);
+          if (idx !== -1) updatedAgents[idx] = sent;
+
+          newEvents.push({
+            id: `ev-return-${agentId}-${now}`,
+            timestamp: now,
+            type: 'movement',
+            categoryTag: '🖥️ Meja Kerja',
+            agentId: agent.id,
+            agentName: agent.name,
+            description: `🖥️ ${agent.name} selesai istirahat dan kembali standby di meja kerja.`,
+          });
+        }
+      }
+    }
+
+    // 3. Autonomous Idle Wanderer: idle agents periodically choose a casual activity
+    const idleWanderInterval = (22000 + Math.random() * 16000) / this.speedMultiplier;
+    if (now - this.lastIdleActivityTime > idleWanderInterval) {
+      this.lastIdleActivityTime = now;
+      const idleAgents = updatedAgents.filter(
+        (a) =>
+          a.state === 'idle' &&
+          !this.idleTimers.has(a.id) &&
+          !this.pathStates.has(a.id) &&
+          (!this.activeMultiTurnDialog || (this.activeMultiTurnDialog.senderId !== a.id && this.activeMultiTurnDialog.targetId !== a.id)) &&
+          !tasks.some((t) => t.assignedAgentId === a.id && t.status === 'in_progress')
+      );
+
+      if (idleAgents.length > 0) {
+        const candidate = idleAgents[Math.floor(Math.random() * idleAgents.length)];
+        // Higher affinity for Project Managers / System Architects to visit Sprint Station
+        const isLead = candidate.role.includes('manager') || candidate.roleTitle.toLowerCase().includes('architect');
+        const activityRoll = isLead && Math.random() < 0.6 ? 3 : Math.floor(Math.random() * 4);
+        let result: { updatedAgent: Agent; event: ActivityEvent } | null = null;
+
+        if (activityRoll === 0) {
+          result = this.triggerCoffeeBreak(candidate);
+        } else if (activityRoll === 1) {
+          result = this.triggerPlayGame(candidate);
+        } else if (activityRoll === 2) {
+          result = this.triggerLobbyStroll(candidate);
+        } else {
+          result = this.triggerSprintViewing(candidate);
+        }
+
+        if (result) {
+          const idx = updatedAgents.findIndex((a) => a.id === candidate.id);
+          if (idx !== -1) updatedAgents[idx] = result.updatedAgent;
+          newEvents.push(result.event);
+        }
+      }
+    }
+
+    // 4. Dynamic Personality & LLM Collab banters (~45 - 75 seconds)
+    const collabInterval = (45000 + Math.random() * 30000) / this.speedMultiplier;
+    if (
+      now - this.lastCollabTime > collabInterval &&
+      updatedAgents.length >= 2 &&
+      !this.activeMultiTurnDialog &&
+      !this.isLlmCollabPending
+    ) {
       this.lastCollabTime = now;
-      const freeAgents = updatedAgents.filter((a) => a.state === 'working');
+      const freeAgents = updatedAgents.filter(
+        (a) =>
+          (a.state === 'working' || a.state === 'idle') &&
+          !this.idleTimers.has(a.id) &&
+          !this.pathStates.has(a.id)
+      );
+
       if (freeAgents.length >= 2) {
         const sender = freeAgents[Math.floor(Math.random() * freeAgents.length)];
         const possibleTargets = freeAgents.filter((a) => a.id !== sender.id);
         const target = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
 
         if (sender && target) {
-          const { updatedSender, event } = this.triggerCollaboration(sender, target);
+          const { updatedSender, event } = this.triggerCollaboration(sender, target, undefined, tasks);
           const sIdx = updatedAgents.findIndex((a) => a.id === sender.id);
           if (sIdx !== -1) {
             updatedAgents[sIdx] = updatedSender;
@@ -478,58 +1184,5 @@ export class OfficeSimulation {
     }
 
     return { updatedAgents, updatedTasks, newEvents };
-  }
-
-  // Realistic dialogue generator based on roles
-  private generateCollabDialogue(sender: Agent, target: Agent): string {
-    const dialogPairs = [
-      {
-        roles: ['frontend_dev', 'backend_dev'],
-        lines: [
-          'Hey, could we align on the response schema for the real-time activity feed?',
-          'Do we have pagination on the agent events endpoint, or is it pure streaming?',
-          'Quick check on CORS headers for the local dev environment, mind taking a look?',
-        ],
-      },
-      {
-        roles: ['frontend_dev', 'project_manager'],
-        lines: [
-          'I just finished the Three.js viewport controls. Can we review the camera zoom limits?',
-          'The design tokens for dark mode are ready for your review in sprint review.',
-        ],
-      },
-      {
-        roles: ['backend_dev', 'qa_engineer'],
-        lines: [
-          'Can you run the concurrency stress test on the A* pathfinding worker?',
-          'The database migration passed local tests, ready for staging validation.',
-        ],
-      },
-      {
-        roles: ['content_writer', 'project_manager'],
-        lines: [
-          'Drafted the technical release notes for version 1.0, want to glance over the tone?',
-          'Which key metrics should we highlight in the quarterly documentation summary?',
-        ],
-      },
-      {
-        roles: ['qa_engineer', 'frontend_dev'],
-        lines: [
-          'Noticed a subtle edge case when agents cross the pantry door frame, fixed it!',
-          'Test suite 4.1 passed all 48 test assertions with zero regressions.',
-        ],
-      },
-    ];
-
-    for (const pair of dialogPairs) {
-      if (
-        (sender.role === pair.roles[0] && target.role === pair.roles[1]) ||
-        (sender.role === pair.roles[1] && target.role === pair.roles[0])
-      ) {
-        return pair.lines[Math.floor(Math.random() * pair.lines.length)];
-      }
-    }
-
-    return `Hey ${target.name.split(' ')[0]}, let's quickly review the latest task requirements.`;
   }
 }
