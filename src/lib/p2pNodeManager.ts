@@ -104,6 +104,27 @@ export function getOrCreateNodeIdentity(companyName: string = 'ShadowMove Inc', 
 }
 
 /**
+ * Update local node's broadcasted company presence across P2P swarm
+ */
+export function updateNodePresence(companyName?: string, regionalSector?: string): NodeIdentity {
+  const identity = getOrCreateNodeIdentity();
+  if (companyName && companyName.trim()) {
+    identity.companyName = companyName.trim();
+  }
+  if (regionalSector && regionalSector.trim()) {
+    identity.regionalSector = regionalSector.trim();
+  }
+  activeIdentity = identity;
+  try {
+    fs.writeFileSync(IDENTITY_FILE, JSON.stringify(activeIdentity, null, 2), 'utf-8');
+  } catch {}
+  broadcastBeacon();
+  syncWithPublicRelay().catch(() => {});
+  return identity;
+}
+
+
+/**
  * 2. Load and persist known peers table
  */
 function loadPersistedPeers() {

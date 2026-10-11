@@ -82,77 +82,150 @@ export default function RealAgent3DPage() {
     simulationRef.current.setCompany(currentCompany);
   }, [currentCompany]);
 
-  // 1. Load persisted tasks & events on initial mount or office switch
-  useEffect(() => {
-    try {
-      // A. Load Tasks
-      const tasksStorageKey = `vigent_tasks_${currentCompany.id}`;
-      const savedTasksJson = localStorage.getItem(tasksStorageKey);
-      if (savedTasksJson) {
-        const parsed = JSON.parse(savedTasksJson);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setTasks(parsed);
-        }
-      } else {
-        // Fallback: check server disk tasks
-        fetch('/api/workspace', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_tasks', companyId: currentCompany.id }),
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            if (data.success && Array.isArray(data.tasks) && data.tasks.length > 0) {
-              setTasks(data.tasks);
-            }
-          })
-          .catch(console.error);
-      }
+  // Data loading guard ref to prevent saving empty/default state over stored memory on mount
+  const isDataLoadedRef = useRef(false);
 
-      // B. Load Activity Events
-      const eventsStorageKey = `vigent_events_${currentCompany.id}`;
-      const savedEventsJson = localStorage.getItem(eventsStorageKey);
-      if (savedEventsJson) {
-        const parsed = JSON.parse(savedEventsJson);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setEvents(parsed);
+  // 1. Load persisted company, agents, tasks & events on initial mount or office switch
+  useEffect(() => {
+    let isMounted = true;
+    isDataLoadedRef.current = false;
+
+    const loadAllPersistedData = async () => {
+      try {
+        const companyId = currentCompany.id;
+
+        // A. Load Company Profile & Progression
+        const companyStorageKey = `vigent_company_${companyId}`;
+        const savedCompanyJson = localStorage.getItem(companyStorageKey);
+        if (savedCompanyJson) {
+          try {
+            const parsedComp = JSON.parse(savedCompanyJson);
+            if (parsedComp && parsedComp.id === companyId && isMounted) {
+              setCurrentCompany(parsedComp);
+            }
+          } catch {}
+        } else {
+          try {
+            const compRes = await fetch('/api/workspace', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'get_company', companyId }),
+            }).then((r) => r.json());
+            if (compRes?.success && compRes.company && isMounted) {
+              setCurrentCompany(compRes.company);
+            }
+          } catch {}
         }
-      } else {
-        // Fallback: check server disk events
-        fetch('/api/workspace', {
+
+        // B. Load Agents (XP, Level, Assigned Roles, Positions)
+        const agentsStorageKey = `vigent_agents_${companyId}`;
+        const savedAgentsJson = localStorage.getItem(agentsStorageKey);
+        if (savedAgentsJson) {
+          try {
+            const parsedAgents = JSON.parse(savedAgentsJson);
+            if (Array.isArray(parsedAgents) && parsedAgents.length > 0 && isMounted) {
+              setAgents(parsedAgents);
+            }
+          } catch {}
+        } else {
+          try {
+            const agentsRes = await fetch('/api/workspace', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'get_agents', companyId }),
+            }).then((r) => r.json());
+            if (agentsRes?.success && Array.isArray(agentsRes.agents) && agentsRes.agents.length > 0 && isMounted) {
+              setAgents(agentsRes.agents);
+            }
+          } catch {}
+        }
+
+        // C. Load Tasks
+        const tasksStorageKey = `vigent_tasks_${companyId}`;
+        const savedTasksJson = localStorage.getItem(tasksStorageKey);
+        if (savedTasksJson) {
+          try {
+            const parsedTasks = JSON.parse(savedTasksJson);
+            if (Array.isArray(parsedTasks) && parsedTasks.length > 0 && isMounted) {
+              setTasks(parsedTasks);
+            }
+          } catch {}
+        } else {
+          try {
+            const tasksRes = await fetch('/api/workspace', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'get_tasks', companyId }),
+            }).then((r) => r.json());
+            if (tasksRes?.success && Array.isArray(tasksRes.tasks) && tasksRes.tasks.length > 0 && isMounted) {
+              setTasks(tasksRes.tasks);
+            }
+          } catch {}
+        }
+
+        // D. Load Activity Events
+        const eventsStorageKey = `vigent_events_${companyId}`;
+        const savedEventsJson = localStorage.getItem(eventsStorageKey);
+        if (savedEventsJson) {
+          try {
+            const parsedEvents = JSON.parse(savedEventsJson);
+            if (Array.isArray(parsedEvents) && parsedEvents.length > 0 && isMounted) {
+              setEvents(parsedEvents);
+            }
+          } catch {}
+        } else {
+          try {
+            const eventsRes = await fetch('/api/workspace', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'get_events', companyId }),
+            }).then((r) => r.json());
+            if (eventsRes?.success && Array.isArray(eventsRes.events) && eventsRes.events.length > 0 && isMounted) {
+              setEvents(eventsRes.events);
+            }
+          } catch {}
+        }
+
+        // E. Sync current presence with P2P Swarm & Relay
+        fetch('/api/p2p', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_events', companyId: currentCompany.id }),
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            if (data.success && Array.isArray(data.events) && data.events.length > 0) {
-              setEvents(data.events);
-            }
-          })
-          .catch(console.error);
+          body: JSON.stringify({
+            action: 'update_presence',
+            companyName: currentCompany.name,
+            regionalSector: 'region-jakarta',
+          }),
+        }).catch(() => {});
+      } catch (e) {
+        console.error('Error loading data from storage:', e);
+      } finally {
+        if (isMounted) {
+          isDataLoadedRef.current = true;
+        }
       }
-    } catch (e) {
-      console.error('Error loading data from storage:', e);
-    }
+    };
+
+    loadAllPersistedData();
+    return () => {
+      isMounted = false;
+    };
   }, [currentCompany.id]);
 
   // 2. Persist tasks to localStorage & server disk whenever tasks update
   useEffect(() => {
+    if (!isDataLoadedRef.current || !tasks || tasks.length === 0) return;
     try {
-      if (tasks && tasks.length > 0) {
-        const storageKey = `vigent_tasks_${currentCompany.id}`;
-        localStorage.setItem(storageKey, JSON.stringify(tasks));
+      const storageKey = `vigent_tasks_${currentCompany.id}`;
+      localStorage.setItem(storageKey, JSON.stringify(tasks));
 
-        const timer = setTimeout(() => {
-          fetch('/api/workspace', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'save_tasks', companyId: currentCompany.id, tasks }),
-          }).catch(console.error);
-        }, 1200);
-        return () => clearTimeout(timer);
-      }
+      const timer = setTimeout(() => {
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_tasks', companyId: currentCompany.id, tasks }),
+        }).catch(console.error);
+      }, 1200);
+      return () => clearTimeout(timer);
     } catch (e) {
       console.error('Error saving tasks to storage:', e);
     }
@@ -160,25 +233,64 @@ export default function RealAgent3DPage() {
 
   // 3. Persist activity events to localStorage & server disk whenever events update
   useEffect(() => {
+    if (!isDataLoadedRef.current || !events || events.length === 0) return;
     try {
-      if (events && events.length > 0) {
-        const storageKey = `vigent_events_${currentCompany.id}`;
-        const recentToSave = events.slice(-300);
-        localStorage.setItem(storageKey, JSON.stringify(recentToSave));
+      const storageKey = `vigent_events_${currentCompany.id}`;
+      const recentToSave = events.slice(-300);
+      localStorage.setItem(storageKey, JSON.stringify(recentToSave));
 
-        const timer = setTimeout(() => {
-          fetch('/api/workspace', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'save_events', companyId: currentCompany.id, events: recentToSave }),
-          }).catch(console.error);
-        }, 1500);
-        return () => clearTimeout(timer);
-      }
+      const timer = setTimeout(() => {
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_events', companyId: currentCompany.id, events: recentToSave }),
+        }).catch(console.error);
+      }, 1500);
+      return () => clearTimeout(timer);
     } catch (e) {
       console.error('Error saving events to storage:', e);
     }
   }, [events, currentCompany.id]);
+
+  // 4. Persist agents (XP, Level, Skills) whenever agents update
+  useEffect(() => {
+    if (!isDataLoadedRef.current || !agents || agents.length === 0) return;
+    try {
+      const storageKey = `vigent_agents_${currentCompany.id}`;
+      localStorage.setItem(storageKey, JSON.stringify(agents));
+
+      const timer = setTimeout(() => {
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_agents', companyId: currentCompany.id, agents }),
+        }).catch(console.error);
+      }, 1500);
+      return () => clearTimeout(timer);
+    } catch (e) {
+      console.error('Error saving agents to storage:', e);
+    }
+  }, [agents, currentCompany.id]);
+
+  // 5. Persist company state (Coins, Level, Reputation) whenever company updates
+  useEffect(() => {
+    if (!isDataLoadedRef.current || !currentCompany) return;
+    try {
+      const storageKey = `vigent_company_${currentCompany.id}`;
+      localStorage.setItem(storageKey, JSON.stringify(currentCompany));
+
+      const timer = setTimeout(() => {
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_company', companyId: currentCompany.id, company: currentCompany }),
+        }).catch(console.error);
+      }, 2000);
+      return () => clearTimeout(timer);
+    } catch (e) {
+      console.error('Error saving company to storage:', e);
+    }
+  }, [currentCompany]);
 
   // Simulation tick sync callback from 3D Canvas
   const handleSimulationUpdate = useCallback(

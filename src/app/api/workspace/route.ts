@@ -294,8 +294,20 @@ export async function POST(req: Request) {
     if (action === 'save_events') {
       const { events, companyId } = body;
       const eventsFile = path.join(REALAGENT_HOME, `events_${companyId || 'company-shadowmove'}.json`);
-      fs.writeFileSync(eventsFile, JSON.stringify(events || [], null, 2), 'utf-8');
-      return NextResponse.json({ success: true, count: (events || []).length });
+      let existing: any[] = [];
+      if (fs.existsSync(eventsFile)) {
+        try {
+          existing = JSON.parse(fs.readFileSync(eventsFile, 'utf-8'));
+        } catch {}
+      }
+      const eventMap = new Map();
+      existing.forEach((e) => eventMap.set(e.id, e));
+      (events || []).forEach((e: any) => eventMap.set(e.id, e));
+      const merged = Array.from(eventMap.values())
+        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+        .slice(-500);
+      fs.writeFileSync(eventsFile, JSON.stringify(merged, null, 2), 'utf-8');
+      return NextResponse.json({ success: true, count: merged.length });
     }
 
     if (action === 'get_events') {
@@ -311,6 +323,50 @@ export async function POST(req: Request) {
         }
       }
       return NextResponse.json({ success: true, events: [] });
+    }
+
+    if (action === 'save_agents') {
+      const { agents, companyId } = body;
+      const agentsFile = path.join(REALAGENT_HOME, `agents_${companyId || 'company-shadowmove'}.json`);
+      fs.writeFileSync(agentsFile, JSON.stringify(agents || [], null, 2), 'utf-8');
+      return NextResponse.json({ success: true, count: (agents || []).length });
+    }
+
+    if (action === 'get_agents') {
+      const { companyId } = body;
+      const agentsFile = path.join(REALAGENT_HOME, `agents_${companyId || 'company-shadowmove'}.json`);
+      if (fs.existsSync(agentsFile)) {
+        try {
+          const content = fs.readFileSync(agentsFile, 'utf-8');
+          const parsed = JSON.parse(content);
+          return NextResponse.json({ success: true, agents: parsed });
+        } catch {
+          return NextResponse.json({ success: true, agents: [] });
+        }
+      }
+      return NextResponse.json({ success: true, agents: [] });
+    }
+
+    if (action === 'save_company') {
+      const { company, companyId } = body;
+      const compFile = path.join(REALAGENT_HOME, `company_${companyId || 'company-shadowmove'}.json`);
+      fs.writeFileSync(compFile, JSON.stringify(company || {}, null, 2), 'utf-8');
+      return NextResponse.json({ success: true, company });
+    }
+
+    if (action === 'get_company') {
+      const { companyId } = body;
+      const compFile = path.join(REALAGENT_HOME, `company_${companyId || 'company-shadowmove'}.json`);
+      if (fs.existsSync(compFile)) {
+        try {
+          const content = fs.readFileSync(compFile, 'utf-8');
+          const parsed = JSON.parse(content);
+          return NextResponse.json({ success: true, company: parsed });
+        } catch {
+          return NextResponse.json({ success: true, company: null });
+        }
+      }
+      return NextResponse.json({ success: true, company: null });
     }
 
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });

@@ -8,6 +8,7 @@ import {
   removePeerNode,
   setPublicRelayUrl,
   syncWithPublicRelay,
+  updateNodePresence,
 } from '@/lib/p2pNodeManager';
 
 export async function GET(req: NextRequest) {
@@ -90,6 +91,13 @@ export async function POST(req: NextRequest) {
     if (action === 'sync_relay') {
       const result = await syncWithPublicRelay();
       return NextResponse.json(result);
+    }
+
+    // G. Update local company presence for P2P swarm broadcast
+    if (action === 'update_presence') {
+      const { companyName, regionalSector } = body;
+      const updated = updateNodePresence(companyName, regionalSector);
+      return NextResponse.json({ success: true, identity: updated });
     }
 
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
