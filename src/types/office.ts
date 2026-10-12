@@ -240,6 +240,14 @@ export interface OfficeGroupChatMessage {
   source?: 'web' | 'telegram';
 }
 
+export type OfficeLayoutTemplateId =
+  | 'tech_startup'
+  | 'cloud_datacenter'
+  | 'cafe_agency'
+  | 'fintech_trading'
+  | 'creative_genai'
+  | 'robotics_hardware';
+
 export interface Company {
   id: string;
   ownerUserId: string;
@@ -251,6 +259,7 @@ export interface Company {
   tasks: TaskTicket[];
   telegramConfig?: TelegramConfig;
   globalLLMConfig?: CompanyGlobalLLMConfig;
+  officeLayoutTemplate?: OfficeLayoutTemplateId;
 }
 
 export interface ActivityEvent {

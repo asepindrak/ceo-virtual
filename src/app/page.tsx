@@ -889,6 +889,7 @@ export default function RealAgent3DPage() {
 
       {/* Office Simulation Viewport: 2.5D Isometric (Ultra-Fast & Ringan) */}
       <IsometricOffice
+        currentCompany={currentCompany}
         agents={agents}
         tasks={tasks}
         simulation={simulationRef.current}
@@ -902,6 +903,7 @@ export default function RealAgent3DPage() {
         onOpenTasks={() => setIsTasksModalOpen(true)}
         onOpenSettings={() => setIsWorkspaceModalOpen(true)}
         onOpenWorldMap={() => setIsWorldMapOpen(true)}
+        onOpenCompanyModal={() => setIsCompanyModalOpen(true)}
       />
 
       {/* Office Live Activity Feed Ticker (Bottom-Left) */}

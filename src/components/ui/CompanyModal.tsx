@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Company, CompanyGlobalLLMConfig, LLMCategory, CategoryLLMSetting, LLMConfig, CompanyMemoryItem, CompanyLevelProgress, MemoryType } from '@/types/office';
-import { PRESET_COMPANIES, generateCustomCompany, DEFAULT_SHADOWMOVE_GLOBAL_LLM } from '@/lib/companyPresets';
+import { Company, CompanyGlobalLLMConfig, LLMCategory, CategoryLLMSetting, LLMConfig, CompanyMemoryItem, CompanyLevelProgress, MemoryType, OfficeLayoutTemplateId } from '@/types/office';
+import { PRESET_COMPANIES, generateCustomCompany, DEFAULT_SHADOWMOVE_GLOBAL_LLM, OFFICE_LAYOUT_TEMPLATES } from '@/lib/companyPresets';
 import {
   X,
   Building2,
@@ -31,6 +31,7 @@ import {
   Award,
   RefreshCw,
   BookOpen,
+  LayoutGrid,
 } from 'lucide-react';
 
 interface CompanyModalProps {
@@ -38,7 +39,7 @@ interface CompanyModalProps {
   onClose: () => void;
   onSelectCompany: (company: Company) => void;
   onUpdateCompanyLLMConfig?: (config: CompanyGlobalLLMConfig) => void;
-  initialTab?: 'presets' | 'custom' | 'global_llm' | 'memory';
+  initialTab?: 'presets' | 'custom' | 'layout' | 'global_llm' | 'memory';
 }
 
 const CATEGORY_META: Record<
@@ -101,7 +102,9 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   onUpdateCompanyLLMConfig,
   initialTab = 'presets',
 }) => {
-  const [activeTab, setActiveTab] = useState<'presets' | 'custom' | 'global_llm' | 'memory'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'presets' | 'custom' | 'layout' | 'global_llm' | 'memory'>(initialTab);
+  const [selectedLayout, setSelectedLayout] = useState<OfficeLayoutTemplateId>(currentCompany.officeLayoutTemplate || 'tech_startup');
+  const [customLayout, setCustomLayout] = useState<OfficeLayoutTemplateId>('tech_startup');
   const [customName, setCustomName] = useState('');
   const [customIndustry, setCustomIndustry] = useState('');
   const [agentCount, setAgentCount] = useState<number>(4);
@@ -252,6 +255,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           industry: customIndustry,
           agentCount,
           config: selectedConfig,
+          layoutTemplate: customLayout,
         }),
       });
 
@@ -267,7 +271,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     }
 
     // Fallback if needed
-    const generated = generateCustomCompany(customName, customIndustry);
+    const generated = generateCustomCompany(customName, customIndustry, customLayout);
     onSelectCompany(generated);
     setIsGenerating(false);
     onClose();
@@ -408,6 +412,17 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           >
             <Wand2 className="w-4 h-4 text-[#ab7a1a]" />
             <span>Buat Perusahaan</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('layout')}
+            className={`flex-1 min-w-[130px] py-3 text-center border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
+              activeTab === 'layout'
+                ? 'border-[#c85a2b] text-[#c85a2b] bg-[#fffdf9] font-bold shadow-xs'
+                : 'border-transparent text-[#786653] hover:text-[#2c231c] hover:bg-[#f4ebe1]/60'
+            }`}
+          >
+            <LayoutGrid className="w-4 h-4 text-[#c85a2b]" />
+            <span>Layout Kantor</span>
           </button>
           <button
             onClick={() => setActiveTab('global_llm')}
@@ -648,6 +663,35 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 )}
               </div>
 
+              {/* Template Layout Selection for Custom Company */}
+              <div className="border border-[#e7dacb] rounded-2xl p-3 bg-[#f8f1e7] space-y-2.5">
+                <label className="block text-[#615042] font-bold">
+                  Pilih Template Tata Letak / Arsitektur Interior:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {OFFICE_LAYOUT_TEMPLATES.map((tmpl) => (
+                    <button
+                      key={tmpl.id}
+                      type="button"
+                      onClick={() => setCustomLayout(tmpl.id)}
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        customLayout === tmpl.id
+                          ? 'bg-[#fffdf9] border-2 border-[#c85a2b] shadow-xs ring-1 ring-[#c85a2b]/30'
+                          : 'bg-[#f4ebe1] border-[#d6c5ad] hover:border-[#c85a2b]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-[#2c231c]">
+                        <span>{tmpl.icon}</span>
+                        <span className="truncate">{tmpl.name}</span>
+                      </div>
+                      <div className="text-[10px] text-[#786653] truncate mt-0.5">
+                        {tmpl.tagline}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={isGenerating}
@@ -666,6 +710,102 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 )}
               </button>
             </form>
+          ) : activeTab === 'layout' ? (
+            /* TAB: OFFICE LAYOUT TEMPLATES */
+            <div className="space-y-4 text-xs">
+              <div className="p-3 bg-[#fdf5eb] border border-[#e8ba8c] rounded-xl text-[#78350f] flex items-start justify-between gap-3 font-medium">
+                <div className="flex items-start gap-2.5">
+                  <LayoutGrid className="w-4 h-4 text-[#c85a2b] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-sm text-[#2c231c]">
+                      Pilih Arsitektur & Layout Kantor: {currentCompany.name}
+                    </p>
+                    <p className="text-[11px] text-[#786653] mt-0.5">
+                      Setiap perusahaan memiliki identitas dan kebutuhan tata ruang unik. Pilih template interior spesifik untuk langsung diterapkan pada kantor 2.5D Anda.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {OFFICE_LAYOUT_TEMPLATES.map((tmpl) => {
+                  const isCurrent = (currentCompany.officeLayoutTemplate || 'tech_startup') === tmpl.id;
+                  return (
+                    <div
+                      key={tmpl.id}
+                      onClick={() => {
+                        setSelectedLayout(tmpl.id);
+                        onSelectCompany({
+                          ...currentCompany,
+                          officeLayoutTemplate: tmpl.id,
+                        });
+                      }}
+                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                        isCurrent
+                          ? 'bg-[#fffdf9] border-[#c85a2b] shadow-md ring-2 ring-[#c85a2b]/20'
+                          : 'bg-[#faf5eb] border-[#d6c5ad] hover:border-[#c85a2b] hover:bg-[#fffdf9]'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl p-1.5 rounded-xl bg-white border border-[#d6c5ad] shadow-2xs">
+                              {tmpl.icon}
+                            </span>
+                            <div>
+                              <div className="font-bold text-xs text-[#2c231c]">{tmpl.name}</div>
+                              <div className="text-[10px] text-[#786653] font-medium">{tmpl.tagline}</div>
+                            </div>
+                          </div>
+                          <span
+                            className="text-[10px] px-2 py-0.5 rounded-full font-bold border"
+                            style={{
+                              backgroundColor: `${tmpl.color}15`,
+                              color: tmpl.color,
+                              borderColor: `${tmpl.color}40`,
+                            }}
+                          >
+                            {tmpl.badge}
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-[#4d3c2e] leading-relaxed mb-3">
+                          {tmpl.description}
+                        </p>
+
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {tmpl.highlights.map((h, i) => (
+                            <span
+                              key={i}
+                              className="text-[9px] px-2 py-0.5 rounded-md bg-[#f4ebe1] text-[#615042] border border-[#d6c5ad] font-medium"
+                            >
+                              • {h}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-2.5 border-t border-[#d6c5ad] flex items-center justify-between">
+                        {isCurrent ? (
+                          <span className="text-xs font-bold text-[#c85a2b] flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-[#c85a2b]" />
+                            Sedang Digunakan
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="text-xs font-semibold text-[#786653] hover:text-[#c85a2b] flex items-center gap-1 transition-colors"
+                          >
+                            Gunakan Layout Ini &rarr;
+                          </button>
+                        )}
+                        <span className="text-[10px] text-[#a8947e] font-mono">33x24 Kavling Standar</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           ) : activeTab === 'global_llm' ? (
             /* TAB 3: GLOBAL LLM PROVIDER SETTING PER CATEGORY */
             <form onSubmit={handleSaveGlobalLLM} className="space-y-4 text-xs">

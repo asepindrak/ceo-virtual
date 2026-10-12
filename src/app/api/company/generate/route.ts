@@ -11,11 +11,13 @@ export async function POST(req: Request) {
       industry,
       agentCount = 4,
       config,
+      layoutTemplate = 'tech_startup',
     }: {
       name: string;
       industry: string;
       agentCount?: number;
       config?: LLMConfig;
+      layoutTemplate?: any;
     } = body;
 
     const cleanName = (name || '').trim();
@@ -235,6 +237,7 @@ Catatan penting:
             departments: depts,
             agents,
             tasks,
+            officeLayoutTemplate: layoutTemplate,
             globalLLMConfig: {
               ...DEFAULT_SHADOWMOVE_GLOBAL_LLM,
               text: {
@@ -499,6 +502,7 @@ Catatan penting:
       departments,
       agents,
       tasks,
+      officeLayoutTemplate: layoutTemplate,
       globalLLMConfig: config ? {
         ...DEFAULT_SHADOWMOVE_GLOBAL_LLM,
         text: {

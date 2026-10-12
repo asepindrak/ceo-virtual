@@ -1,4 +1,4 @@
-import { Company, Department, Agent, TaskTicket, LLMConfig, CompanyGlobalLLMConfig, LLMCategory } from '@/types/office';
+import { Company, Department, Agent, TaskTicket, LLMConfig, CompanyGlobalLLMConfig, LLMCategory, OfficeLayoutTemplateId } from '@/types/office';
 
 // Predefined dedicated desk locations in the office (spacious layout: Highest-ranking agent gets private suite, others get open workspace)
 export const DESK_SLOTS = [
@@ -27,6 +27,80 @@ export const OWNER_INTERACTION_SPOT = { x: 9.2, z: -5.5 };
 export const EXIT_DOOR_SPOT = { x: 0.0, z: 10.0 };
 export const TRAIN_STATION_SPOT = { x: 9.5, z: 14.5 };
 export const CAR_PARKING_SPOT = { x: -9.0, z: 15.0 };
+
+export interface OfficeLayoutTemplateInfo {
+  id: OfficeLayoutTemplateId;
+  name: string;
+  tagline: string;
+  icon: string;
+  badge: string;
+  color: string;
+  description: string;
+  highlights: string[];
+}
+
+export const OFFICE_LAYOUT_TEMPLATES: OfficeLayoutTemplateInfo[] = [
+  {
+    id: 'tech_startup',
+    name: 'Modern Tech Startup',
+    tagline: 'Agile pods, glass sprint room & arcade lounge',
+    icon: '⚡',
+    badge: 'Startup',
+    color: '#6366f1',
+    description: 'Tata letak modern nan dinamis dengan workstation pods ganda, ruang sprint meeting kaca, pantry kopi lengkap, dan area arcade lounge relaksasi.',
+    highlights: ['Workstation Pods Ultrawide', 'Glass Sprint Review Room', 'Pantry & Espresso Bar', 'Retro Arcade & Lounge Sofa'],
+  },
+  {
+    id: 'cloud_datacenter',
+    name: 'Cloud Infrastructure & NOC',
+    tagline: 'Server colocation aisles & 24/7 mission control',
+    icon: '☁️',
+    badge: 'Cloud & Mesh',
+    color: '#0284c7',
+    description: 'Desain infrastruktur komputasi awan dengan barisan rak server colocation berlampu LED biru/sian, dinding display NOC 24/7, dan raised antistatic floor.',
+    highlights: ['Cold-Aisle Server Racks', 'NOC Mission Control Wall', 'Raised Antistatic Floor', 'Cable Duct Fiber Trays'],
+  },
+  {
+    id: 'cafe_agency',
+    name: 'Warm Cafe & Boutique Agency',
+    tagline: 'Hardwood parquet, espresso roaster & cozy benches',
+    icon: '☕',
+    badge: 'Cafe & Dev',
+    color: '#b45309',
+    description: 'Suasana hangat bergaya cafe boutique dengan lantai kayu jati (teak parquet), bar roasting kopi manual, meja panjang kayu komunal, dan lampu gantung warm ambient.',
+    highlights: ['Teak Wood Parquet Floor', 'Espresso Roaster Counter', 'Communal Coworking Bench', 'Hanging Pendant Greenery'],
+  },
+  {
+    id: 'fintech_trading',
+    name: 'High-Frequency Trading & FinTech',
+    tagline: 'Bloomberg terminals & live financial ticker wall',
+    icon: '📈',
+    badge: 'Trading & Asset',
+    color: '#059669',
+    description: 'Lantai marmer mewah beraksen emas dengan meja trading 4-monitor Bloomberg terminal, live candlestick ticker wall, dan ruang rapat direksi kedap suara berkeamanan tinggi.',
+    highlights: ['Polished Marble Floors', 'Multi-Screen Trading Pods', 'Live Candlestick Ticker Wall', 'Biometric Glass Boardroom'],
+  },
+  {
+    id: 'creative_genai',
+    name: 'GenAI & Creative Design Studio',
+    tagline: 'Artistic rugs, Cintiq drawing pads & generative showcase',
+    icon: '🎨',
+    badge: 'GenAI & Design',
+    color: '#d97706',
+    description: 'Studio seni digital & GenAI dengan karpet geometris warna-warni, meja gambar digital stylus Cintiq, galeri display AI kanvas dinamis, dan moodboard Pantone kreatif.',
+    highlights: ['Artistic Geometric Rugs', 'Digital Drafting Tablets', 'Dynamic GenAI Art Gallery', 'Pantone Swatch Moodboards'],
+  },
+  {
+    id: 'robotics_hardware',
+    name: 'Robotics & Hardware Lab',
+    tagline: 'ESD flooring, robotic arms & drone test helipad',
+    icon: '🤖',
+    badge: 'Hardware & Drone',
+    color: '#0891b2',
+    description: 'Laboratorium teknik presisi tinggi dengan lantai antistatis ESD kelabu bergaris bahaya, meja perakitan robotik dengan lengan mekanik, rak komponen, dan helipad uji terbang drone.',
+    highlights: ['Antistatic ESD Gray Floor', 'Robotic Assembly Benches', 'Parts Bins & Tool Racks', 'Indoor Drone Flight Helipad'],
+  },
+];
 
 export const SHADOWMOVE_LLM_CONFIG: LLMConfig = {
   provider: (process.env.NEXT_PUBLIC_DEFAULT_LLM_PROVIDER as any) || 'openai',
@@ -114,6 +188,7 @@ export const PRESET_COMPANIES: Company[] = [
     industry: 'Stealth Software House & AI Product Studio',
     description: 'Elite software engineering house delivering sub-second web applications, autonomous AI agents, and cybernetic digital experiences.',
     globalLLMConfig: DEFAULT_SHADOWMOVE_GLOBAL_LLM,
+    officeLayoutTemplate: 'tech_startup',
     departments: [
       { id: 'dept-sm-eng', name: 'Engineering & Cloud', color: '#3b82f6', iconName: 'Code', description: 'Architecture, frontend, backend & cloud infra' },
       { id: 'dept-sm-design', name: 'UI/UX & Product Design', color: '#8b5cf6', iconName: 'Sparkles', description: 'Cybernetic interface systems & design prototypes' },
@@ -826,7 +901,11 @@ export const PRESET_COMPANIES: Company[] = [
 ];
 
 // Helper to auto-generate a custom company dynamically from user prompts
-export function generateCustomCompany(name: string, industry: string): Company {
+export function generateCustomCompany(
+  name: string,
+  industry: string,
+  layoutTemplate: OfficeLayoutTemplateId = 'tech_startup'
+): Company {
   const companyId = `comp-${Date.now()}`;
   const cleanName = name.trim() || 'Horizon Innovations';
   const cleanIndustry = industry.trim() || 'Modern Technology';
@@ -1012,5 +1091,6 @@ export function generateCustomCompany(name: string, industry: string): Company {
     agents,
     tasks,
     globalLLMConfig: DEFAULT_SHADOWMOVE_GLOBAL_LLM,
+    officeLayoutTemplate: layoutTemplate,
   };
 }
