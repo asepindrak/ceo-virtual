@@ -418,6 +418,30 @@ export default function RealAgent3DPage() {
     [agents]
   );
 
+  // Supermarket purchase handler in Neo-Jakarta district
+  const handleBuySupermarketItem = useCallback(
+    (item: { name: string; price: number; effect: string }) => {
+      setUserAccount((prev) => {
+        if (prev.pointsBalance < item.price) return prev;
+        return {
+          ...prev,
+          pointsBalance: Math.max(0, prev.pointsBalance - item.price),
+        };
+      });
+
+      const buyEvent: ActivityEvent = {
+        id: `event-buy-${Date.now()}`,
+        timestamp: Date.now(),
+        type: 'break',
+        agentId: agents[0]?.id || 'user',
+        agentName: 'Office Manager',
+        description: `🛒 Membeli [${item.name}] seharga ${item.price} pts di Vigent SuperMart 24/7. Efek: ${item.effect}`,
+      };
+      setEvents((prev) => [buyEvent, ...prev.slice(0, 299)]);
+    },
+    [agents]
+  );
+
   // Background monitor: Check active missions and auto-return employee when trip completes
   useEffect(() => {
     const missionInterval = setInterval(async () => {
@@ -1036,9 +1060,11 @@ export default function RealAgent3DPage() {
         <WorldMapModal
           currentCompany={currentCompany}
           agents={agents}
+          userPoints={userAccount.pointsBalance}
           onClose={() => setIsWorldMapOpen(false)}
           onDispatchMission={handleMissionDispatched}
           onMissionCompleted={handleMissionCompleted}
+          onBuyItem={handleBuySupermarketItem}
         />
       )}
 
