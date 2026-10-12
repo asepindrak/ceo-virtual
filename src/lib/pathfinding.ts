@@ -2,7 +2,7 @@ import { Position3D } from '@/types/office';
 
 // Office world bounds and grid settings (Spacious Expanded Office Layout)
 export const GRID_WIDTH = 35; // X: -17 to 17
-export const GRID_HEIGHT = 27; // Z: -13 to 13
+export const GRID_HEIGHT = 31; // Z: -13 to 17 (includes outdoor promenade & train station)
 export const CELL_SIZE = 1.0;
 
 export const WORLD_OFFSET_X = -17;
@@ -32,10 +32,13 @@ export function createDefaultCollisionGrid(): number[][] {
 
   // Outer Office Perimeter Walls (except main entrance doorway at bottom center)
   for (let x = 0; x < GRID_WIDTH; x++) {
-    grid[0][x] = 1; // Top Wall
+    grid[0][x] = 1; // Top Wall (z = -13)
+    // Office South Wall at z = 11 (gz = 24), leaving wide doorway at gx = 14..20 (x = -3..+3)
     if (x < 14 || x > 20) {
-      grid[GRID_HEIGHT - 1][x] = 1; // Bottom Wall with wide door
+      grid[24][x] = 1;
     }
+    // World South Boundary (z = 17 / gz = 30) along highway curb
+    grid[GRID_HEIGHT - 1][x] = 1;
   }
   for (let z = 0; z < GRID_HEIGHT; z++) {
     grid[z][0] = 1; // Left Wall

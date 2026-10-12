@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Company, Agent, TaskTicket, ActivityEvent, HumanDecisionRequest, MarketplaceAgent, LLMConfig, UserAccount, CompanyGlobalLLMConfig, LLMCategory } from '@/types/office';
+import { Company, Agent, TaskTicket, ActivityEvent, HumanDecisionRequest, MarketplaceAgent, LLMConfig, UserAccount, CompanyGlobalLLMConfig, LLMCategory, TravelMission } from '@/types/office';
 import { PRESET_COMPANIES, DESK_SLOTS } from '@/lib/companyPresets';
 import { CURRENT_USER, INITIAL_MARKETPLACE_AGENTS } from '@/lib/marketplaceData';
 import { OfficeSimulation } from '@/lib/simulationEngine';
@@ -385,6 +385,62 @@ export default function RealAgent3DPage() {
     const updated = simulationRef.current.returnToDesk(agent);
     setAgents((prev) => prev.map((a) => (a.id === agentId ? updated : a)));
   };
+
+  // Out-of-town Travel Missions: Employee walks to Train Station or Car, then returns on completion
+  const handleMissionDispatched = useCallback(
+    (mission: TravelMission) => {
+      const agent = agents.find((a) => a.id === mission.agentId);
+      if (!agent) return;
+
+      const { updatedAgent, event } = simulationRef.current.dispatchAgentOnTravelMission(agent, mission);
+      setAgents((prev) => prev.map((a) => (a.id === updatedAgent.id ? updatedAgent : a)));
+      setEvents((prev) => [event, ...prev.slice(0, 299)]);
+    },
+    [agents]
+  );
+
+  const handleMissionCompleted = useCallback(
+    (mission: TravelMission) => {
+      const agent = agents.find((a) => a.id === mission.agentId);
+      if (!agent) return;
+
+      const { updatedAgent, event } = simulationRef.current.returnAgentFromTravelMission(agent, mission);
+      setAgents((prev) => prev.map((a) => (a.id === updatedAgent.id ? updatedAgent : a)));
+      setEvents((prev) => [event, ...prev.slice(0, 299)]);
+
+      if (mission.outcome) {
+        setUserAccount((prev) => ({
+          ...prev,
+          pointsBalance: prev.pointsBalance + (mission.outcome?.earnedCoins || 250),
+        }));
+      }
+    },
+    [agents]
+  );
+
+  // Background monitor: Check active missions and auto-return employee when trip completes
+  useEffect(() => {
+    const missionInterval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/world');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.missions)) {
+          const completedMissions: TravelMission[] = data.missions.filter(
+            (m: TravelMission) => m.status === 'completed'
+          );
+          completedMissions.forEach((cm) => {
+            const awayAgent = agents.find(
+              (a) => a.id === cm.agentId && (a.state === 'at_train_station' || a.state === 'business_trip')
+            );
+            if (awayAgent) {
+              handleMissionCompleted(cm);
+            }
+          });
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(missionInterval);
+  }, [agents, handleMissionCompleted]);
 
   // Human-in-the-Loop Trigger
   const handleTriggerHumanDecision = (agentId: string) => {
@@ -821,6 +877,7 @@ export default function RealAgent3DPage() {
         }}
         onOpenTasks={() => setIsTasksModalOpen(true)}
         onOpenSettings={() => setIsWorkspaceModalOpen(true)}
+        onOpenWorldMap={() => setIsWorldMapOpen(true)}
       />
 
       {/* Office Live Activity Feed Ticker (Bottom-Left) */}
@@ -980,6 +1037,8 @@ export default function RealAgent3DPage() {
           currentCompany={currentCompany}
           agents={agents}
           onClose={() => setIsWorldMapOpen(false)}
+          onDispatchMission={handleMissionDispatched}
+          onMissionCompleted={handleMissionCompleted}
         />
       )}
 

@@ -20,7 +20,9 @@ export type AgentState =
   | 'coffee_break'
   | 'playing_game'
   | 'seeking_approval'
-  | 'leaving_office';
+  | 'leaving_office'
+  | 'at_train_station'
+  | 'business_trip';
 
 export interface Position3D {
   x: number;

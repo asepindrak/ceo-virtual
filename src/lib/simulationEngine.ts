@@ -1,4 +1,4 @@
-import { Agent, AgentState, TaskTicket, Position3D, ActivityEvent, AgentDialog, HumanDecisionRequest, MarketplaceAgent, Company } from '@/types/office';
+import { Agent, AgentState, TaskTicket, Position3D, ActivityEvent, AgentDialog, HumanDecisionRequest, MarketplaceAgent, Company, TravelMission } from '@/types/office';
 import { findPath } from '@/lib/pathfinding';
 import {
   PANTRY_CENTER,
@@ -12,6 +12,8 @@ import {
   SOFA_LOUNGE_SPOT,
   LOBBY_SPOT,
   SPRINT_STATION_SPOT,
+  TRAIN_STATION_SPOT,
+  CAR_PARKING_SPOT,
   getEffectiveAgentLLMConfig,
 } from '@/lib/companyPresets';
 import { generateProceduralCollabBanter } from '@/lib/collabDialogGenerator';
@@ -547,6 +549,92 @@ export class OfficeSimulation {
     return this.sendAgentTo(agent, agent.deskPosition, targetState);
   }
 
+  // Dispatch an agent on an out-of-town travel mission (Visits Train Station or Parking first)
+  public dispatchAgentOnTravelMission(
+    agent: Agent,
+    mission: TravelMission
+  ): { updatedAgent: Agent; event: ActivityEvent } {
+    const isTrain = mission.commuteMode === 'bullet_train';
+    const targetSpot = isTrain ? TRAIN_STATION_SPOT : CAR_PARKING_SPOT;
+    const destName = mission.targetCompanyName || 'kota tujuan';
+
+    const waypoints = findPath(agent.currentPosition, targetSpot);
+    this.pathStates.set(agent.id, {
+      agentId: agent.id,
+      waypoints,
+      currentWaypointIndex: 1,
+      finalTarget: targetSpot,
+      onArrivalState: isTrain ? 'at_train_station' : 'business_trip',
+    });
+
+    const updatedAgent: Agent = {
+      ...agent,
+      state: 'walking',
+      stateMessage: isTrain
+        ? `Membawa koper & berkas dinas, berjalan menuju Stasiun Kereta Sentral untuk naik Bullet Train ke ${destName}...`
+        : `Menuju mobil kantor di area parkir depan untuk dinas jalan tol ke ${destName}...`,
+      targetPosition: targetSpot,
+    };
+
+    const event: ActivityEvent = {
+      id: `ev-dispatch-world-${Date.now()}`,
+      timestamp: Date.now(),
+      type: 'movement',
+      categoryTag: isTrain ? '🚆 Stasiun Kereta' : '🚗 Mobil Kantor',
+      agentId: agent.id,
+      agentName: agent.name,
+      description: isTrain
+        ? `📢 ${agent.name} ditugaskan dinas ke ${destName} dan sedang berjalan mengunjungi Stasiun Kereta Sentral!`
+        : `📢 ${agent.name} ditugaskan dinas ke ${destName} dan sedang berjalan menuju Mobil Kantor!`,
+    };
+
+    return { updatedAgent, event };
+  }
+
+  // Return agent to office desk after completing business trip
+  public returnAgentFromTravelMission(
+    agent: Agent,
+    mission: TravelMission
+  ): { updatedAgent: Agent; event: ActivityEvent } {
+    const isTrain = mission.commuteMode === 'bullet_train';
+    const originSpot = isTrain ? TRAIN_STATION_SPOT : CAR_PARKING_SPOT;
+
+    const startPos =
+      agent.state === 'at_train_station' || agent.state === 'business_trip'
+        ? originSpot
+        : agent.currentPosition;
+
+    const waypoints = findPath(startPos, agent.deskPosition);
+    this.pathStates.set(agent.id, {
+      agentId: agent.id,
+      waypoints,
+      currentWaypointIndex: 1,
+      finalTarget: agent.deskPosition,
+      onArrivalState: 'working',
+    });
+
+    const destName = mission.targetCompanyName || 'kota tujuan';
+    const updatedAgent: Agent = {
+      ...agent,
+      currentPosition: { ...startPos },
+      state: 'walking',
+      stateMessage: `Kembali dari dinas luar kota di ${destName}, berjalan masuk kantor menuju meja kerja...`,
+      targetPosition: agent.deskPosition,
+    };
+
+    const event: ActivityEvent = {
+      id: `ev-return-world-${Date.now()}`,
+      timestamp: Date.now(),
+      type: 'task_complete',
+      categoryTag: isTrain ? '🚆 Stasiun Kereta' : '🚗 Mobil Kantor',
+      agentId: agent.id,
+      agentName: agent.name,
+      description: `🎉 ${agent.name} telah kembali dari dinas luar kota di ${destName} via Stasiun Kereta Sentral dan siap melanjutkan sprint!`,
+    };
+
+    return { updatedAgent, event };
+  }
+
   // Simulation step tick
   public update(
     agents: Agent[],
@@ -655,6 +743,43 @@ export class OfficeSimulation {
                 };
                 currentAgent.stateMessage = `Waiting for Owner approval at Executive Desk: "${dialogMsg}"`;
                 currentAgent.facingDirection = 'front';
+              } else if (pathState.onArrivalState === 'at_train_station') {
+                currentAgent.state = 'at_train_station';
+                currentAgent.stateMessage = '🚆 Tiba di peron Stasiun Kereta Sentral. Validasi tiket & boarding ke Express Bullet Train...';
+                currentAgent.activeDialog = {
+                  id: `dlg-${Date.now()}`,
+                  speakerId: currentAgent.id,
+                  speakerName: currentAgent.name,
+                  targetId: 'station_master',
+                  targetName: 'Kepala Stasiun Aerorail',
+                  message: 'Tiket boarding valid! Masuk ke gerbong eksekutif kereta cepat.',
+                  categoryTag: '🚆 Stasiun Kereta',
+                  tagColor: '#4f46e5',
+                  timestamp: Date.now(),
+                };
+                currentAgent.facingDirection = 'front';
+                newEvents.push({
+                  id: `ev-station-${Date.now()}-${currentAgent.id}`,
+                  timestamp: Date.now(),
+                  type: 'movement',
+                  categoryTag: '🚆 Stasiun Kereta',
+                  agentId: currentAgent.id,
+                  agentName: currentAgent.name,
+                  description: `🚆 ${currentAgent.name} telah tiba di peron Stasiun Kereta Sentral dan menaiki gerbong Express Bullet Train untuk perjalanan dinas luar kota!`,
+                });
+              } else if (pathState.onArrivalState === 'business_trip') {
+                currentAgent.state = 'business_trip';
+                currentAgent.stateMessage = '🚗 Tiba di Mobil Kantor. Meluncur melalui jalan tol ke kota tujuan...';
+                currentAgent.facingDirection = 'front';
+                newEvents.push({
+                  id: `ev-car-${Date.now()}-${currentAgent.id}`,
+                  timestamp: Date.now(),
+                  type: 'movement',
+                  categoryTag: '🚗 Mobil Kantor',
+                  agentId: currentAgent.id,
+                  agentName: currentAgent.name,
+                  description: `🚗 ${currentAgent.name} tiba di Mobil Kantor dan meluncur melalui jalan tol untuk tugas dinas luar kota!`,
+                });
               } else if (pathState.onArrivalState === 'leaving_office') {
                 currentAgent.stateMessage = 'Has left the office premises.';
               } else if (pathState.onArrivalState === 'coffee_break') {
@@ -715,7 +840,13 @@ export class OfficeSimulation {
     updatedAgents.forEach((agent) => {
       if (agent.state === 'talking' && agent.collabPartnerId) {
         const partner = updatedAgents.find((a) => a.id === agent.collabPartnerId);
-        if (partner && partner.state !== 'walking' && partner.state !== 'leaving_office') {
+        if (
+          partner &&
+          partner.state !== 'walking' &&
+          partner.state !== 'leaving_office' &&
+          partner.state !== 'at_train_station' &&
+          partner.state !== 'business_trip'
+        ) {
           partner.state = 'talking';
           partner.collabPartnerId = agent.id;
           if (agent.currentPosition.x < partner.currentPosition.x) {
@@ -896,7 +1027,9 @@ export class OfficeSimulation {
         agent.state === 'talking' ||
         agent.state === 'coffee_break' ||
         agent.state === 'seeking_approval' ||
-        agent.state === 'leaving_office'
+        agent.state === 'leaving_office' ||
+        agent.state === 'at_train_station' ||
+        agent.state === 'business_trip'
       ) {
         return agent;
       }

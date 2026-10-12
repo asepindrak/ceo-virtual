@@ -49,6 +49,7 @@ interface WorldMapModalProps {
   agents: Agent[];
   onClose: () => void;
   onMissionCompleted?: (mission: TravelMission) => void;
+  onDispatchMission?: (mission: TravelMission) => void;
 }
 
 export const WorldMapModal: React.FC<WorldMapModalProps> = ({
@@ -56,6 +57,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
   agents,
   onClose,
   onMissionCompleted,
+  onDispatchMission,
 }) => {
   const [activeTab, setActiveTab] = useState<'atlas' | 'dispatch' | 'missions' | 'p2p_mesh'>('atlas');
   const [districts, setDistricts] = useState<RegionalDistrict[]>([]);
@@ -240,6 +242,9 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
       const data = await res.json();
       if (data.success) {
         setDispatchNotice(data.message || 'Misi perjalanan berhasil dimulai!');
+        if (data.mission) {
+          onDispatchMission?.(data.mission);
+        }
         setActiveTab('missions');
         fetchWorldData();
         setTimeout(() => setDispatchNotice(''), 4000);
@@ -382,6 +387,13 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                     <line x1="20%" y1="46%" x2="50%" y2="28%" stroke="#7c3aed" strokeWidth="2.5" strokeDasharray="6 3" />
                     {/* Nusantara Maritime Corridor: IKN -> Surabaya */}
                     <line x1="50%" y1="28%" x2="58%" y2="68%" stroke="#0284c7" strokeWidth="2" strokeDasharray="4 2" />
+
+                    {/* Stasiun Kereta Hub Markers */}
+                    <circle cx="20%" cy="46%" r="5" fill="#fffdf9" stroke="#c85a2b" strokeWidth="2.5" />
+                    <circle cx="36%" cy="72%" r="5" fill="#fffdf9" stroke="#c85a2b" strokeWidth="2.5" />
+                    <circle cx="58%" cy="68%" r="5" fill="#fffdf9" stroke="#059669" strokeWidth="2.5" />
+                    <circle cx="78%" cy="74%" r="5" fill="#fffdf9" stroke="#d97706" strokeWidth="2.5" />
+                    <circle cx="50%" cy="28%" r="5" fill="#fffdf9" stroke="#7c3aed" strokeWidth="2.5" />
                   </svg>
 
                   {/* Interactive District Nodes */}
@@ -400,22 +412,31 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         }`}
                       >
                         <div
-                          className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-sm transition-all ${
+                          className={`px-3 py-1.5 rounded-xl border flex flex-col gap-0.5 shadow-sm transition-all ${
                             isSelected
                               ? 'bg-[#fdeed9] text-[#784620] border-2 border-[#c85a2b] shadow-md ring-2 ring-[#c85a2b]/30'
                               : 'bg-[#fffdf9] text-[#2c231c] border-[#d6c5ad] hover:border-[#c85a2b] hover:shadow-md'
                           }`}
                         >
-                          <div
-                            className="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-xs shrink-0"
-                            style={{ backgroundColor: district.color }}
-                          />
-                          <span className="font-bold text-[11px] whitespace-nowrap text-[#2c231c]">
-                            {district.name.split(' ')[0]}
-                          </span>
-                          <span className="text-[9px] px-1.5 py-0.2 bg-[#f0e3ce] text-[#784620] rounded-md font-mono font-bold border border-[#dccab3]">
-                            {district.companies.length}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-xs shrink-0"
+                              style={{ backgroundColor: district.color }}
+                            />
+                            <span className="font-bold text-[11px] whitespace-nowrap text-[#2c231c]">
+                              {district.name.split(' ')[0]}
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.2 bg-[#f0e3ce] text-[#784620] rounded-md font-mono font-bold border border-[#dccab3]">
+                              {district.companies.length}
+                            </span>
+                          </div>
+                          {/* Dedicated Stasiun Kereta Sub-Badge */}
+                          <div className="flex items-center gap-1 text-[9px] text-[#4f46e5] font-mono font-bold">
+                            <Train className="w-2.5 h-2.5 text-[#4f46e5] shrink-0" />
+                            <span className="truncate max-w-[120px]">
+                              {district.transitHubName?.replace('Stasiun Sentral ', 'St. ').replace('Stasiun ', 'St. ')}
+                            </span>
+                          </div>
                         </div>
                       </button>
                     );
@@ -473,6 +494,40 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         <strong>~{activeDistrict.carTravelSeconds}s Highway</strong>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Stasiun Kereta Transit Hub Card */}
+                  <div className="p-3 rounded-2xl bg-[#f4ebe1] border border-[#d6c5ad] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-[#fffdf9] text-[#4f46e5] border border-[#c7d2fe] shadow-xs">
+                        <Train className="w-5 h-5 text-[#4f46e5]" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-[#2c231c]">
+                            {activeDistrict.transitHubName}
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.2 bg-[#dcfce7] text-[#15803d] font-bold rounded-full border border-[#bbf7d0]">
+                            🟢 Jalur Aktif 350 km/h
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#786653] mt-0.5">
+                          Layanan Kereta Cepat Aerorail (~{activeDistrict.trainTravelSeconds}s) • Karyawan wajib mengunjungi stasiun ini sebelum berangkat.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setTargetRegionId(activeDistrict.id);
+                        setCommuteMode('bullet_train');
+                        setActiveTab('dispatch');
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm shrink-0"
+                    >
+                      <Train className="w-3.5 h-3.5" />
+                      <span>Tugaskan via Kereta Ini</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
 
                   {/* List of Companies in this District */}
@@ -676,9 +731,14 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                     >
                       <Train className="w-5 h-5 text-[#4f46e5] shrink-0" />
                       <div>
-                        <div className="font-bold text-xs">Express Bullet Train</div>
+                        <div className="font-bold text-xs flex items-center gap-1.5">
+                          <span>Express Bullet Train</span>
+                          <span className="text-[9px] px-1.5 py-0.2 bg-[#dbeafe] text-[#1e40af] font-mono rounded font-bold">
+                            Via Stasiun Kereta
+                          </span>
+                        </div>
                         <div className="text-[10px] text-[#786653]">
-                          Kereta rel aerorail, ramah lingkungan & ada obrolan gerbong
+                          Karyawan wajib mengunjungi Stasiun Kereta Sentral terlebih dahulu untuk boarding tiket sebelum berangkat.
                         </div>
                       </div>
                     </button>
@@ -696,11 +756,20 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                       <div>
                         <div className="font-bold text-xs">Company Cyber-Car</div>
                         <div className="text-[10px] text-[#786653]">
-                          Mobil operasional kantor, rute highway cepat sub-detik
+                          Mobil operasional kantor di area parkir depan, rute highway cepat.
                         </div>
                       </div>
                     </button>
                   </div>
+
+                  {commuteMode === 'bullet_train' && (
+                    <div className="p-2.5 rounded-xl bg-[#eef2ff] border border-[#c7d2fe] text-[11px] text-[#3730a3] flex items-center gap-2">
+                      <Train className="w-4 h-4 shrink-0 text-[#4f46e5]" />
+                      <span>
+                        <strong>Alur Perjalanan:</strong> Karyawan akan berdiri dari mejanya, berjalan menuju <strong>Stasiun Kereta Sentral</strong> di depan kantor, lalu menaiki Express Bullet Train menuju <strong>{targetDistrict?.name}</strong>.
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Mission Purpose */}

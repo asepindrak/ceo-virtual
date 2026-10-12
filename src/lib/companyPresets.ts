@@ -25,6 +25,8 @@ export const WATER_COOLER_SPOT = { x: -13.5, z: -8.0 };
 export const OWNER_DESK_POSITION = { x: 11.5, z: -7.0 };
 export const OWNER_INTERACTION_SPOT = { x: 9.2, z: -5.5 };
 export const EXIT_DOOR_SPOT = { x: 0.0, z: 10.0 };
+export const TRAIN_STATION_SPOT = { x: 9.5, z: 14.5 };
+export const CAR_PARKING_SPOT = { x: -9.0, z: 15.0 };
 
 export const SHADOWMOVE_LLM_CONFIG: LLMConfig = {
   provider: (process.env.NEXT_PUBLIC_DEFAULT_LLM_PROVIDER as any) || 'openai',

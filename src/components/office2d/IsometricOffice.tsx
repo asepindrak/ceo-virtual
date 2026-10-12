@@ -39,6 +39,7 @@ interface IsometricOfficeProps {
   onOpenChat?: () => void;
   onOpenTasks?: () => void;
   onOpenSettings?: () => void;
+  onOpenWorldMap?: () => void;
 }
 
 interface FootprintStep {
@@ -73,6 +74,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
   onOpenChat,
   onOpenTasks,
   onOpenSettings,
+  onOpenWorldMap,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -86,6 +88,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
   // Hovered agent or mascot
   const [hoveredAgent, setHoveredAgent] = useState<Agent | null>(null);
   const [isCatHovered, setIsCatHovered] = useState(false);
+  const [isStationHovered, setIsStationHovered] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [showTracks, setShowTracks] = useState(true);
 
@@ -211,6 +214,11 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     const catIso = worldToIso(catRef.current.x, catRef.current.z, width, height);
     const catDist = Math.hypot(clientX - catIso.isoX, clientY - (catIso.isoY - 10 * zoom));
     setIsCatHovered(catDist < 25 * zoom);
+
+    // Hit test against Train Station (Sentral Aerorail Station at wx: 10.8, wz: 14.2)
+    const stIso = worldToIso(10.8, 14.2, width, height);
+    const stDist = Math.hypot(clientX - stIso.isoX, clientY - (stIso.isoY - 20 * zoom));
+    setIsStationHovered(stDist < 68 * zoom);
   };
 
   const handlePointerUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -221,6 +229,8 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     if (dx < 6 && dy < 6) {
       if (hoveredAgent) {
         onSelectAgent(hoveredAgent.id);
+      } else if (isStationHovered && onOpenWorldMap) {
+        onOpenWorldMap();
       } else if (isCatHovered) {
         catRef.current.purrUntil = Date.now() + 4500;
         catRef.current.meowText = 'Purrr~ Nyaa! ❤️';
@@ -2881,6 +2891,337 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         ctx.fill();
       });
 
+      // =========================================================
+      // 6.5. STASIUN KERETA SENTRAL & EXPRESS BULLET TRAIN (AERORAIL HUB)
+      // =========================================================
+      // Station Platform bounds: wx = 6.0 to 15.5, wz = 13.0 to 15.4
+      const stTL = toIso(6.0, 13.0);
+      const stTR = toIso(15.5, 13.0);
+      const stBR = toIso(15.5, 15.4);
+      const stBL = toIso(6.0, 15.4);
+
+      // Station ambient hover highlight
+      if (isStationHovered) {
+        ctx.strokeStyle = '#c85a2b';
+        ctx.lineWidth = 3 * zoom;
+        ctx.beginPath();
+        ctx.moveTo(stTL.isoX, stTL.isoY);
+        ctx.lineTo(stTR.isoX, stTR.isoY);
+        ctx.lineTo(stBR.isoX, stBR.isoY);
+        ctx.lineTo(stBL.isoX, stBL.isoY);
+        ctx.closePath();
+        ctx.stroke();
+      }
+
+      // 1. Platform Granite Slab Foundation (Raised 3D plinth)
+      const platH = 3.5 * zoom;
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.24)';
+      ctx.beginPath();
+      ctx.moveTo(stBL.isoX, stBL.isoY + platH);
+      ctx.lineTo(stBR.isoX, stBR.isoY + platH);
+      ctx.lineTo(stBR.isoX + 5 * zoom, stBR.isoY + platH + 3 * zoom);
+      ctx.lineTo(stBL.isoX - 5 * zoom, stBL.isoY + platH + 3 * zoom);
+      ctx.closePath();
+      ctx.fill();
+
+      // Platform Top Floor (Fine Polished Granite Tile)
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.moveTo(stTL.isoX, stTL.isoY);
+      ctx.lineTo(stTR.isoX, stTR.isoY);
+      ctx.lineTo(stBR.isoX, stBR.isoY);
+      ctx.lineTo(stBL.isoX, stBL.isoY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1 * zoom;
+      ctx.stroke();
+
+      // Platform 3D Edge Curb
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.moveTo(stBL.isoX, stBL.isoY);
+      ctx.lineTo(stBR.isoX, stBR.isoY);
+      ctx.lineTo(stBR.isoX, stBR.isoY + platH);
+      ctx.lineTo(stBL.isoX, stBL.isoY + platH);
+      ctx.closePath();
+      ctx.fill();
+
+      // Tactile Paving: Bright Yellow Warning Band along platform edge
+      const yTL = toIso(6.0, 15.1);
+      const yTR = toIso(15.5, 15.1);
+      const yBR = toIso(15.5, 15.4);
+      const yBL = toIso(6.0, 15.4);
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.moveTo(yTL.isoX, yTL.isoY);
+      ctx.lineTo(yTR.isoX, yTR.isoY);
+      ctx.lineTo(yBR.isoX, yBR.isoY);
+      ctx.lineTo(yBL.isoX, yBL.isoY);
+      ctx.closePath();
+      ctx.fill();
+
+      // 2. Twin Aerorail Tracks (Running along wz = 15.8)
+      // Ballast Gravel Bed
+      const trTL = toIso(4.5, 15.6);
+      const trTR = toIso(16.5, 15.6);
+      const trBR = toIso(16.5, 16.4);
+      const trBL = toIso(4.5, 16.4);
+      ctx.fillStyle = '#334155';
+      ctx.beginPath();
+      ctx.moveTo(trTL.isoX, trTL.isoY);
+      ctx.lineTo(trTR.isoX, trTR.isoY);
+      ctx.lineTo(trBR.isoX, trBR.isoY);
+      ctx.lineTo(trBL.isoX, trBL.isoY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Railroad Ties / Sleepers
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2 * zoom;
+      for (let rx = 4.8; rx <= 16.2; rx += 0.7) {
+        const pTie1 = toIso(rx, 15.65);
+        const pTie2 = toIso(rx, 16.35);
+        ctx.beginPath();
+        ctx.moveTo(pTie1.isoX, pTie1.isoY);
+        ctx.lineTo(pTie2.isoX, pTie2.isoY);
+        ctx.stroke();
+      }
+
+      // Twin Steel Rails with metallic specular shine
+      [15.85, 16.15].forEach((railZ) => {
+        const r1 = toIso(4.5, railZ);
+        const r2 = toIso(16.5, railZ);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.8 * zoom;
+        ctx.beginPath();
+        ctx.moveTo(r1.isoX, r1.isoY);
+        ctx.lineTo(r2.isoX, r2.isoY);
+        ctx.stroke();
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 0.8 * zoom;
+        ctx.beginPath();
+        ctx.moveTo(r1.isoX, r1.isoY - 0.5 * zoom);
+        ctx.lineTo(r2.isoX, r2.isoY - 0.5 * zoom);
+        ctx.stroke();
+      });
+
+      // 3. High-Speed Aerorail Bullet Train (Whoosh Express Shinkansen)
+      // Docked on track along wx = 6.8 to 14.8, wz = 16.0
+      const trainNose = toIso(14.8, 16.0);
+      const trainTail = toIso(6.8, 16.0);
+      const trainBounce = Math.sin(timeSec * 3) * 0.35 * zoom;
+
+      // Train Ground Contact Shadow
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.42)';
+      ctx.beginPath();
+      const trShTL = toIso(6.6, 15.7);
+      const trShTR = toIso(15.0, 15.7);
+      const trShBR = toIso(15.0, 16.4);
+      const trShBL = toIso(6.6, 16.4);
+      ctx.moveTo(trShTL.isoX, trShTL.isoY);
+      ctx.lineTo(trShTR.isoX, trShTR.isoY);
+      ctx.lineTo(trShBR.isoX, trShBR.isoY);
+      ctx.lineTo(trShBL.isoX, trShBL.isoY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Train Undercarriage (Dark bogies)
+      const trBtmL = toIso(6.8, 15.8);
+      const trBtmR = toIso(14.6, 15.8);
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.moveTo(trBtmL.isoX, trBtmL.isoY);
+      ctx.lineTo(trBtmR.isoX, trBtmR.isoY);
+      ctx.lineTo(trBtmR.isoX, trBtmR.isoY - 6 * zoom);
+      ctx.lineTo(trBtmL.isoX, trBtmL.isoY - 6 * zoom);
+      ctx.closePath();
+      ctx.fill();
+
+      // Train Body Aerodynamic Shell
+      const trBodyTL = { x: trBtmL.isoX, y: trBtmL.isoY - 22 * zoom + trainBounce };
+      const trBodyTR = { x: trBtmR.isoX, y: trBtmR.isoY - 22 * zoom + trainBounce };
+      const trNoseTip = { x: trainNose.isoX + 6 * zoom, y: trainNose.isoY - 9 * zoom + trainBounce };
+      const trBodyBR = { x: trBtmR.isoX, y: trBtmR.isoY - 4 * zoom + trainBounce };
+      const trBodyBL = { x: trBtmL.isoX, y: trBtmL.isoY - 4 * zoom + trainBounce };
+
+      const trainGrad = ctx.createLinearGradient(trBodyTL.x, trBodyTL.y, trBodyBL.x, trBodyBL.y);
+      trainGrad.addColorStop(0, '#ffffff');
+      trainGrad.addColorStop(0.5, '#f1f5f9');
+      trainGrad.addColorStop(1, '#cbd5e1');
+
+      ctx.fillStyle = trainGrad;
+      ctx.beginPath();
+      ctx.moveTo(trBodyBL.x, trBodyBL.y);
+      ctx.lineTo(trBodyTL.x, trBodyTL.y);
+      ctx.lineTo(trBodyTR.x - 8 * zoom, trBodyTR.y);
+      ctx.quadraticCurveTo(trBodyTR.x + 3 * zoom, trBodyTR.y + 2 * zoom, trNoseTip.x, trNoseTip.y);
+      ctx.lineTo(trBodyBR.x, trBodyBR.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1 * zoom;
+      ctx.stroke();
+
+      // Bold Cyber-Orange / Crimson Speed Line along side
+      ctx.fillStyle = '#c85a2b';
+      ctx.beginPath();
+      ctx.moveTo(trBodyBL.x, trBodyBL.y - 4 * zoom);
+      ctx.lineTo(trBodyTL.x, trBodyBL.y - 7 * zoom);
+      ctx.lineTo(trBodyTR.x - 6 * zoom, trBodyBR.y - 7 * zoom);
+      ctx.lineTo(trNoseTip.x - 2 * zoom, trNoseTip.y + 1 * zoom);
+      ctx.lineTo(trBodyBR.x, trBodyBR.y - 4 * zoom);
+      ctx.closePath();
+      ctx.fill();
+
+      // Panoramic Tinted Windows with warm interior cabin light
+      const winW = 10 * zoom;
+      const winH = 5.5 * zoom;
+      const numWindows = 6;
+      const spanX = (trBodyTR.x - trBodyTL.x - 18 * zoom) / numWindows;
+      for (let i = 0; i < numWindows; i++) {
+        const wx = trBodyTL.x + 8 * zoom + i * spanX;
+        const wy = trBodyTL.y + 7 * zoom + (i * spanX * 0.48);
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(wx, wy, winW, winH, 1.5 * zoom);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(254, 240, 138, 0.75)';
+        ctx.fillRect(wx + 1.2 * zoom, wy + 1.2 * zoom, winW - 2.4 * zoom, winH - 2.4 * zoom);
+      }
+
+      // Cockpit Windshield
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.moveTo(trBodyTR.x - 7 * zoom, trBodyTR.y + 2 * zoom);
+      ctx.lineTo(trNoseTip.x - 3 * zoom, trNoseTip.y - 2 * zoom);
+      ctx.lineTo(trNoseTip.x - 5 * zoom, trNoseTip.y + 2 * zoom);
+      ctx.lineTo(trBodyTR.x - 9 * zoom, trBodyTR.y + 6 * zoom);
+      ctx.closePath();
+      ctx.fill();
+
+      // Front Headlight Beam (Bright warm LED)
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.arc(trNoseTip.x, trNoseTip.y, 2.5 * zoom, 0, Math.PI * 2);
+      ctx.fill();
+      const beamGrad = ctx.createRadialGradient(trNoseTip.x + 12 * zoom, trNoseTip.y + 6 * zoom, 2, trNoseTip.x + 12 * zoom, trNoseTip.y + 6 * zoom, 22 * zoom);
+      beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.35)');
+      beamGrad.addColorStop(1, 'rgba(254, 240, 138, 0.0)');
+      ctx.fillStyle = beamGrad;
+      ctx.beginPath();
+      ctx.ellipse(trNoseTip.x + 12 * zoom, trNoseTip.y + 6 * zoom, 24 * zoom, 12 * zoom, 0.45, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Green Boarding Door Light
+      const doorIso = toIso(9.5, 15.8);
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.arc(doorIso.isoX, doorIso.isoY - 18 * zoom + trainBounce, 1.8 * zoom, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 4. Station Canopy Pillars & Curved Glass Roof
+      const pillarCoords = [
+        { x: 6.8, z: 13.5 },
+        { x: 14.8, z: 13.5 },
+        { x: 6.8, z: 15.2 },
+        { x: 14.8, z: 15.2 },
+      ];
+      const canopyH = 34 * zoom;
+
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2.5 * zoom;
+      pillarCoords.forEach((p) => {
+        const base = toIso(p.x, p.z);
+        ctx.beginPath();
+        ctx.moveTo(base.isoX, base.isoY);
+        ctx.lineTo(base.isoX, base.isoY - canopyH);
+        ctx.stroke();
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.ellipse(base.isoX, base.isoY, 2.5 * zoom, 1.4 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Station Translucent Glass Canopy Roof
+      const roofTL = toIso(6.2, 13.0);
+      const roofTR = toIso(15.5, 13.0);
+      const roofBR = toIso(15.5, 15.6);
+      const roofBL = toIso(6.2, 15.6);
+
+      const rfTL = { x: roofTL.isoX, y: roofTL.isoY - canopyH - 4 * zoom };
+      const rfTR = { x: roofTR.isoX, y: roofTR.isoY - canopyH - 4 * zoom };
+      const rfBR = { x: roofBR.isoX, y: roofBR.isoY - canopyH + 2 * zoom };
+      const rfBL = { x: roofBL.isoX, y: roofBL.isoY - canopyH + 2 * zoom };
+
+      ctx.fillStyle = 'rgba(186, 230, 253, 0.55)';
+      ctx.beginPath();
+      ctx.moveTo(rfTL.x, rfTL.y);
+      ctx.lineTo(rfTR.x, rfTR.y);
+      ctx.lineTo(rfBR.x, rfBR.y);
+      ctx.lineTo(rfBL.x, rfBL.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 1.6 * zoom;
+      ctx.stroke();
+
+      // 5. Station Entrance Ticket Turnstiles
+      const stationGateIso = toIso(7.8, 13.6);
+      ctx.fillStyle = '#475569';
+      ctx.beginPath();
+      ctx.roundRect(stationGateIso.isoX - 6 * zoom, stationGateIso.isoY - 10 * zoom, 12 * zoom, 7 * zoom, 2 * zoom);
+      ctx.fill();
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.arc(stationGateIso.isoX - 2 * zoom, stationGateIso.isoY - 7 * zoom, 1.4 * zoom, 0, Math.PI * 2);
+      ctx.arc(stationGateIso.isoX + 2 * zoom, stationGateIso.isoY - 7 * zoom, 1.4 * zoom, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 6. Station Signboard & Live LED Departure Board
+      const signCenter = toIso(10.8, 13.2);
+      const stationSignY = signCenter.isoY - canopyH - 2 * zoom;
+      const signW = 105 * zoom;
+      const signH = 18 * zoom;
+
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.roundRect(signCenter.isoX - signW / 2, stationSignY - signH / 2, signW, signH, 3 * zoom);
+      ctx.fill();
+      ctx.strokeStyle = isStationHovered ? '#ea580c' : '#c85a2b';
+      ctx.lineWidth = 1.5 * zoom;
+      ctx.stroke();
+
+      ctx.fillStyle = '#fbf7ee';
+      ctx.font = `bold ${Math.max(5, Math.floor(5.2 * zoom))}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🚆 STASIUN KERETA SENTRAL', signCenter.isoX, stationSignY - 3.2 * zoom);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = `bold ${Math.max(3.5, Math.floor(3.8 * zoom))}px monospace`;
+      ctx.fillText('AERORAIL 350 KM/H • JALUR 1 WHOOSH', signCenter.isoX, stationSignY + 3.8 * zoom);
+
+      // Hover Tooltip Badge above Station
+      if (isStationHovered) {
+        const tipY = stationSignY - 14 * zoom;
+        const tipText = '🚆 Klik untuk Buka Peta Makro & Jadwal Kereta Cepat';
+        ctx.font = `bold ${Math.max(4.5, Math.floor(4.5 * zoom))}px sans-serif`;
+        const tipW = ctx.measureText(tipText).width + 12 * zoom;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+        ctx.beginPath();
+        ctx.roundRect(signCenter.isoX - tipW / 2, tipY - 8 * zoom, tipW, 13 * zoom, 4 * zoom);
+        ctx.fill();
+        ctx.strokeStyle = '#c85a2b';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(tipText, signCenter.isoX, tipY - 1.5 * zoom);
+      }
+
       // 7. Authentic 3D Isometric Car Drawing Engine
       // Correctly projected into 2:1 isometric world space matching road heading and lighting.
       const drawIsometricCar = (
@@ -3483,7 +3824,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     return () => {
       cancelAnimationFrame(animId);
     };
-  }, [catPurrUntil, hoveredAgent, isCatHovered, onSelectAgent, onSimulationUpdate, selectedAgentId, showTracks, simulation, worldToIso, zoom]);
+  }, [catPurrUntil, hoveredAgent, isCatHovered, isStationHovered, onSelectAgent, onSimulationUpdate, selectedAgentId, showTracks, simulation, worldToIso, zoom]);
 
   return (
     <div ref={containerRef} className="relative w-full h-full overflow-hidden select-none bg-[#f9f6ef]">
@@ -3494,7 +3835,9 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         onMouseMove={handlePointerMove}
         onMouseUp={handlePointerUp}
         onWheel={handleWheel}
-        className={`w-full h-full block ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`w-full h-full block ${
+          isDragging ? 'cursor-grabbing' : isStationHovered || hoveredAgent || isCatHovered ? 'cursor-pointer' : 'cursor-grab'
+        }`}
       />
 
       {/* ========================================================= */}
