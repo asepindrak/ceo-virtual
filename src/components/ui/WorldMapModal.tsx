@@ -43,7 +43,6 @@ import {
   Company,
   Agent,
 } from '@/types/office';
-import { IsometricCityView, SUPERMARKET_CATALOG } from '@/components/office2d/IsometricCityView';
 
 interface WorldMapModalProps {
   currentCompany: Company;
@@ -53,6 +52,7 @@ interface WorldMapModalProps {
   onMissionCompleted?: (mission: TravelMission) => void;
   onDispatchMission?: (mission: TravelMission) => void;
   onBuyItem?: (item: any) => void;
+  onViewCityScale?: () => void;
 }
 
 export const WorldMapModal: React.FC<WorldMapModalProps> = ({
@@ -63,8 +63,9 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
   onMissionCompleted,
   onDispatchMission,
   onBuyItem,
+  onViewCityScale,
 }) => {
-  const [activeTab, setActiveTab] = useState<'city_view' | 'atlas' | 'dispatch' | 'missions' | 'p2p_mesh'>('city_view');
+  const [activeTab, setActiveTab] = useState<'atlas' | 'dispatch' | 'missions' | 'p2p_mesh'>('atlas');
   const [districts, setDistricts] = useState<RegionalDistrict[]>([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState<string>('region-jakarta');
   const [missions, setMissions] = useState<TravelMission[]>([]);
@@ -261,51 +262,6 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
     }
   };
 
-  const handleCityDispatch = async (params: {
-    agentId: string;
-    targetCompanyId: string;
-    targetCompanyName: string;
-    commuteMode: CommuteMode;
-    missionType: TravelMissionType;
-  }) => {
-    const agent = agents.find((a) => a.id === params.agentId);
-    if (!agent) return;
-
-    setIsDispatching(true);
-    try {
-      const res = await fetch('/api/world', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'dispatch',
-          agentId: agent.id,
-          agentName: agent.name,
-          agentRole: agent.role,
-          originRegionId: activeDistrict?.id || 'region-jakarta',
-          originCompanyName: currentCompany.name,
-          targetRegionId: activeDistrict?.id || 'region-jakarta',
-          targetCompanyId: params.targetCompanyId,
-          targetCompanyName: params.targetCompanyName,
-          commuteMode: params.commuteMode,
-          missionType: params.missionType,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setDispatchNotice(data.message || 'Misi perjalanan berhasil dimulai!');
-        if (data.mission) {
-          onDispatchMission?.(data.mission);
-        }
-        fetchWorldData();
-        setTimeout(() => setDispatchNotice(''), 4000);
-      }
-    } catch (err) {
-      console.error('Error dispatching from city view:', err);
-    } finally {
-      setIsDispatching(false);
-    }
-  };
-
   const activeMissionsCount = missions.filter((m) => m.status !== 'completed').length;
 
   return (
@@ -341,17 +297,6 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
 
         {/* Tab Selection (shrink-0 z-10) */}
         <div className="flex border-b border-[#d6c5ad] bg-[#faf5eb] text-xs font-semibold overflow-x-auto shrink-0 z-10">
-          <button
-            onClick={() => setActiveTab('city_view')}
-            className={`flex-1 min-w-[160px] py-3 text-center border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
-              activeTab === 'city_view'
-                ? 'border-[#c85a2b] text-[#c85a2b] bg-[#fffdf9] font-bold shadow-xs'
-                : 'border-transparent text-[#786653] hover:text-[#2c231c] hover:bg-[#f4ebe1]/60'
-            }`}
-          >
-            <Building2 className="w-4 h-4 text-[#c85a2b]" />
-            <span>🏙️ Peta Distrik Isometrik ({activeDistrict?.name?.split(' ')[0] || 'Kota'})</span>
-          </button>
           <button
             onClick={() => setActiveTab('atlas')}
             className={`flex-1 min-w-[140px] py-3 text-center border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
@@ -408,67 +353,6 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
             <div className="p-3 bg-[#e6f4ea] border border-[#34a853] text-[#137333] rounded-2xl text-xs font-medium flex items-center gap-2 animate-in fade-in">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-[#137333]" />
               <span>{dispatchNotice}</span>
-            </div>
-          )}
-
-          {/* TAB 0: PETA DISTRIK ISOMETRIK KOTA (4 PERUSAHAAN + STASIUN + JALAN RAYA + SUPERMARKET) */}
-          {activeTab === 'city_view' && activeDistrict && (
-            <div className="space-y-4">
-              {/* District Quick Bar Selector & Navigation */}
-              <div className="p-3 bg-[#fffdf9] border border-[#d6c5ad] rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-xs">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-bold text-[#2c231c] flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-[#c85a2b]" />
-                    <span>Distrik:</span>
-                  </span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {districts.map((d) => {
-                      const isSel = d.id === selectedDistrictId;
-                      return (
-                        <button
-                          key={d.id}
-                          onClick={() => setSelectedDistrictId(d.id)}
-                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                            isSel
-                              ? 'bg-[#c85a2b] text-white shadow-xs'
-                              : 'bg-[#faf5eb] border border-[#d6c5ad] text-[#786653] hover:text-[#2c231c]'
-                          }`}
-                        >
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
-                          <span>{d.name.split(' ')[0]}</span>
-                          <span className="text-[10px] opacity-80 font-mono">({d.companies.length})</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setActiveTab('atlas')}
-                    className="px-3 py-1.5 rounded-xl border border-[#d6c5ad] bg-[#faf5eb] hover:bg-[#ede2d1] text-xs font-semibold text-[#786653] flex items-center gap-1.5 transition-colors"
-                  >
-                    <Compass className="w-3.5 h-3.5 text-[#c85a2b]" />
-                    <span>Lihat Peta Makro 5 Sektor</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 2.5D Isometric Interactive City Canvas */}
-              <IsometricCityView
-                district={activeDistrict}
-                currentCompany={currentCompany}
-                agents={agents}
-                userPoints={userPoints}
-                onDispatchMission={handleCityDispatch}
-                onBuyItem={onBuyItem}
-                onOpenMacroMap={() => setActiveTab('atlas')}
-                onOpenTrainSchedule={() => {
-                  setTargetRegionId(activeDistrict.id);
-                  setCommuteMode('bullet_train');
-                  setActiveTab('dispatch');
-                }}
-              />
             </div>
           )}
 
@@ -639,17 +523,20 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        onClick={() => {
-                          setSelectedDistrictId(activeDistrict.id);
-                          setActiveTab('city_view');
-                        }}
-                        className="px-3.5 py-2 rounded-xl bg-[#c85a2b] hover:bg-[#b04d22] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm shrink-0"
-                      >
-                        <Building2 className="w-3.5 h-3.5" />
-                        <span>Buka Peta Isometrik Kota</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
+                      {onViewCityScale && (
+                        <button
+                          onClick={() => {
+                            onClose();
+                            onViewCityScale();
+                          }}
+                          className="px-3.5 py-2 rounded-xl bg-[#c85a2b] hover:bg-[#b04d22] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm shrink-0"
+                          title="Tutup modal dan zoom out kanvas utama untuk melihat skala gedung kota"
+                        >
+                          <Building2 className="w-3.5 h-3.5" />
+                          <span>Lihat Skala Kota di Canvas Utama</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setTargetRegionId(activeDistrict.id);

@@ -64,6 +64,99 @@ interface Particle {
   text?: string;
 }
 
+export const CITY_LANDMARKS = [
+  {
+    id: 'company-shadowmove',
+    name: 'ShadowMove Inc (HQ)',
+    type: 'Kantor Pusat Anda • Level 3',
+    wx: 0.0,
+    wz: 0.0,
+    radius: 95,
+    icon: '🏢',
+    desc: 'Kantor Pusat ShadowMove Inc. Klik untuk masuk dan berinteraksi langsung dengan agent Anda!',
+  },
+  {
+    id: 'company-nusanova',
+    name: 'NusaNova Cloud Systems',
+    type: 'Perusahaan • Level 4',
+    wx: -25.0,
+    wz: -2.0,
+    radius: 65,
+    icon: '☁️',
+    desc: 'Infrastruktur cloud terdistribusi, Kubernetes mesh, dan edge compute multi-region.',
+  },
+  {
+    id: 'company-kopi-koding',
+    name: 'Kopi & Koding Labs',
+    type: 'Perusahaan • Level 2',
+    wx: 24.0,
+    wz: -1.0,
+    radius: 65,
+    icon: '☕',
+    desc: 'Komunitas developer, ruang kolaborasi kreatif, dan perkakas open-source.',
+  },
+  {
+    id: 'company-cyber-fin',
+    name: 'CyberFin Quantitative Asset',
+    type: 'Perusahaan • Level 5',
+    wx: -22.0,
+    wz: 28.0,
+    radius: 68,
+    icon: '📈',
+    desc: 'Algoritma trading kuantitatif, risk modelling AI, dan settlement likuiditas kilat.',
+  },
+  {
+    id: 'company-batik-pixel',
+    name: 'BatikPixel Creative & GenAI',
+    type: 'Perusahaan • Level 3',
+    wx: -6.0,
+    wz: 28.0,
+    radius: 65,
+    icon: '🎨',
+    desc: 'Studio seni digital, generative visual AI, dan kreasi aset 3D interaktif.',
+  },
+  {
+    id: 'company-garuda-logix',
+    name: 'GarudaLogix Robotics & Drone',
+    type: 'Perusahaan • Level 4',
+    wx: 20.0,
+    wz: 28.0,
+    radius: 68,
+    icon: '🤖',
+    desc: 'Armada drone kargo otonom, sistem navigasi IoT, dan pergudangan robotik cerdas.',
+  },
+  {
+    id: 'supermart-247',
+    name: 'Vigent SuperMart 24/7',
+    type: 'Fasilitas Belanja Kota',
+    wx: -12.0,
+    wz: 17.5,
+    radius: 52,
+    icon: '🛒',
+    desc: 'Minimarket cerdas serba ada untuk kebutuhan logistik, snack, dan kopi para karyawan.',
+  },
+  {
+    id: 'pujasera-24h',
+    name: 'Cyber Pujasera 24 Jam',
+    type: 'Fasilitas Kuliner Kota',
+    wx: 1.0,
+    wz: 17.5,
+    radius: 52,
+    icon: '🍜',
+    desc: 'Sentra kuliner nusantara, warung kopi, dan tempat nongkrong santai lintas tim teknologi.',
+  },
+  {
+    id: 'stasiun-gambir',
+    name: 'Stasiun Kereta Cepat Sentral',
+    type: 'Infrastruktur Transportasi Antar-Kota',
+    wx: 10.8,
+    wz: 14.2,
+    radius: 72,
+    icon: '🚄',
+    desc: 'Terminal transit Whoosh menghubungkan Neo-Jakarta ke Cyber-Bandung, Silicon-Jogja, & Neo-Surabaya.',
+  },
+];
+
 export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
   agents,
   tasks,
@@ -89,6 +182,13 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
   const [hoveredAgent, setHoveredAgent] = useState<Agent | null>(null);
   const [isCatHovered, setIsCatHovered] = useState(false);
   const [isStationHovered, setIsStationHovered] = useState(false);
+  const [hoveredCityLandmark, setHoveredCityLandmark] = useState<{
+    id: string;
+    name: string;
+    type: string;
+    desc: string;
+    icon: string;
+  } | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [showTracks, setShowTracks] = useState(true);
 
@@ -198,27 +298,47 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     const width = canvasRef.current.width / (window.devicePixelRatio || 1);
     const height = canvasRef.current.height / (window.devicePixelRatio || 1);
 
-    // Hit test against agents
-    let foundAgent: Agent | null = null;
-    for (const agent of agentsRef.current) {
-      const { isoX, isoY } = worldToIso(agent.currentPosition.x, agent.currentPosition.z, width, height);
-      const dist = Math.hypot(clientX - isoX, clientY - (isoY - 22 * zoom));
-      if (dist < 32 * zoom) {
-        foundAgent = agent;
-        break;
+    // Level of Detail: City Scale (< 0.65) vs Office Interior (>= 0.65)
+    if (zoom < 0.65) {
+      setHoveredAgent(null);
+      setIsCatHovered(false);
+      setIsStationHovered(false);
+
+      let foundLm: typeof CITY_LANDMARKS[0] | null = null;
+      for (const lm of CITY_LANDMARKS) {
+        const { isoX, isoY } = worldToIso(lm.wx, lm.wz, width, height);
+        const dist = Math.hypot(clientX - isoX, clientY - (isoY - 30 * zoom));
+        if (dist < lm.radius * zoom) {
+          foundLm = lm;
+          break;
+        }
       }
+      setHoveredCityLandmark(foundLm);
+    } else {
+      setHoveredCityLandmark(null);
+
+      // Hit test against agents
+      let foundAgent: Agent | null = null;
+      for (const agent of agentsRef.current) {
+        const { isoX, isoY } = worldToIso(agent.currentPosition.x, agent.currentPosition.z, width, height);
+        const dist = Math.hypot(clientX - isoX, clientY - (isoY - 22 * zoom));
+        if (dist < 32 * zoom) {
+          foundAgent = agent;
+          break;
+        }
+      }
+      setHoveredAgent(foundAgent);
+
+      // Hit test against roaming Cat Mochi
+      const catIso = worldToIso(catRef.current.x, catRef.current.z, width, height);
+      const catDist = Math.hypot(clientX - catIso.isoX, clientY - (catIso.isoY - 10 * zoom));
+      setIsCatHovered(catDist < 25 * zoom);
+
+      // Hit test against Train Station (Sentral Aerorail Station at wx: 10.8, wz: 14.2)
+      const stIso = worldToIso(10.8, 14.2, width, height);
+      const stDist = Math.hypot(clientX - stIso.isoX, clientY - (stIso.isoY - 20 * zoom));
+      setIsStationHovered(stDist < 68 * zoom);
     }
-    setHoveredAgent(foundAgent);
-
-    // Hit test against roaming Cat Mochi
-    const catIso = worldToIso(catRef.current.x, catRef.current.z, width, height);
-    const catDist = Math.hypot(clientX - catIso.isoX, clientY - (catIso.isoY - 10 * zoom));
-    setIsCatHovered(catDist < 25 * zoom);
-
-    // Hit test against Train Station (Sentral Aerorail Station at wx: 10.8, wz: 14.2)
-    const stIso = worldToIso(10.8, 14.2, width, height);
-    const stDist = Math.hypot(clientX - stIso.isoX, clientY - (stIso.isoY - 20 * zoom));
-    setIsStationHovered(stDist < 68 * zoom);
   };
 
   const handlePointerUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -227,27 +347,39 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     const dx = Math.abs(e.clientX - (dragStartRef.current.x + pan.x));
     const dy = Math.abs(e.clientY - (dragStartRef.current.y + pan.y));
     if (dx < 6 && dy < 6) {
-      if (hoveredAgent) {
-        onSelectAgent(hoveredAgent.id);
-      } else if (isStationHovered && onOpenWorldMap) {
-        onOpenWorldMap();
-      } else if (isCatHovered) {
-        catRef.current.purrUntil = Date.now() + 4500;
-        catRef.current.meowText = 'Purrr~ Nyaa! ❤️';
-        catRef.current.meowUntil = Date.now() + 3500;
-        setCatPurrUntil(Date.now() + 4500);
-        // Spawn heart particles around cat
-        for (let i = 0; i < 6; i++) {
-          particlesRef.current.push({
-            x: catRef.current.x + (Math.random() - 0.5) * 0.8,
-            z: catRef.current.z + (Math.random() - 0.5) * 0.8,
-            y: 1.2 + Math.random() * 0.4,
-            vy: 0.6 + Math.random() * 0.4,
-            alpha: 1.0,
-            type: 'heart',
-            color: '#f43f5e',
-            size: 14 * zoom,
-          });
+      if (zoom < 0.65) {
+        if (hoveredCityLandmark) {
+          if (hoveredCityLandmark.id === 'company-shadowmove') {
+            // Enter office interior with smooth zoom in
+            setZoom(1.0);
+            setPan({ x: 0, y: 15 });
+          } else if (onOpenWorldMap) {
+            onOpenWorldMap();
+          }
+        }
+      } else {
+        if (hoveredAgent) {
+          onSelectAgent(hoveredAgent.id);
+        } else if (isStationHovered && onOpenWorldMap) {
+          onOpenWorldMap();
+        } else if (isCatHovered) {
+          catRef.current.purrUntil = Date.now() + 4500;
+          catRef.current.meowText = 'Purrr~ Nyaa! ❤️';
+          catRef.current.meowUntil = Date.now() + 3500;
+          setCatPurrUntil(Date.now() + 4500);
+          // Spawn heart particles around cat
+          for (let i = 0; i < 6; i++) {
+            particlesRef.current.push({
+              x: catRef.current.x + (Math.random() - 0.5) * 0.8,
+              z: catRef.current.z + (Math.random() - 0.5) * 0.8,
+              y: 1.2 + Math.random() * 0.4,
+              vy: 0.6 + Math.random() * 0.4,
+              alpha: 1.0,
+              type: 'heart',
+              color: '#f43f5e',
+              size: 14 * zoom,
+            });
+          }
         }
       }
     }
@@ -255,7 +387,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    const newZoom = Math.min(2.4, Math.max(0.65, zoom - e.deltaY * 0.0012));
+    const newZoom = Math.min(2.4, Math.max(0.35, zoom - e.deltaY * 0.0012));
     setZoom(newZoom);
   };
 
@@ -704,10 +836,13 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         }
       };
 
-      // =========================================================
-      // 3. ARCHITECTURAL ZONED FLOORING (SPACIOUS & EXPANDED)
-      // =========================================================
-      // ZONE 1: Cafe & Pantry (Terracotta Tile Flooring on Left)
+      const isOfficeInterior = zoom >= 0.65;
+
+      if (isOfficeInterior) {
+        // =========================================================
+        // 3. ARCHITECTURAL ZONED FLOORING (SPACIOUS & EXPANDED)
+        // =========================================================
+        // ZONE 1: Cafe & Pantry (Terracotta Tile Flooring on Left)
       fillZone(
         { x: -16.2, z: 0.5 },
         { x: -7.2, z: 0.5 },
@@ -2762,6 +2897,384 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
         ctx.restore();
       });
+      } else {
+        // =========================================================
+        // LEVEL-OF-DETAIL: CITY SCALE MODE (ZOOM < 0.65)
+        // Menampilkan 6 Gedung Perusahaan & Fasilitas Kota Neo-Jakarta
+        // =========================================================
+
+        // Helper to draw projected polygon with fill and stroke (supports {x, y} and {isoX, isoY})
+        const drawPolyPts = (
+          pts: Array<{ x?: number; y?: number; isoX?: number; isoY?: number }>,
+          fillColor: string,
+          strokeColor?: string,
+          strokeW = 1
+        ) => {
+          if (pts.length < 3) return;
+          const p0x = pts[0].x ?? pts[0].isoX ?? 0;
+          const p0y = pts[0].y ?? pts[0].isoY ?? 0;
+          ctx.beginPath();
+          ctx.moveTo(p0x, p0y);
+          for (let i = 1; i < pts.length; i++) {
+            const px = pts[i].x ?? pts[i].isoX ?? 0;
+            const py = pts[i].y ?? pts[i].isoY ?? 0;
+            ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fillStyle = fillColor;
+          ctx.fill();
+          if (strokeColor) {
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = strokeW;
+            ctx.stroke();
+          }
+        };
+
+        // Helper: Draw 3D Isometric box with shadow and lighting
+        const drawIsoBox = (
+          cx: number,
+          cz: number,
+          halfW: number,
+          halfD: number,
+          heightPx: number,
+          topColor: string,
+          leftColor: string,
+          rightColor: string,
+          strokeColor?: string,
+          strokeW = 1
+        ) => {
+          const h = heightPx * zoom;
+          const bTL = toIso(cx - halfW, cz - halfD);
+          const bTR = toIso(cx + halfW, cz - halfD);
+          const bBR = toIso(cx + halfW, cz + halfD);
+          const bBL = toIso(cx - halfW, cz + halfD);
+
+          const tTL = { x: bTL.isoX, y: bTL.isoY - h };
+          const tTR = { x: bTR.isoX, y: bTR.isoY - h };
+          const tBR = { x: bBR.isoX, y: bBR.isoY - h };
+          const tBL = { x: bBL.isoX, y: bBL.isoY - h };
+
+          // Soft ground shadow
+          drawPolyPts(
+            [
+              { x: bBL.isoX - 8 * zoom, y: bBL.isoY + 4 * zoom },
+              { x: bBR.isoX + 8 * zoom, y: bBR.isoY + 4 * zoom },
+              { x: bTR.isoX + 8 * zoom, y: bTR.isoY - 2 * zoom },
+              { x: bTL.isoX - 8 * zoom, y: bTL.isoY - 2 * zoom },
+            ],
+            'rgba(20, 15, 10, 0.18)'
+          );
+
+          // Left Face (West)
+          drawPolyPts([bBL, tBL, tTL, bTL], leftColor, strokeColor, strokeW);
+          // Right Face (South)
+          drawPolyPts([bBL, tBL, tBR, bBR], rightColor, strokeColor, strokeW);
+          // Top Roof
+          drawPolyPts([tTL, tTR, tBR, tBL], topColor, strokeColor, strokeW);
+
+          return { tTL, tTR, tBR, tBL, bBL, bBR };
+        };
+
+        // Helper to draw building title badge
+        const drawBuildingBadge = (
+          isoCenter: { isoX: number; isoY: number },
+          offsetYPx: number,
+          title: string,
+          subtitle: string,
+          primaryColor: string,
+          isHovered: boolean
+        ) => {
+          const badgeY = isoCenter.isoY - offsetYPx * zoom;
+          const badgeW = 108 * zoom;
+          const badgeH = 25 * zoom;
+
+          // Shadow
+          ctx.fillStyle = 'rgba(20, 15, 10, 0.22)';
+          ctx.beginPath();
+          ctx.roundRect(isoCenter.isoX - badgeW / 2 + 1, badgeY - badgeH / 2 + 2, badgeW, badgeH, 6 * zoom);
+          ctx.fill();
+
+          // Container
+          ctx.fillStyle = isHovered ? '#fffdfa' : '#faf5eb';
+          ctx.beginPath();
+          ctx.roundRect(isoCenter.isoX - badgeW / 2, badgeY - badgeH / 2, badgeW, badgeH, 6 * zoom);
+          ctx.fill();
+          ctx.strokeStyle = isHovered ? '#c85a2b' : primaryColor;
+          ctx.lineWidth = isHovered ? 2.2 * zoom : 1.4 * zoom;
+          ctx.stroke();
+
+          // Title
+          ctx.fillStyle = '#2c231c';
+          ctx.font = `bold ${Math.max(8.5, Math.round(9.2 * zoom))}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(title, isoCenter.isoX, badgeY - 4 * zoom);
+
+          // Subtitle
+          ctx.fillStyle = isHovered ? '#c85a2b' : '#786653';
+          ctx.font = `bold ${Math.max(6.8, Math.round(7.4 * zoom))}px monospace`;
+          ctx.fillText(subtitle, isoCenter.isoX, badgeY + 5.5 * zoom);
+        };
+
+        // Helper: Mini courtyard agent
+        const drawMiniAgent = (wx: number, wz: number, shirtColor: string, hairColor: string) => {
+          const aIso = toIso(wx, wz);
+          const bob = Math.sin(timeSec * 6 + wx) * 1.5 * zoom;
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';
+          ctx.beginPath();
+          ctx.ellipse(aIso.isoX, aIso.isoY, 3.5 * zoom, 1.8 * zoom, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = shirtColor;
+          ctx.beginPath();
+          ctx.roundRect(aIso.isoX - 2.5 * zoom, aIso.isoY - 9 * zoom + bob, 5 * zoom, 5.5 * zoom, 1.5 * zoom);
+          ctx.fill();
+          ctx.fillStyle = '#fed7aa';
+          ctx.beginPath();
+          ctx.arc(aIso.isoX, aIso.isoY - 11 * zoom + bob, 2.5 * zoom, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = hairColor;
+          ctx.beginPath();
+          ctx.arc(aIso.isoX, aIso.isoY - 12 * zoom + bob, 2.5 * zoom, Math.PI, Math.PI * 2);
+          ctx.fill();
+        };
+
+        // -------------------------------------------------------------
+        // 1. GEDUNG UTAMA KITA: SHADOWMOVE INC HQ (TOWER PUSAT)
+        // Berdiri megah tepat di atas base slab fondasi utama
+        // -------------------------------------------------------------
+        const isSmHovered = hoveredCityLandmark?.id === 'company-shadowmove';
+
+        // Ground highlight ring if hovered
+        if (isSmHovered) {
+          const smGround = toIso(0.0, 0.0);
+          ctx.strokeStyle = '#c85a2b';
+          ctx.lineWidth = 3 * zoom;
+          ctx.beginPath();
+          ctx.ellipse(smGround.isoX, smGround.isoY, 120 * zoom, 60 * zoom, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Podium Dasar
+        drawIsoBox(0.0, 0.0, 13.5, 9.5, 24, '#fcf7ef', '#d6c5ad', '#bda890', isSmHovered ? '#c85a2b' : '#a8947e', 1.5);
+        // Tower Utama (Sleek Glass Facade)
+        drawIsoBox(0.0, 0.0, 9.0, 6.8, 135, isSmHovered ? '#fef3e7' : '#bae6fd', '#0284c7', '#0369a1', isSmHovered ? '#c85a2b' : '#075985', 1.5);
+
+        // Jendela-jendela bercahaya (Glowing horizontal floor stripes)
+        for (let floorH = 34; floorH <= 120; floorH += 16) {
+          const fIsoL1 = toIso(-8.8, 6.8);
+          const fIsoL2 = toIso(-8.8, -6.8);
+          const fIsoR1 = toIso(-8.8, 6.8);
+          const fIsoR2 = toIso(8.8, 6.8);
+
+          ctx.strokeStyle = 'rgba(254, 240, 138, 0.75)';
+          ctx.lineWidth = 2.5 * zoom;
+          // Left face window stripe
+          ctx.beginPath();
+          ctx.moveTo(fIsoL1.isoX, fIsoL1.isoY - floorH * zoom);
+          ctx.lineTo(fIsoL2.isoX, fIsoL2.isoY - floorH * zoom);
+          ctx.stroke();
+          // Right face window stripe
+          ctx.beginPath();
+          ctx.moveTo(fIsoR1.isoX, fIsoR1.isoY - floorH * zoom);
+          ctx.lineTo(fIsoR2.isoX, fIsoR2.isoY - floorH * zoom);
+          ctx.stroke();
+        }
+
+        // Penthouse Deck & Sky Garden
+        drawIsoBox(0.0, 0.0, 6.2, 4.8, 175, '#e0f2fe', '#0369a1', '#0c4a6e', '#0284c7', 1.2);
+
+        // Menara Antena & Beacon Merah Berkedip
+        const smIso = toIso(0.0, 0.0);
+        const spireBaseY = smIso.isoY - 175 * zoom;
+        const spireTipY = smIso.isoY - 235 * zoom;
+        ctx.strokeStyle = '#c85a2b';
+        ctx.lineWidth = 2.5 * zoom;
+        ctx.beginPath();
+        ctx.moveTo(smIso.isoX, spireBaseY);
+        ctx.lineTo(smIso.isoX, spireTipY);
+        ctx.stroke();
+
+        const beaconFlash = Math.sin(timeSec * 7) > 0;
+        ctx.fillStyle = beaconFlash ? '#ef4444' : '#7f1d1d';
+        ctx.beginPath();
+        ctx.arc(smIso.isoX, spireTipY, (beaconFlash ? 3.5 : 2.0) * zoom, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Kanopi Pintu Masuk Depan
+        const canpIso = toIso(0.0, 9.8);
+        ctx.fillStyle = '#fde68a';
+        ctx.beginPath();
+        ctx.roundRect(canpIso.isoX - 18 * zoom, canpIso.isoY - 10 * zoom, 36 * zoom, 8 * zoom, 3 * zoom);
+        ctx.fill();
+        ctx.strokeStyle = '#c85a2b';
+        ctx.lineWidth = 1.2 * zoom;
+        ctx.stroke();
+
+        // Karyawan Mini di Halaman Kantor
+        drawMiniAgent(-5.0, 7.5, '#c85a2b', '#1e293b');
+        drawMiniAgent(-2.0, 8.5, '#0284c7', '#d97706');
+        drawMiniAgent(3.5, 7.8, '#10b981', '#334155');
+
+        // Badge Nama Gedung
+        drawBuildingBadge(
+          smIso,
+          195,
+          '🏢 SHADOWMOVE (HQ)',
+          'KANTOR ANDA • KLIK MASUK',
+          '#c85a2b',
+          isSmHovered
+        );
+
+        // -------------------------------------------------------------
+        // 2. PERUSAHAAN 2: NUSANOVA CLOUD SYSTEMS (LEVEL 4)
+        // Letak: Barat / Sisi Kiri (wx: -25.0, wz: -2.0)
+        // -------------------------------------------------------------
+        const isNnHovered = hoveredCityLandmark?.id === 'company-nusanova';
+        drawIsoBox(-25.0, -2.0, 3.8, 3.5, 95, isNnHovered ? '#e0f2fe' : '#f1f5f9', '#1e293b', '#0f172a', isNnHovered ? '#0284c7' : '#334155');
+        drawIsoBox(-21.5, -4.0, 2.6, 2.6, 68, '#e0f2fe', '#334155', '#1e293b', '#06b6d4');
+        // Skybridge penghubung
+        drawIsoBox(-23.2, -3.0, 1.2, 1.0, 48, '#38bdf8', '#0284c7', '#0369a1');
+
+        // Antena Parabola Satelit di atap
+        const nnIso = toIso(-25.0, -2.0);
+        const nnDishY = nnIso.isoY - 95 * zoom;
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.8 * zoom;
+        ctx.beginPath();
+        ctx.moveTo(nnIso.isoX, nnDishY);
+        ctx.lineTo(nnIso.isoX + 4 * zoom, nnDishY - 10 * zoom);
+        ctx.stroke();
+        ctx.fillStyle = '#e2e8f0';
+        ctx.beginPath();
+        ctx.ellipse(nnIso.isoX + 4 * zoom, nnDishY - 10 * zoom, 5 * zoom, 3 * zoom, 0.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        drawMiniAgent(-23.0, 0.5, '#0284c7', '#0f172a');
+        drawBuildingBadge(nnIso, 115, '☁️ NUSANOVA CLOUD', 'KUBERNETES MESH • LV 4', '#0284c7', isNnHovered);
+
+        // -------------------------------------------------------------
+        // 3. PERUSAHAAN 3: KOPI & KODING LABS (LEVEL 2)
+        // Letak: Timur / Sisi Kanan (wx: 24.0, wz: -1.0)
+        // -------------------------------------------------------------
+        const isKkHovered = hoveredCityLandmark?.id === 'company-kopi-koding';
+        drawIsoBox(24.0, -1.0, 4.2, 3.8, 65, isKkHovered ? '#fdeed9' : '#b45309', '#78350f', '#451a03', isKkHovered ? '#d97706' : '#78350f');
+        // Pergola kayu di atap
+        drawIsoBox(24.0, -1.0, 2.5, 2.2, 75, '#fde68a', '#d97706', '#b45309');
+
+        const kkIso = toIso(24.0, -1.0);
+        drawMiniAgent(22.0, 1.5, '#ea580c', '#1e293b');
+        drawBuildingBadge(kkIso, 90, '☕ KOPI & KODING', 'DEV TOOLS & CAFE • LV 2', '#d97706', isKkHovered);
+
+        // -------------------------------------------------------------
+        // 4. PERUSAHAAN 4: CYBERFIN QUANTITATIVE ASSET (LEVEL 5)
+        // Letak: Barat Daya Seberang Jalan (wx: -22.0, wz: 28.0)
+        // -------------------------------------------------------------
+        const isCfHovered = hoveredCityLandmark?.id === 'company-cyber-fin';
+        drawIsoBox(-22.0, 28.0, 4.0, 3.8, 130, isCfHovered ? '#1e293b' : '#020617', '#0f172a', '#020617', isCfHovered ? '#10b981' : '#1e293b');
+        // Garis ticker kuantitatif hijau emerald
+        const cfIso = toIso(-22.0, 28.0);
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2 * zoom;
+        ctx.beginPath();
+        ctx.moveTo(cfIso.isoX - 8 * zoom, cfIso.isoY - 80 * zoom);
+        ctx.lineTo(cfIso.isoX + 8 * zoom, cfIso.isoY - 80 * zoom);
+        ctx.stroke();
+
+        drawMiniAgent(-20.0, 25.5, '#059669', '#020617');
+        drawBuildingBadge(cfIso, 148, '📈 CYBERFIN ASSET', 'FINTECH CORE • LV 5', '#10b981', isCfHovered);
+
+        // -------------------------------------------------------------
+        // 5. PERUSAHAAN 5: BATIKPIXEL CREATIVE & GENAI (LEVEL 3)
+        // Letak: Selatan Seberang Jalan (wx: -6.0, wz: 28.0)
+        // -------------------------------------------------------------
+        const isBpHovered = hoveredCityLandmark?.id === 'company-batik-pixel';
+        drawIsoBox(-6.0, 28.0, 3.8, 3.5, 80, isBpHovered ? '#f5f3ff' : '#ddd6fe', '#6b21a8', '#581c87', isBpHovered ? '#a855f7' : '#7c3aed');
+        // Kubus Seni Holo di Atap
+        drawIsoBox(-6.0, 28.0, 2.0, 2.0, 98, '#f3e8ff', '#9333ea', '#6b21a8');
+
+        const bpIso = toIso(-6.0, 28.0);
+        drawMiniAgent(-4.0, 25.5, '#a855f7', '#1e293b');
+        drawBuildingBadge(bpIso, 114, '🎨 BATIKPIXEL GENAI', 'CREATIVE 3D • LV 3', '#a855f7', isBpHovered);
+
+        // -------------------------------------------------------------
+        // 6. PERUSAHAAN 6: GARUDALOGIX ROBOTICS & DRONE (LEVEL 4)
+        // Letak: Tenggara Seberang Jalan (wx: 20.0, wz: 28.0)
+        // -------------------------------------------------------------
+        const isGlHovered = hoveredCityLandmark?.id === 'company-garuda-logix';
+        drawIsoBox(20.0, 28.0, 4.2, 3.8, 65, isGlHovered ? '#ecfeff' : '#0e7490', '#155e75', '#164e63', isGlHovered ? '#06b6d4' : '#0891b2');
+
+        const glIso = toIso(20.0, 28.0);
+        const glHeliY = glIso.isoY - 65 * zoom;
+
+        // Helipad Kuning di Atap ('H')
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.ellipse(glIso.isoX, glHeliY, 13 * zoom, 6.5 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ca8a04';
+        ctx.lineWidth = 1.4 * zoom;
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = `bold ${Math.max(5.5, Math.round(6.5 * zoom))}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('H', glIso.isoX, glHeliY);
+
+        // Drone Pengantar Otonom Melayang di Atas Helipad
+        const droneBounce = Math.sin(timeSec * 7) * 3.5 * zoom;
+        const droneY = glHeliY - 18 * zoom + droneBounce;
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(glIso.isoX, droneY, 3 * zoom, 0, Math.PI * 2);
+        ctx.fill();
+        // Ring Baling-baling Cyan
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 1.2 * zoom;
+        ctx.beginPath();
+        ctx.ellipse(glIso.isoX, droneY, 6 * zoom, 2 * zoom, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        drawMiniAgent(18.0, 25.5, '#0891b2', '#0f172a');
+        drawBuildingBadge(glIso, 92, '🤖 GARUDALOGIX FLEET', 'ROBOTICS & DRONE • LV 4', '#06b6d4', isGlHovered);
+
+        // -------------------------------------------------------------
+        // 7. FASILITAS KOTA: VIGENT SUPERMART 24/7 (MINIMARKET)
+        // Letak: Di Pinggir Trotoar Boulevard (wx: -12.0, wz: 17.5)
+        // -------------------------------------------------------------
+        const isSmartHovered = hoveredCityLandmark?.id === 'supermart-247';
+        drawIsoBox(-12.0, 17.5, 3.2, 2.4, 30, isSmartHovered ? '#fef3e7' : '#faf5eb', '#dc2626', '#991b1b', isSmartHovered ? '#c85a2b' : '#16a34a');
+        // Kanopi Belang Hijau
+        const smartIso = toIso(-12.0, 17.5);
+        ctx.fillStyle = '#16a34a';
+        ctx.beginPath();
+        ctx.roundRect(smartIso.isoX - 12 * zoom, smartIso.isoY - 18 * zoom, 24 * zoom, 5 * zoom, 2 * zoom);
+        ctx.fill();
+
+        drawBuildingBadge(smartIso, 48, '🛒 SUPERMART 24/7', 'SNACK & KOPI TIM', '#16a34a', isSmartHovered);
+
+        // -------------------------------------------------------------
+        // 8. FASILITAS KOTA: CYBER PUJASERA 24 JAM (FOOD COURT)
+        // Letak: Di Trotoar Sebelah Stasiun (wx: 1.0, wz: 17.5)
+        // -------------------------------------------------------------
+        const isPujaHovered = hoveredCityLandmark?.id === 'pujasera-24h';
+        drawIsoBox(1.0, 17.5, 3.4, 2.6, 26, isPujaHovered ? '#fef3e7' : '#faf5eb', '#b45309', '#78350f', isPujaHovered ? '#c85a2b' : '#d97706');
+        // Payung Meja Makan Outdoor
+        const pujaIso = toIso(1.0, 17.5);
+        ctx.fillStyle = '#ea580c';
+        ctx.beginPath();
+        ctx.ellipse(pujaIso.isoX + 10 * zoom, pujaIso.isoY - 14 * zoom, 7 * zoom, 4 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        drawBuildingBadge(pujaIso, 44, '🍜 PUJASERA 24 JAM', 'KULINER NUSANTARA', '#d97706', isPujaHovered);
+
+        // -------------------------------------------------------------
+        // 9. BADGE STASIUN SENTRAL WHOOSH (wx: 10.8, wz: 14.2)
+        // -------------------------------------------------------------
+        const isStHovered = hoveredCityLandmark?.id === 'stasiun-gambir';
+        const stnIso = toIso(10.8, 14.2);
+        drawBuildingBadge(stnIso, 68, '🚄 STASIUN WHOOSH', 'TRANSIT ANTAR-KOTA', '#2563eb', isStHovered);
+      }
 
       // =========================================================
       // 8. FRONT BOULEVARD: HIGHWAY, SIDEWALK, PARKED & DRIVING CARS
@@ -4282,6 +4795,35 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
           <div className="h-5 w-px bg-[#d6c5ad] mx-1" />
 
+          {/* Quick LOD Mode Switcher */}
+          {zoom >= 0.65 ? (
+            <button
+              onClick={() => {
+                setZoom(0.45);
+                setPan({ x: 0, y: 0 });
+              }}
+              className="px-2.5 py-1.5 rounded-xl border border-[#d6c5ad] bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#6e5a48] hover:text-[#c85a2b] flex items-center gap-1.5 transition-colors text-xs font-semibold shadow-2xs"
+              title="Zoom Out ke Tampilan Skala Kota (Neo-Jakarta)"
+            >
+              <span>🏙️</span>
+              <span className="text-[11px] hidden sm:inline">Kota</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setZoom(1.0);
+                setPan({ x: 0, y: 15 });
+              }}
+              className="px-2.5 py-1.5 rounded-xl border border-[#f0c8a5] bg-[#fdeed9] hover:bg-[#fbdcb8] text-[#c85a2b] flex items-center gap-1.5 transition-colors text-xs font-bold shadow-2xs"
+              title="Zoom In ke Ruangan Kantor & Karyawan"
+            >
+              <span>🏢</span>
+              <span className="text-[11px] hidden sm:inline">Kantor</span>
+            </button>
+          )}
+
+          <div className="h-5 w-px bg-[#d6c5ad] mx-1" />
+
           {/* Zoom & Viewport Controls */}
           <button
             onClick={() => setZoom((z) => Math.min(2.4, z + 0.15))}
@@ -4291,7 +4833,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => setZoom((z) => Math.max(0.65, z - 0.15))}
+            onClick={() => setZoom((z) => Math.max(0.35, z - 0.15))}
             className="p-1.5 text-[#786653] hover:text-[#2c231c] hover:bg-[#ede2d1] rounded-xl transition-colors"
             title="Zoom Out"
           >
@@ -4309,6 +4851,26 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Floating Notification Banner on City Scale (< 0.65) */}
+      {zoom < 0.65 && (
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
+          <button
+            onClick={() => {
+              setZoom(1.0);
+              setPan({ x: 0, y: 15 });
+            }}
+            className="flex items-center gap-2.5 px-4 py-2 bg-[#faf5eb]/98 backdrop-blur-md border-2 border-[#d6c5ad] text-[#2c231c] rounded-full shadow-xl text-xs font-semibold hover:border-[#c85a2b] hover:text-[#c85a2b] transition-all duration-150 group"
+          >
+            <span className="flex items-center gap-1.5 text-[#c85a2b]">
+              <span className="w-2 h-2 rounded-full bg-[#c85a2b] animate-pulse" />
+              🏙️ Skala Kota (Neo-Jakarta)
+            </span>
+            <span className="text-[#a8947e]">•</span>
+            <span>Scroll Zoom In atau Klik <b>ShadowMove HQ</b> / Tombol &ldquo;Kantor&rdquo; untuk Masuk 🏢</span>
+          </button>
+        </div>
+      )}
 
       {/* Hover Floating Card for Agent */}
       {hoveredAgent && !isDragging && (
@@ -4370,6 +4932,41 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
                 <div className="font-bold text-xs text-[#c85a2b]">Mochi si Kucing Kantor</div>
                 <div className="text-[10px] text-[#786653]">Maskot Resmi Vigent • Klik untuk elus-elus ❤️</div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hover Floating Card for City Landmark */}
+      {hoveredCityLandmark && !hoveredAgent && !isDragging && (
+        <div
+          className="absolute pointer-events-none transform -translate-x-1/2 -translate-y-full z-30 transition-all duration-75"
+          style={{ left: `${mousePos.x}px`, top: `${mousePos.y - 20}px` }}
+        >
+          <div className="bg-[#faf5eb]/98 backdrop-blur-xl border-2 border-[#d6c5ad] rounded-2xl p-3 shadow-2xl text-[#2c231c] max-w-xs ring-1 ring-black/5">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <div className="w-8 h-8 rounded-xl bg-[#fdeed9] border border-[#f0c8a5] flex items-center justify-center text-base shadow-xs">
+                {hoveredCityLandmark.icon}
+              </div>
+              <div>
+                <div className="font-bold text-xs text-[#2c231c] flex items-center gap-1.5">
+                  <span>{hoveredCityLandmark.name}</span>
+                </div>
+                <div className="text-[10px] text-[#c85a2b] font-semibold">{hoveredCityLandmark.type}</div>
+              </div>
+            </div>
+
+            <div className="text-[11px] text-[#4d3c2e] mb-2 bg-[#fffdf9] p-2 rounded-xl border border-[#d6c5ad] leading-relaxed">
+              {hoveredCityLandmark.desc}
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] text-[#786653] font-mono pt-1.5 border-t border-[#d6c5ad]">
+              {hoveredCityLandmark.id === 'company-shadowmove' ? (
+                <span className="text-[#c85a2b] font-bold">✨ Klik untuk Masuk ke Ruangan Kantor</span>
+              ) : (
+                <span className="text-[#0284c7] font-bold">🚄 Klik untuk Buka Peta & Dispatch Misi</span>
+              )}
+              <span className="text-[9px] text-[#a8947e]">Neo-Jakarta</span>
             </div>
           </div>
         </div>
