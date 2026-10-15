@@ -103,6 +103,13 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   initialTab = 'presets',
 }) => {
   const [activeTab, setActiveTab] = useState<'presets' | 'custom' | 'layout' | 'global_llm' | 'memory'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   const [selectedLayout, setSelectedLayout] = useState<OfficeLayoutTemplateId>(currentCompany.officeLayoutTemplate || 'tech_startup');
   const [customLayout, setCustomLayout] = useState<OfficeLayoutTemplateId>('tech_startup');
   const [customName, setCustomName] = useState('');
@@ -119,12 +126,23 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   const [newCompanyBaseUrl, setNewCompanyBaseUrl] = useState<string>('');
 
   // Global LLM Config state
-  const [globalLLM, setGlobalLLM] = useState<CompanyGlobalLLMConfig>(
-    currentCompany.globalLLMConfig || DEFAULT_SHADOWMOVE_GLOBAL_LLM
-  );
+  const [globalLLM, setGlobalLLM] = useState<CompanyGlobalLLMConfig>(() => ({
+    ...DEFAULT_SHADOWMOVE_GLOBAL_LLM,
+    ...(currentCompany.globalLLMConfig || {}),
+  }));
   const [activeCategory, setActiveCategory] = useState<LLMCategory>('text');
-  const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
+  const [isSavingLLM, setIsSavingLLM] = useState(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<{ [cat in LLMCategory]?: { loading?: boolean; success?: boolean; msg?: string } }>({});
+
+  useEffect(() => {
+    if (currentCompany?.globalLLMConfig) {
+      setGlobalLLM((prev) => ({
+        ...DEFAULT_SHADOWMOVE_GLOBAL_LLM,
+        ...currentCompany.globalLLMConfig,
+      }));
+    }
+  }, [currentCompany?.id, currentCompany?.globalLLMConfig]);
 
   // Memory & Progression State
   const [memories, setMemories] = useState<CompanyMemoryItem[]>([]);
@@ -294,11 +312,42 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     }));
   };
 
-  const handleSaveGlobalLLM = (e: React.FormEvent) => {
-    e.preventDefault();
-    onUpdateCompanyLLMConfig?.(globalLLM);
-    setSaveSuccessMsg(true);
-    setTimeout(() => setSaveSuccessMsg(false), 2500);
+  const handleSaveGlobalLLM = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsSavingLLM(true);
+    setSaveSuccessMsg(null);
+
+    try {
+      const safeModel = currentCategorySetting.model?.trim() || CATEGORY_META[activeCategory].defaultModel;
+      const updatedCategorySetting: CategoryLLMSetting = {
+        ...currentCategorySetting,
+        model: safeModel,
+      };
+
+      const fullConfig: CompanyGlobalLLMConfig = {
+        ...DEFAULT_SHADOWMOVE_GLOBAL_LLM,
+        ...globalLLM,
+        [activeCategory]: updatedCategorySetting,
+      };
+
+      setGlobalLLM(fullConfig);
+
+      // Call parent updater
+      await Promise.resolve(onUpdateCompanyLLMConfig?.(fullConfig));
+
+      // Realistic visual feedback delay so loading is clearly perceived
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      setIsSavingLLM(false);
+      setSaveSuccessMsg(`Pengaturan LLM Global kantor "${currentCompany.name}" berhasil disimpan & diterapkan ke seluruh agen!`);
+
+      setTimeout(() => {
+        setSaveSuccessMsg(null);
+      }, 5000);
+    } catch (err: any) {
+      setIsSavingLLM(false);
+      console.error('Error saving global LLM settings:', err);
+    }
   };
 
   const handleTestCategoryConnection = async () => {
@@ -823,8 +872,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                   </div>
                 </div>
                 {saveSuccessMsg && (
-                  <span className="px-2 py-1 rounded-md bg-emerald-600 text-white font-bold text-[10px] flex items-center gap-1 shrink-0 animate-in fade-in">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Tersimpan!
+                  <span className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 shadow-sm animate-in fade-in">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Tersimpan & Diterapkan!
                   </span>
                 )}
               </div>
@@ -1058,20 +1107,49 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               </div>
 
               {/* Bottom Action Bar */}
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#5c4939] hover:bg-[#ede2d1] transition-colors"
-                >
-                  Tutup
-                </button>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#d6c5ad]/60">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#5c4939] hover:bg-[#ede2d1] transition-colors"
+                  >
+                    Tutup
+                  </button>
+                  {saveSuccessMsg && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] text-[#065f46] text-xs font-semibold animate-in fade-in">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="truncate max-w-[280px] sm:max-w-md">{saveSuccessMsg}</span>
+                    </div>
+                  )}
+                </div>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-2"
+                  disabled={isSavingLLM}
+                  className={`px-5 py-2.5 font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 shrink-0 ${
+                    isSavingLLM
+                      ? 'bg-[#4f46e5]/80 text-white cursor-wait opacity-90'
+                      : saveSuccessMsg
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
+                      : 'bg-[#4f46e5] hover:bg-[#4338ca] text-white shadow-indigo-500/20 active:scale-[0.98]'
+                  }`}
                 >
-                  <Save className="w-4 h-4" />
-                  <span>Simpan Semua Pengaturan LLM Global</span>
+                  {isSavingLLM ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>Menyimpan Pengaturan...</span>
+                    </>
+                  ) : saveSuccessMsg ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-white" />
+                      <span>Tersimpan & Diterapkan!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Simpan Semua Pengaturan LLM Global</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

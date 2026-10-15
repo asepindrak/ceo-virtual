@@ -199,11 +199,40 @@ export async function POST(req: Request) {
       });
     }
 
+    if (action === 'save_company') {
+      const { company, companyId } = body;
+      const targetId = companyId || company?.id || 'company-shadowmove';
+      const compFile = path.join(REALAGENT_HOME, `company_${targetId}.json`);
+      fs.writeFileSync(compFile, JSON.stringify(company, null, 2), 'utf-8');
+      if (company?.globalLLMConfig) {
+        const llmFile = path.join(REALAGENT_HOME, `company_${targetId}_llm.json`);
+        fs.writeFileSync(llmFile, JSON.stringify(company.globalLLMConfig, null, 2), 'utf-8');
+      }
+      return NextResponse.json({ success: true, message: 'Company saved to workspace', companyId: targetId });
+    }
+
+    if (action === 'save_company_llm') {
+      const { companyId = 'company-shadowmove', globalLLMConfig } = body;
+      const llmFile = path.join(REALAGENT_HOME, `company_${companyId}_llm.json`);
+      fs.writeFileSync(llmFile, JSON.stringify(globalLLMConfig, null, 2), 'utf-8');
+      return NextResponse.json({ success: true, message: 'Company LLM config saved to workspace', companyId });
+    }
+
     if (action === 'save_tasks') {
       const { tasks, companyId } = body;
       const tasksFile = path.join(REALAGENT_HOME, `tasks_${companyId || 'company-shadowmove'}.json`);
-      fs.writeFileSync(tasksFile, JSON.stringify(tasks || [], null, 2), 'utf-8');
-      return NextResponse.json({ success: true, count: (tasks || []).length });
+      let existingOnDisk: any[] = [];
+      if (fs.existsSync(tasksFile)) {
+        try {
+          existingOnDisk = JSON.parse(fs.readFileSync(tasksFile, 'utf-8'));
+        } catch {}
+      }
+      const taskMap = new Map();
+      existingOnDisk.forEach((t) => taskMap.set(t.id, t));
+      (tasks || []).forEach((t: any) => taskMap.set(t.id, t));
+      const merged = Array.from(taskMap.values());
+      fs.writeFileSync(tasksFile, JSON.stringify(merged, null, 2), 'utf-8');
+      return NextResponse.json({ success: true, count: merged.length });
     }
 
     if (action === 'delete_task') {
@@ -349,24 +378,78 @@ export async function POST(req: Request) {
 
     if (action === 'save_company') {
       const { company, companyId } = body;
-      const compFile = path.join(REALAGENT_HOME, `company_${companyId || 'company-shadowmove'}.json`);
+      const targetCompId = companyId || company?.id || 'company-shadowmove';
+      const compFile = path.join(REALAGENT_HOME, `company_${targetCompId}.json`);
       fs.writeFileSync(compFile, JSON.stringify(company || {}, null, 2), 'utf-8');
+
+      // Also persist dedicated company_llm file if globalLLMConfig is included
+      if (company?.globalLLMConfig) {
+        const llmFile = path.join(REALAGENT_HOME, `company_${targetCompId}_llm.json`);
+        fs.writeFileSync(llmFile, JSON.stringify(company.globalLLMConfig, null, 2), 'utf-8');
+      }
       return NextResponse.json({ success: true, company });
+    }
+
+    if (action === 'save_company_llm') {
+      const { globalLLMConfig, companyId } = body;
+      const targetCompId = companyId || 'company-shadowmove';
+      const llmFile = path.join(REALAGENT_HOME, `company_${targetCompId}_llm.json`);
+      fs.writeFileSync(llmFile, JSON.stringify(globalLLMConfig || {}, null, 2), 'utf-8');
+
+      // Also merge into company file if present
+      const compFile = path.join(REALAGENT_HOME, `company_${targetCompId}.json`);
+      if (fs.existsSync(compFile)) {
+        try {
+          const compData = JSON.parse(fs.readFileSync(compFile, 'utf-8'));
+          compData.globalLLMConfig = { ...compData.globalLLMConfig, ...(globalLLMConfig || {}) };
+          fs.writeFileSync(compFile, JSON.stringify(compData, null, 2), 'utf-8');
+        } catch {}
+      }
+
+      return NextResponse.json({ success: true, globalLLMConfig });
+    }
+
+    if (action === 'get_company_llm') {
+      const { companyId } = body;
+      const targetCompId = companyId || 'company-shadowmove';
+      const llmFile = path.join(REALAGENT_HOME, `company_${targetCompId}_llm.json`);
+      if (fs.existsSync(llmFile)) {
+        try {
+          const content = fs.readFileSync(llmFile, 'utf-8');
+          const parsed = JSON.parse(content);
+          return NextResponse.json({ success: true, globalLLMConfig: parsed });
+        } catch {
+          return NextResponse.json({ success: true, globalLLMConfig: null });
+        }
+      }
+      return NextResponse.json({ success: true, globalLLMConfig: null });
     }
 
     if (action === 'get_company') {
       const { companyId } = body;
-      const compFile = path.join(REALAGENT_HOME, `company_${companyId || 'company-shadowmove'}.json`);
+      const targetCompId = companyId || 'company-shadowmove';
+      const compFile = path.join(REALAGENT_HOME, `company_${targetCompId}.json`);
+      const llmFile = path.join(REALAGENT_HOME, `company_${targetCompId}_llm.json`);
+
+      let companyObj: any = null;
       if (fs.existsSync(compFile)) {
         try {
           const content = fs.readFileSync(compFile, 'utf-8');
-          const parsed = JSON.parse(content);
-          return NextResponse.json({ success: true, company: parsed });
-        } catch {
-          return NextResponse.json({ success: true, company: null });
-        }
+          companyObj = JSON.parse(content);
+        } catch {}
       }
-      return NextResponse.json({ success: true, company: null });
+
+      if (fs.existsSync(llmFile)) {
+        try {
+          const llmContent = fs.readFileSync(llmFile, 'utf-8');
+          const parsedLLM = JSON.parse(llmContent);
+          if (companyObj) {
+            companyObj.globalLLMConfig = { ...companyObj.globalLLMConfig, ...parsedLLM };
+          }
+        } catch {}
+      }
+
+      return NextResponse.json({ success: true, company: companyObj });
     }
 
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });

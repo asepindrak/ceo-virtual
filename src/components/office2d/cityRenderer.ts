@@ -33,6 +33,8 @@ interface Pt {
 
 export interface KavlingEmployeeLike {
   id: string;
+  name?: string;
+  role?: string;
   avatarColor: string;
   hairColor: string;
   wx: number;
@@ -335,21 +337,62 @@ export const drawPerson = (
   }
 };
 
-const privacyBadge = (c: IsoCtx, x: number, z: number, seated: boolean) => {
-  if (c.zoom < 0.75) return;
+export const drawEmployeeTag = (
+  c: IsoCtx,
+  x: number,
+  z: number,
+  name: string,
+  role?: string,
+  seated = false
+) => {
+  if (c.zoom < 0.6) return;
   const { ctx } = c;
-  const p = P(c, x, z, seated ? 31 : 34);
-  ctx.fillStyle = 'rgba(255,253,248,0.95)';
+  const p = P(c, x, z, seated ? 27 : 31);
+  const firstName = (name || 'Agent').split(' ')[0];
+  const isFemale = ['siti', 'maya', 'dewi', 'putri', 'anisa', 'nadia', 'rachel', 'clarissa', 'salsa', 'elena'].some(
+    (fn) => (name || '').toLowerCase().includes(fn)
+  );
+
+  let roleEmoji = '💻';
+  const r = (role || '').toLowerCase();
+  if (r.includes('lead') || r.includes('founder') || r.includes('architect') || r.includes('principal')) roleEmoji = '📋';
+  else if (r.includes('design') || r.includes('creative') || r.includes('art') || r.includes('ui')) roleEmoji = '🎨';
+  else if (r.includes('security') || r.includes('sre') || r.includes('mesh')) roleEmoji = '🛡️';
+  else if (r.includes('devops') || r.includes('cloud') || r.includes('hardware')) roleEmoji = '⚡';
+  else if (r.includes('trader') || r.includes('quant') || r.includes('analyst')) roleEmoji = '📊';
+
+  const genderSymbol = isFemale ? '♀' : '♂';
+  const tagText = `${firstName} ${genderSymbol}`;
+  ctx.font = `bold ${Math.round(8.5 * c.zoom)}px sans-serif`;
+  const textW = ctx.measureText(tagText).width;
+  const pillW = textW + 18 * c.zoom;
+  const pillH = 14 * c.zoom;
+  const pillY = p.y - 14 * c.zoom;
+
+  // Soft drop shadow
+  ctx.fillStyle = 'rgba(40, 25, 15, 0.14)';
   ctx.beginPath();
-  ctx.arc(p.x, p.y, 4.6 * c.zoom, 0, Math.PI * 2);
+  ctx.roundRect(p.x - pillW / 2, pillY + 1.5, pillW, pillH, 6 * c.zoom);
   ctx.fill();
-  ctx.strokeStyle = '#cbd5e1';
-  ctx.lineWidth = 0.8;
+
+  // White clean pill
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#e2d5c3';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.roundRect(p.x - pillW / 2, pillY, pillW, pillH, 6 * c.zoom);
+  ctx.fill();
   ctx.stroke();
-  ctx.font = `${Math.round(5.6 * c.zoom)}px sans-serif`;
-  ctx.textAlign = 'center';
+
+  // Employee name text
+  ctx.fillStyle = isFemale ? '#831843' : '#1e293b';
+  ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('🔒', p.x, p.y + 0.3 * c.zoom);
+  ctx.fillText(tagText, p.x - pillW / 2 + 5 * c.zoom, pillY + pillH / 2);
+
+  // Role emoji icon
+  ctx.font = `${Math.round(8 * c.zoom)}px sans-serif`;
+  ctx.fillText(roleEmoji, p.x + pillW / 2 - 11 * c.zoom, pillY + pillH / 2);
 };
 
 export const drawPlant = (c: IsoCtx, x: number, z: number, size = 1, pot = '#c2703d', leaf = '#2f9e44') => {
@@ -594,31 +637,62 @@ const monumentSign = (c: IsoCtx, x: number, z: number, title: string, subtitle: 
   const { ctx } = c;
   isoBox(c, x, z, 4.2, 0.5, 4, '#e7e0d4');
   isoBox(c, x, z, 3.8, 0.35, 12, color, { elev: 4 });
-  const p = P(c, x, z, 30);
+
   const s = c.zoom;
-  ctx.font = `bold ${Math.max(7, Math.round(9 * s))}px sans-serif`;
+  // Lift position - ensure label stays clearly above monument
+  const p = P(c, x, z, Math.max(26, 32 * s));
+
+  // Minimum readable font sizes at any zoom level
+  const titleFontSize = Math.max(10, Math.round(11.5 * s));
+  const subFontSize = Math.max(8, Math.round(9 * s));
+  const titleFont = `bold ${titleFontSize}px sans-serif`;
+  const subFont = `bold ${subFontSize}px sans-serif`;
+
+  ctx.font = titleFont;
   const tw = ctx.measureText(title).width;
-  const w = tw + 16 * s;
-  const h = (c.zoom > 0.6 ? 24 : 15) * s;
-  ctx.fillStyle = 'rgba(30,20,10,0.18)';
+  ctx.font = subFont;
+  const sw = subtitle ? ctx.measureText(subtitle).width : 0;
+
+  const contentW = Math.max(tw, sw);
+  // Padding around text must have a minimum pixel width (never shrink to zero when zoomed out)
+  const padX = Math.max(20, Math.round(28 * s));
+  const w = contentW + padX;
+
+  const showSub = Boolean(subtitle);
+  const lineGap = Math.max(3, Math.round(4 * s));
+  const padY = Math.max(10, Math.round(14 * s));
+  // Total container height is guaranteed to fit all lines plus padding
+  const h = titleFontSize + (showSub ? subFontSize + lineGap : 0) + padY;
+
+  ctx.fillStyle = 'rgba(30,20,10,0.2)';
   ctx.beginPath();
-  ctx.roundRect(p.x - w / 2 + 1.5, p.y - h / 2 + 2, w, h, 6 * s);
+  ctx.roundRect(p.x - w / 2 + 1.5, p.y - h / 2 + 2, w, h, 6);
   ctx.fill();
-  ctx.fillStyle = hovered ? '#ffffff' : 'rgba(255,252,245,0.97)';
+
+  ctx.fillStyle = hovered ? '#ffffff' : 'rgba(255,252,245,0.98)';
   ctx.beginPath();
-  ctx.roundRect(p.x - w / 2, p.y - h / 2, w, h, 6 * s);
+  ctx.roundRect(p.x - w / 2, p.y - h / 2, w, h, 6);
   ctx.fill();
+
   ctx.strokeStyle = color;
-  ctx.lineWidth = hovered ? 2.2 : 1.3;
+  ctx.lineWidth = hovered ? 2.5 : Math.max(1.5, 2 * s);
   ctx.stroke();
+
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#2c231c';
-  ctx.fillText(title, p.x, c.zoom > 0.6 ? p.y - 4.5 * s : p.y);
-  if (c.zoom > 0.6) {
+
+  if (showSub) {
+    const titleCenterY = p.y - (subFontSize / 2 + lineGap / 2);
+    const subCenterY = p.y + (titleFontSize / 2 + lineGap / 2);
+    ctx.font = titleFont;
+    ctx.fillText(title, p.x, titleCenterY);
     ctx.fillStyle = color;
-    ctx.font = `bold ${Math.max(5.5, Math.round(6 * s))}px monospace`;
-    ctx.fillText(subtitle, p.x, p.y + 6 * s);
+    ctx.font = subFont;
+    ctx.fillText(subtitle, p.x, subCenterY);
+  } else {
+    ctx.font = titleFont;
+    ctx.fillText(title, p.x, p.y);
   }
 };
 
@@ -1353,7 +1427,7 @@ export const renderCompanyKavling = (c: IsoCtx, k: KavlingLike, hovered: boolean
           bob: seated ? Math.sin(c.t * 9 + i) * 0.4 : Math.sin(c.t * 2 + i) * 0.5,
           cup: e.state === 'coffee',
         });
-        privacyBadge(c, ex, ez, seated);
+        drawEmployeeTag(c, ex, ez, e.name || 'Agent', e.role, seated);
       },
       0.05
     );
@@ -1491,146 +1565,324 @@ export const renderSuperMart = (c: IsoCtx, hovered: boolean) => {
 };
 
 // =============================================================================
-// PUBLIC: STASIUN KERETA
 // =============================================================================
-export const renderTrainStation = (c: IsoCtx, hovered: boolean) => {
-  const { cx, cz } = DISTRICT.station;
+// PUBLIC: STASIUN KERETA CEPAT SENTRAL (AERORAIL TRANSIT HUB 350 KM/H)
+// =============================================================================
+export const renderSentralTrainStation = (c: IsoCtx, cx: number, cz: number, hovered: boolean) => {
   const g = makeGeo(cx, cz, DISTRICT.plotHalfW, DISTRICT.plotHalfD, '#ea580c', '#fb923c', '#c2410c');
   const ctx = c.ctx;
-  plinth(c, g, '#e5e7eb', hovered, '#a8a29e');
-  floorGrid(c, g.cx - 16.5, g.cz + 1.8, g.x1, g.z1, 1.5, 'rgba(100,116,139,0.18)');
+  plinth(c, g, '#f1f5f9', hovered, '#94a3b8');
+  floorGrid(c, g.x0, cz - 3.8, g.x1, g.z1, 2.0, 'rgba(148, 163, 184, 0.22)');
 
-  // Jalur rel (diperpanjang ke timur sampai terowongan)
-  const railEnd = DISTRICT.maxX + 2;
-  [-9.2, -5.8].forEach((dz) => {
-    isoRect(c, g.x0, cz + dz - 1.1, railEnd, cz + dz + 1.1, '#6b6259');
-    for (let x = g.x0 + 0.3; x < railEnd; x += 0.75) isoRect(c, x, cz + dz - 0.9, x + 0.3, cz + dz + 0.9, '#5b4636');
-    [-0.45, 0.45].forEach((o) => {
-      line(c, P(c, g.x0, cz + dz + o), P(c, railEnd, cz + dz + o), '#cbd5e1', 1.4 * c.zoom);
-    });
+  // 1. ZONA DOUBLE-TRACK REL KERETA API (North Corridor: z in [cz - 11.6, cz - 4.0])
+  // Ballast bed batu kerikil granit hitam keabuan
+  isoRect(c, g.x0, cz - 11.6, g.x1, cz - 4.0, '#1e293b', '#334155');
+
+  // Jalur 2: Rel Bypass / Langsir (North Track: center at track2Z = cz - 9.8)
+  const track2Z = cz - 9.8;
+  for (let x = g.x0 + 0.6; x <= g.x1 - 0.6; x += 1.2) {
+    isoBox(c, x, track2Z, 0.42, 2.8, 1.4, '#475569', { elev: 0, top: '#94a3b8' });
+  }
+  [-0.8, 0.8].forEach((o) => {
+    line(c, P(c, g.x0, track2Z + o, 1.4), P(c, g.x1, track2Z + o, 1.4), '#94a3b8', 1.8 * c.zoom);
+    line(c, P(c, g.x0, track2Z + o, 2.1), P(c, g.x1, track2Z + o, 2.1), '#ffffff', 0.8 * c.zoom);
   });
-  // pagar belakang rel
-  for (let x = g.x0 + 0.5; x < g.x1; x += 2) isoBox(c, x, g.z0 + 0.15, 0.12, 0.12, 12, '#475569', { stroke: null });
-  line(c, P(c, g.x0, g.z0 + 0.15, 11), P(c, g.x1, g.z0 + 0.15, 11), '#475569', 1 * c.zoom);
+  // Buffer stop hidrolik darurat di ujung barat Jalur 2
+  isoBox(c, g.x0 + 1.2, track2Z, 1.2, 2.2, 8, '#dc2626', { elev: 0, top: '#ef4444' });
+  isoBox(c, g.x0 + 1.7, track2Z, 0.35, 1.6, 6, '#1e293b', { elev: 1 });
+
+  // Jalur 1: Rel Utama Peron (Platform Track: center at track1Z = cz - 6.2)
+  const track1Z = cz - 6.2;
+  for (let x = g.x0 + 0.5; x <= g.x1 - 0.5; x += 1.0) {
+    isoBox(c, x, track1Z, 0.45, 3.0, 1.6, '#475569', { elev: 0, top: '#94a3b8' });
+  }
+  [-0.8, 0.8].forEach((o) => {
+    line(c, P(c, g.x0, track1Z + o, 1.4), P(c, g.x1, track1Z + o, 1.4), '#cbd5e1', 2.0 * c.zoom);
+    line(c, P(c, g.x0, track1Z + o, 2.3), P(c, g.x1, track1Z + o, 2.3), '#ffffff', 0.9 * c.zoom);
+  });
+
+  // Sistem Listrik Aliran Atas (Catenary Overhead System)
+  const catMasts = [cx - 12.5, cx, cx + 12.5];
+  catMasts.forEach((px) => {
+    isoBox(c, px, cz - 11.5, 0.5, 0.5, 46, '#334155', { top: '#475569' });
+    line(c, P(c, px, cz - 11.5, 43), P(c, px, track1Z, 37), '#475569', 1.6 * c.zoom);
+    line(c, P(c, px, cz - 11.5, 34), P(c, px, track1Z, 34), '#475569', 1.2 * c.zoom);
+    line(c, P(c, px, track1Z, 37), P(c, px, track1Z, 34), '#64748b', 1.2 * c.zoom);
+  });
+  line(c, P(c, g.x0, track1Z, 34), P(c, g.x1, track1Z, 34), '#cbd5e1', 1.2 * c.zoom);
+  line(c, P(c, g.x0, track2Z, 34), P(c, g.x1, track2Z, 34), '#94a3b8', 1.0 * c.zoom);
 
   const q = new DepthQueue();
 
-  // Kereta: datang dari terowongan timur, berhenti, lalu kembali
-  const cycle = c.t % 40;
-  let headX: number;
-  if (cycle < 9) {
-    const k = cycle / 9;
-    headX = cx - 12 + (1 - (1 - (1 - k) * (1 - k))) * 0 + (1 - k) * (1 - k) * 45;
-  } else if (cycle < 25) headX = cx - 12;
-  else if (cycle < 34) {
-    const k = (cycle - 25) / 9;
-    headX = cx - 12 + k * k * 45;
-  } else headX = cx + 40;
-  const trainZ = cz - 5.8;
-  const tunnelX = DISTRICT.maxX;
-  const cars = 4;
-  for (let i = 0; i < cars; i++) {
-    const carX = headX + 2.7 + i * 5.6;
-    if (carX - 2.7 > tunnelX - 0.5) continue;
-    q.add(carX, trainZ, () => {
-      const isHead = i === 0;
-      const len = 5.4;
-      isoBox(c, carX, trainZ, len, 1.5, 4, '#1f2937', { elev: 1 });
-      isoBox(c, carX + (isHead ? 0.6 : 0), trainZ, isHead ? len - 1.2 : len, 1.5, 15, '#f8fafc', { elev: 5, top: '#e5e7eb' });
-      faceZ(c, carX - len / 2 + (isHead ? 1.2 : 0.1), carX + len / 2 - 0.1, trainZ + 0.751, 7, 9, '#ea580c');
-      for (let w = 0; w < 4; w++) {
-        const wa = carX - len / 2 + (isHead ? 1.6 : 0.5) + w * 1.15;
-        if (wa + 0.8 > carX + len / 2) continue;
-        faceZ(c, wa, wa + 0.8, trainZ + 0.752, 11, 16, '#1e293b');
-        faceZ(c, wa + 0.08, wa + 0.72, trainZ + 0.753, 11.6, 15.4, 'rgba(254,240,138,0.75)');
-      }
-      if (isHead) {
-        // hidung aerodinamis (miring ke arah -x)
-        const n0 = carX - len / 2;
-        poly(c, [P(c, n0 + 1.2, trainZ - 0.75, 20), P(c, n0 + 1.2, trainZ + 0.75, 20), P(c, n0, trainZ + 0.5, 7), P(c, n0, trainZ - 0.5, 7)], '#e2e8f0', 'rgba(15,23,42,0.2)');
-        poly(c, [P(c, n0 + 1.2, trainZ + 0.75, 5), P(c, n0 + 1.2, trainZ + 0.75, 20), P(c, n0, trainZ + 0.5, 7), P(c, n0, trainZ + 0.5, 5)], '#cbd5e1', 'rgba(15,23,42,0.2)');
-        poly(c, [P(c, n0 + 1.1, trainZ + 0.74, 17), P(c, n0 + 0.5, trainZ + 0.62, 12), P(c, n0 + 0.5, trainZ + 0.62, 10), P(c, n0 + 1.1, trainZ + 0.74, 13)], '#0f172a');
-        glow(c, n0 + 0.1, trainZ + 0.4, 7, 6, 'rgba(254,240,138,0.95)');
-      }
-    }, -0.5);
-  }
-  // Terowongan di ujung timur
-  q.add(tunnelX + 1, cz - 7.5, () => {
-    isoBox(c, tunnelX + 1, cz - 7.5, 2.4, 7, 36, '#78716c', { top: '#a8a29e' });
-    poly(c, [P(c, tunnelX - 0.2, cz - 10.4, 0), P(c, tunnelX - 0.2, cz - 4.6, 0), P(c, tunnelX - 0.2, cz - 4.6, 24), P(c, tunnelX - 0.2, cz - 10.4, 24)], '#1c1917');
-  }, 6);
+  // 2. KERETA CEPAT AERORAIL EXPRESS (WHOOSH 350 KM/H)
+  // Sits strictly on track1Z = cz - 6.2 (100% PARALEL DAN SEJAJAR DENGAN PERON & REL)
+  const trainZ = track1Z;
+  const bounce = Math.sin(c.t * 3.5) * 0.35;
+  const elevBase = 2.4 + bounce;
 
-  // Peron (platform) bertinggi + ubin taktil kuning
-  for (let s = 0; s < 6; s++) {
-    const px = g.x0 + 2.75 + s * 5.5;
-    q.add(px, cz - 1.2, () => {
-      isoBox(c, px, cz - 1.2, 5.5, 5.2, 4, '#d6d3d1', { top: '#f5f5f4' });
-      isoRect(c, px - 2.75, cz - 3.8, px + 2.75, cz - 3.3, '#facc15', undefined, 4);
-    }, -1.5);
-  }
-  // Bangku di peron
-  [-10, -2, 6].forEach((dx) =>
-    q.add(cx + dx, cz + 0.2, () => {
-      isoBox(c, cx + dx, cz + 0.2, 2.4, 0.6, 2, '#64748b', { elev: 9 });
-      isoBox(c, cx + dx, cz + 0.45, 2.4, 0.12, 6, '#475569', { elev: 11 });
-      isoBox(c, cx + dx - 1, cz + 0.2, 0.15, 0.5, 9, '#334155', { elev: 0 });
-      isoBox(c, cx + dx + 1, cz + 0.2, 0.15, 0.5, 9, '#334155', { elev: 0 });
-    })
-  );
-  // Penumpang menunggu di peron
-  [
-    [-11, -1.6, '#db2777', '#1f2937'],
-    [-3.5, -2.2, '#0284c7', '#78350f'],
-    [3, -1.4, '#16a34a', '#111827'],
-    [9, -2, '#f59e0b', '#1f2937'],
-  ].forEach(([dx, dz, b, h], i) =>
-    q.add(cx + (dx as number), cz + (dz as number), () => {
-      drawPerson(c, cx + (dx as number), cz + (dz as number), b as string, h as string, { bob: Math.sin(c.t * 1.5 + i) * 0.4 });
-      if (i % 2 === 0) isoBox(c, cx + (dx as number) + 0.5, cz + (dz as number) + 0.2, 0.4, 0.3, 6, '#475569');
-    }, 0.05)
-  );
-  // Gerbang tiket RFID
-  [-6, -3.6, -1.2, 1.2, 3.6, 6].forEach((dx) =>
-    q.add(cx + dx, cz + 4, () => {
-      isoBox(c, cx + dx, cz + 4, 0.45, 1.4, 11, '#334155', { top: '#475569' });
-      glow(c, cx + dx, cz + 3.6, 11.5, 2.5, Math.sin(c.t * 2 + dx) > 0 ? 'rgba(34,197,94,0.95)' : 'rgba(56,189,248,0.95)');
-    })
-  );
-  // Mesin tiket di dinding kiri
-  [5, 7.2, 9.4].forEach((dz) =>
-    q.add(g.x0 + 0.8, cz + dz, () => {
-      isoBox(c, g.x0 + 0.8, cz + dz, 0.9, 1.4, 22, '#1d4ed8', { top: '#2563eb' });
-      faceX(c, g.x0 + 1.26, cz + dz - 0.45, cz + dz + 0.45, 12, 18, '#bae6fd');
-    })
-  );
-  // Papan keberangkatan digital
-  q.add(cx + 9, cz + 7, () => {
-    line(c, P(c, cx + 7.4, cz + 7, 0), P(c, cx + 7.4, cz + 7, 20), '#374151', 1.4 * c.zoom);
-    line(c, P(c, cx + 10.6, cz + 7, 0), P(c, cx + 10.6, cz + 7, 20), '#374151', 1.4 * c.zoom);
-    isoBox(c, cx + 9, cz + 7, 4, 0.3, 11, '#111827', { elev: 20 });
+  const cars = [
+    { type: 'coach', cx: cx - 11.0, len: 6.4 },
+    { type: 'bellows', cx: cx - 7.4, len: 0.8 },
+    { type: 'panto', cx: cx - 3.5, len: 7.0 },
+    { type: 'bellows', cx: cx + 0.4, len: 0.8 },
+    { type: 'coach', cx: cx + 4.3, len: 7.0 },
+    { type: 'bellows', cx: cx + 8.2, len: 0.8 },
+    { type: 'loco', cx: cx + 11.2, len: 5.2 },
+  ];
+
+  cars.forEach((car) => {
+    q.add(car.cx, trainZ, () => {
+      if (car.type === 'bellows') {
+        // Sambungan antar-gerbong fleksibel akordeon
+        isoBox(c, car.cx, trainZ, car.len, 1.85, 13.5, '#0f172a', { elev: elevBase + 2, top: '#1e293b' });
+        for (let fold = -0.25; fold <= 0.25; fold += 0.25) {
+          line(c, P(c, car.cx + fold, trainZ + 0.93, elevBase + 2), P(c, car.cx + fold, trainZ + 0.93, elevBase + 15), '#334155', 0.8 * c.zoom);
+        }
+        return;
+      }
+
+      const len = car.len;
+      // Bogie & Roda Baja (Dual Two-Axle Bogies per gerbong)
+      [-len * 0.3, len * 0.3].forEach((bx) => {
+        isoBox(c, car.cx + bx, trainZ, 1.7, 1.75, 3.2, '#0f172a', { elev: 0 });
+        [-0.55, 0.55].forEach((wx) => {
+          glow(c, car.cx + bx + wx, trainZ + 0.85, 1.6, 1.2, '#64748b');
+        });
+      });
+
+      // Skirt aerodinamis bawah gelap
+      isoBox(c, car.cx, trainZ, len, 2.05, 3.5, '#1e293b', { elev: elevBase, top: '#334155' });
+
+      // Fuselage utama putih mutiara aerodinamis
+      isoBox(c, car.cx, trainZ, len, 2.05, 12, '#f8fafc', { elev: elevBase + 3.5, top: '#ffffff', left: '#e2e8f0', right: '#cbd5e1' });
+
+      // Cyber Crimson / Whoosh Red Speed Stripe & Cyan Accent Line
+      faceZ(c, car.cx - len / 2, car.cx + len / 2, trainZ + 1.03, elevBase + 5.5, elevBase + 8.5, '#ea580c');
+      faceZ(c, car.cx - len / 2, car.cx + len / 2, trainZ + 1.032, elevBase + 8.8, elevBase + 9.5, '#0284c7');
+
+      // Jendela Kaca Panorama Berpendar Lampu Kabin Hangat
+      const winCount = car.type === 'loco' ? 3 : 5;
+      const wSpan = (len - 1.4) / winCount;
+      for (let w = 0; w < winCount; w++) {
+        const wx0 = car.cx - len / 2 + 0.7 + w * wSpan;
+        const wx1 = wx0 + wSpan - 0.35;
+        // Frame gelap
+        faceZ(c, wx0, wx1, trainZ + 1.034, elevBase + 10, elevBase + 14.5, '#0f172a');
+        // Kaca dengan cahaya kabin hangat
+        faceZ(c, wx0 + 0.08, wx1 - 0.08, trainZ + 1.036, elevBase + 10.4, elevBase + 14.1, 'rgba(254,240,138,0.92)');
+        // Siluet komuter di dalam gerbong
+        faceZ(c, wx0 + (wx1 - wx0) * 0.35, wx0 + (wx1 - wx0) * 0.65, trainZ + 1.038, elevBase + 10.4, elevBase + 12.8, '#78350f');
+      }
+
+      // Fairing AC atap
+      isoBox(c, car.cx, trainZ, len * 0.38, 1.2, 1.4, '#e2e8f0', { elev: elevBase + 15.5 });
+
+      // PANTOGRAPH (Khusus Gerbong Tengah)
+      if (car.type === 'panto') {
+        const pX = car.cx;
+        const pBaseH = elevBase + 15.5;
+        line(c, P(c, pX - 0.7, trainZ, pBaseH), P(c, pX, trainZ, pBaseH + 8), '#dc2626', 1.8 * c.zoom);
+        line(c, P(c, pX + 0.7, trainZ, pBaseH), P(c, pX, trainZ, pBaseH + 8), '#dc2626', 1.8 * c.zoom);
+        line(c, P(c, pX, trainZ, pBaseH + 8), P(c, pX - 0.55, trainZ, 34), '#475569', 1.6 * c.zoom);
+        line(c, P(c, pX, trainZ, pBaseH + 8), P(c, pX + 0.55, trainZ, 34), '#475569', 1.6 * c.zoom);
+        line(c, P(c, pX - 1.0, trainZ, 34), P(c, pX + 1.0, trainZ, 34), '#0f172a', 2.6 * c.zoom);
+        if (Math.sin(c.t * 7) > 0.8) glow(c, pX, trainZ, 34, 4.5, 'rgba(56,189,248,0.95)');
+      }
+
+      // HIDUNG AERODINAMIS 3D (Khusus Lokomotif Terdepan)
+      if (car.type === 'loco') {
+        const n0 = car.cx + len / 2;
+        const nTip = n0 + 2.7;
+        const noseElevTip = elevBase + 4.5;
+        const noseRoofH = elevBase + 15.5;
+
+        // 1. Kap Mesin Aerodinamis Miring Atas (Top Hood)
+        poly(c, [
+          P(c, n0, trainZ - 1.0, noseRoofH),
+          P(c, n0, trainZ + 1.0, noseRoofH),
+          P(c, nTip - 0.3, trainZ + 0.3, noseElevTip + 1.8),
+          P(c, nTip - 0.3, trainZ - 0.3, noseElevTip + 1.8),
+        ], '#f8fafc', 'rgba(15,23,42,0.18)');
+
+        // 2. Kaca Depan Kokpit Masinis (Cockpit Windshield)
+        poly(c, [
+          P(c, n0 + 0.2, trainZ - 0.9, noseRoofH - 0.5),
+          P(c, n0 + 0.2, trainZ + 0.9, noseRoofH - 0.5),
+          P(c, n0 + 1.3, trainZ + 0.6, noseRoofH - 4.5),
+          P(c, n0 + 1.3, trainZ - 0.6, noseRoofH - 4.5),
+        ], '#0f172a');
+        poly(c, [
+          P(c, n0 + 0.3, trainZ - 0.5, noseRoofH - 1.2),
+          P(c, n0 + 0.3, trainZ + 0.2, noseRoofH - 1.2),
+          P(c, n0 + 1.1, trainZ + 0.1, noseRoofH - 4.2),
+          P(c, n0 + 1.1, trainZ - 0.4, noseRoofH - 4.2),
+        ], 'rgba(56,189,248,0.75)');
+
+        // 3. Pipi Aerodinamis Depan (+z face)
+        poly(c, [
+          P(c, n0, trainZ + 1.02, elevBase + 3.5),
+          P(c, n0, trainZ + 1.02, noseRoofH),
+          P(c, nTip - 0.3, trainZ + 0.3, noseElevTip + 1.8),
+          P(c, nTip, trainZ, noseElevTip),
+          P(c, nTip, trainZ, elevBase + 1.8),
+        ], '#e2e8f0', 'rgba(15,23,42,0.18)');
+
+        // Crimson racing stripe melengkung mengikuti moncong
+        poly(c, [
+          P(c, n0, trainZ + 1.03, elevBase + 5.5),
+          P(c, n0, trainZ + 1.03, elevBase + 8.5),
+          P(c, nTip - 0.3, trainZ + 0.28, noseElevTip + 1.5),
+          P(c, nTip, trainZ, noseElevTip),
+        ], '#ea580c');
+
+        // Skirt aerodinamis bawah moncong
+        poly(c, [
+          P(c, n0, trainZ + 1.02, elevBase),
+          P(c, n0, trainZ + 1.02, elevBase + 3.5),
+          P(c, nTip, trainZ, elevBase + 1.8),
+          P(c, nTip, trainZ, elevBase),
+        ], '#1e293b');
+
+        // Lampu Depan LED Kembar Berpendar Terang (Projector Headlights)
+        glow(c, nTip - 0.1, trainZ + 0.15, noseElevTip, 6.5, 'rgba(254,240,138,0.95)');
+        glow(c, nTip - 0.1, trainZ - 0.15, noseElevTip, 6.5, 'rgba(254,240,138,0.95)');
+
+        // Berkas Cahaya Lampu Menyorot ke Depan Rel
+        poly(c, [
+          P(c, nTip, trainZ, noseElevTip),
+          P(c, g.x1 + 3.0, trainZ - 1.2, 0),
+          P(c, g.x1 + 3.0, trainZ + 1.2, 0),
+        ], 'rgba(254,240,138,0.18)');
+      }
+    }, -1.0);
+  });
+
+  // 3. PERON PENUMPANG STASIUN (ELEVATED PLATFORM: z in [cz - 3.8, cz + 2.5])
+  // Raised platform deck elevated 4.5 px (flush dengan pintu kereta api)
+  q.add(cx, cz - 0.6, () => {
+    isoBox(c, cx, cz - 0.6, 31.0, 6.4, 4.5, '#e2e8f0', { elev: 0, top: '#f8fafc', left: '#cbd5e1', right: '#94a3b8' });
+    // Ubin taktil keselamatan kuning cerah sepanjang bibir peron
+    isoRect(c, cx - 15.5, cz - 3.7, cx + 15.5, cz - 3.2, '#facc15', '#ca8a04', 4.5);
+    for (let tx = cx - 15.0; tx <= cx + 15.0; tx += 1.0) {
+      isoBox(c, tx, cz - 3.45, 0.4, 0.3, 0.4, '#eab308', { elev: 4.5, stroke: null });
+    }
+    // Garis batas keselamatan putih
+    line(c, P(c, cx - 15.5, cz - 3.1, 4.5), P(c, cx + 15.5, cz - 3.1, 4.5), '#ffffff', 1.5 * c.zoom);
+
+    // Platform Screen Doors (PSD) Pagar Kaca Pengaman di Tepi Peron
+    [-12.5, -5.5, 1.5, 8.5].forEach((gx) => {
+      // Pintu geser terbuka dengan indikator hijau
+      isoBox(c, gx, cz - 3.3, 1.8, 0.15, 6.5, '#22c55e', { elev: 4.5, alpha: 0.4 });
+      glow(c, gx, cz - 3.2, 11.5, 2.0, 'rgba(34,197,94,0.95)');
+    });
+  }, -0.5);
+
+  // Bangku Tunggu Stainless Steel & Teak Wood di Peron
+  [-9.5, -1.0, 7.5].forEach((bx) => {
+    q.add(cx + bx, cz - 0.8, () => {
+      isoBox(c, cx + bx, cz - 0.8, 2.4, 0.7, 2.5, '#64748b', { elev: 4.5 });
+      isoBox(c, cx + bx, cz - 0.8, 2.2, 0.6, 0.8, '#b45309', { elev: 7.0, top: '#d97706' });
+    });
+  });
+
+  // Papan Informasi Jadwal Jalur 1 Gantung (Platform Overhead Display)
+  [-4.0, 5.0].forEach((sx) => {
+    q.add(cx + sx, cz - 1.5, () => {
+      line(c, P(c, cx + sx, cz - 1.5, 18), P(c, cx + sx, cz - 1.5, 34), '#475569', 1.2 * c.zoom);
+      isoBox(c, cx + sx, cz - 1.5, 3.4, 0.3, 2.0, '#0f172a', { elev: 16 });
+      faceZ(c, cx + sx - 1.6, cx + sx + 1.6, cz - 1.34, 16.2, 17.8, '#0f172a');
+      faceZ(c, cx + sx - 1.5, cx + sx + 1.5, cz - 1.33, 16.5, 17.5, '#22c55e');
+    });
+  });
+
+  // NPC Stasiun di Peron
+  q.add(cx + 9.5, cz - 2.0, () => {
+    // Masinis / Kepala Stasiun Farhan
+    drawPerson(c, cx + 9.5, cz - 2.0, '#0f172a', '#1e293b', { skin: '#fed7aa', seated: false, bob: Math.sin(c.t * 2) * 0.3 });
+    const p = P(c, cx + 9.5, cz - 2.0, 18.5);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(p.x - 3 * c.zoom, p.y - 1.5 * c.zoom, 6 * c.zoom, 2 * c.zoom);
+  }, 0.05);
+
+  q.add(cx - 0.5, cz - 2.2, () => {
+    // Penumpang Rina dengan Koper Beroda
+    drawPerson(c, cx - 0.5, cz - 2.2, '#db2777', '#334155', { skin: '#fed7aa', seated: false, bob: Math.sin(c.t * 1.5) * 0.4 });
+    isoBox(c, cx + 0.3, cz - 2.0, 0.5, 0.4, 5, '#475569', { elev: 4.5, top: '#64748b' });
+  }, 0.05);
+
+  q.add(cx - 1.0, cz - 0.8, () => {
+    // Komuter Duduk Menikmati Kopi
+    drawPerson(c, cx - 1.0, cz - 0.8, '#0284c7', '#78350f', { skin: '#fed7aa', seated: true, cup: true });
+  }, 0.05);
+
+  // 4. CONCOURSE & HALL TIKET STASIUN (z in [cz + 2.8, cz + 11.5])
+  // Gerbang Tiket Pintar RFID (6 Turnstiles di cz + 6.0)
+  [-5.0, -3.0, -1.0, 1.0, 3.0, 5.0].forEach((gx) => {
+    q.add(cx + gx, cz + 6.0, () => {
+      isoBox(c, cx + gx, cz + 6.0, 0.5, 1.6, 9, '#334155', { top: '#475569' });
+      glow(c, cx + gx, cz + 5.7, 9.5, 2.2, Math.sin(c.t * 2 + gx) > 0 ? 'rgba(34,197,94,0.95)' : 'rgba(56,189,248,0.95)');
+    });
+  });
+
+  // Mesin Tiket Otomatis TVM di Dinding Barat
+  [cz + 5.0, cz + 7.2, cz + 9.4].forEach((dz) => {
+    q.add(g.x0 + 1.2, dz, () => {
+      isoBox(c, g.x0 + 1.2, dz, 0.9, 1.5, 20, '#1d4ed8', { top: '#2563eb' });
+      faceX(c, g.x0 + 1.66, dz - 0.5, dz + 0.5, 11, 17, '#38bdf8');
+    });
+  });
+
+  // Papan Keberangkatan Utama Digital (Grand Master Departure Board)
+  q.add(cx + 8.5, cz + 6.0, () => {
+    line(c, P(c, cx + 6.8, cz + 6.0, 0), P(c, cx + 6.8, cz + 6.0, 22), '#374151', 1.6 * c.zoom);
+    line(c, P(c, cx + 10.2, cz + 6.0, 0), P(c, cx + 10.2, cz + 6.0, 22), '#374151', 1.6 * c.zoom);
+    isoBox(c, cx + 8.5, cz + 6.0, 4.2, 0.35, 11, '#0f172a', { elev: 22 });
     for (let r = 0; r < 3; r++) {
-      faceZ(c, cx + 7.3, cx + 9.4, cz + 7.151, 28 - r * 3, 29.4 - r * 3, '#fbbf24');
-      faceZ(c, cx + 9.7, cx + 10.7, cz + 7.151, 28 - r * 3, 29.4 - r * 3, r === 0 && Math.sin(c.t * 3) > 0 ? '#22c55e' : '#4ade80');
+      faceZ(c, cx + 6.7, cx + 9.0, cz + 6.18, 30 - r * 3, 31.4 - r * 3, '#fbbf24');
+      faceZ(c, cx + 9.3, cx + 10.4, cz + 6.18, 30 - r * 3, 31.4 - r * 3, r === 0 ? '#22c55e' : '#38bdf8');
     }
   });
-  // Kios kecil
-  q.add(cx + 13.6, cz + 9.6, () => {
-    isoBox(c, cx + 13.6, cz + 9.6, 2.6, 2, 14, '#fef3c7', { top: '#fde68a' });
-    isoBox(c, cx + 13.6, cz + 10.8, 2.8, 0.6, 1.5, '#ea580c', { elev: 16 });
+
+  // Cafe & Kios "Whoosh Express"
+  q.add(cx + 13.2, cz + 9.5, () => {
+    isoBox(c, cx + 13.2, cz + 9.5, 2.8, 2.2, 12, '#5c3a21', { top: '#f8fafc' });
+    isoBox(c, cx + 13.6, cz + 9.2, 0.8, 0.8, 5, '#dc2626', { elev: 12, top: '#ef4444' });
+    drawPerson(c, cx + 13.2, cz + 8.8, '#1e293b', '#1e293b', { skin: '#fed7aa', seated: false });
   });
-  // Komuter berjalan melewati gerbang
-  const walkZ = cz + 10 - ((c.t * 0.9) % 12);
-  if (walkZ > cz - 1) q.add(cx - 2.4, walkZ, () => drawPerson(c, cx - 2.4, walkZ, '#7c3aed', '#111827', { bob: Math.abs(Math.sin(c.t * 7)) * 1.2 }), 0.05);
-  q.add(g.x0 + 1.2, cz + 10.8, () => drawPlant(c, g.x0 + 1.2, cz + 10.8, 1.2));
+
+  // Tanaman Arsitektural dalam Pot Modern
+  q.add(g.x0 + 1.4, cz + 10.8, () => drawPlant(c, g.x0 + 1.4, cz + 10.8, 1.3));
+  q.add(cx - 7.2, cz + 7.5, () => drawPlant(c, cx - 7.2, cz + 7.5, 1.2));
+  q.add(cx + 11.0, cz + 10.8, () => drawPlant(c, cx + 11.0, cz + 10.8, 1.3));
+
+  // Komuter berjalan lewat gate
+  const walkZ = cz + 10 - ((c.t * 0.9) % 11);
+  if (walkZ > cz + 3.0) {
+    q.add(cx - 2.0, walkZ, () => drawPerson(c, cx - 2.0, walkZ, '#7c3aed', '#111827', { bob: Math.abs(Math.sin(c.t * 7)) * 1.2 }), 0.05);
+  }
+
   q.flush();
 
-  // Kanopi peron (paling atas, transparan)
-  [-12, -4, 4, 12].forEach((dx) => isoBox(c, cx + dx, cz - 1, 0.3, 0.3, 36, '#334155', { elev: 4 }));
-  isoBox(c, cx, cz - 1.2, 31, 6.6, 2, '#bae6fd', { elev: 40, alpha: 0.5, stroke: 'rgba(2,132,199,0.8)' });
-  faceZ(c, cx - 15.5, cx + 15.5, cz + 2.1, 40, 42, '#ea580c');
+  // 5. KANOPI MELENGKUNG ARSITEKTURAL (VAULTED TRANSLUCENT GLASS & STEEL CANOPY)
+  // Tiang-tiang busur baja di sisi platform & rel
+  [-12.0, -4.0, 4.0, 12.0].forEach((dx) => {
+    isoBox(c, cx + dx, cz - 4.2, 0.35, 0.35, 42, '#334155');
+    isoBox(c, cx + dx, cz + 2.2, 0.35, 0.35, 42, '#334155');
+    line(c, P(c, cx + dx, cz - 4.2, 42), P(c, cx + dx, cz - 1.0, 46), '#64748b', 2.0 * c.zoom);
+    line(c, P(c, cx + dx, cz + 2.2, 42), P(c, cx + dx, cz - 1.0, 46), '#64748b', 2.0 * c.zoom);
+  });
+  // Atap kaca arsitektural transparan
+  isoBox(c, cx, cz - 1.0, 31.5, 6.8, 1.8, '#bae6fd', { elev: 42, alpha: 0.35, stroke: 'rgba(2,132,199,0.75)' });
+  faceZ(c, cx - 15.75, cx + 15.75, cz + 2.41, 41.5, 43.8, '#ea580c');
+
+  // Pagar kaca pembatas depan & Monumen Nama Stasiun
   frontRails(c, g);
-  monumentSign(c, cx + 5.5, g.z1 + 1.1, '🚄 Stasiun Sentral', 'AERORAIL TRANSIT', '#ea580c', hovered);
+  monumentSign(c, cx, g.z1 + 1.1, '🚄 SENTRAL AERORAIL TERMINAL', 'TRANSIT HUB • WHOOSH EXPRESS 350 KM/H', '#ea580c', hovered);
   void ctx;
+};
+
+export const renderTrainStation = (c: IsoCtx, hovered: boolean) => {
+  renderSentralTrainStation(c, DISTRICT.station.cx, DISTRICT.station.cz, hovered);
 };
 
 // =============================================================================

@@ -486,9 +486,9 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#f4ebe1] text-[#786653] font-bold font-mono">
                           {activeDistrict.badge}
                         </span>
-                        <h3 className="text-sm font-bold text-[#2c231c]">{activeDistrict.name}</h3>
+                        <h3 className="text-base font-bold text-[#2c231c]">{activeDistrict.name}</h3>
                       </div>
-                      <p className="text-xs text-[#786653] mt-1">{activeDistrict.description}</p>
+                      <p className="text-xs sm:text-sm text-[#786653] mt-1 leading-relaxed">{activeDistrict.description}</p>
                     </div>
                     <div className="text-right text-[11px] text-[#786653]">
                       <div className="flex items-center gap-1 font-mono">
@@ -573,22 +573,22 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div>
-                                <div className="flex items-center gap-1.5">
-                                  <h4 className="font-bold text-xs text-[#2c231c]">{comp.name}</h4>
-                                  <span className="text-[9px] px-1.5 py-0.2 bg-[#3d3126] text-[#fbbf24] rounded-full font-bold">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <h4 className="font-bold text-sm text-[#2c231c]">{comp.name}</h4>
+                                  <span className="text-[10px] px-1.5 py-0.2 bg-[#3d3126] text-[#fbbf24] rounded-full font-bold">
                                     Lv {comp.level}
                                   </span>
                                   {isMyCompany && (
-                                    <span className="text-[9px] px-1.5 py-0.2 bg-[#c85a2b] text-white rounded font-bold">
+                                    <span className="text-[10px] px-1.5 py-0.2 bg-[#c85a2b] text-white rounded font-bold">
                                       Kantor Anda
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[10px] text-[#c85a2b] font-medium">
+                                <div className="text-xs text-[#c85a2b] font-medium mt-0.5">
                                   {comp.industry}
                                 </div>
-                                <div className="text-[10px] text-[#786653]">
-                                  Owner: <strong>{comp.ownerName}</strong> • {comp.buildingType}
+                                <div className="text-xs text-[#786653] mt-0.5">
+                                  Owner: <strong className="text-[#2c231c]">{comp.ownerName}</strong> • {comp.buildingType}
                                 </div>
                               </div>
 

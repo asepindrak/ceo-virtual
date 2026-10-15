@@ -33,7 +33,7 @@ interface TopNavProps {
   pendingDecisionsCount: number;
   onTogglePause: () => void;
   onChangeSpeed: (speed: number) => void;
-  onOpenCompanyModal: () => void;
+  onOpenCompanyModal: (tab?: 'presets' | 'custom' | 'layout' | 'global_llm' | 'memory') => void;
   onOpenTasksModal: () => void;
   onOpenRosterModal: () => void;
   onOpenOfficeChat: () => void;
@@ -105,7 +105,7 @@ export const TopNav: React.FC<TopNavProps> = ({
       {/* 1. Left: Brand & Multi-Office Switcher */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         <button
-          onClick={onOpenCompanyModal}
+          onClick={() => onOpenCompanyModal()}
           className="flex items-center gap-2 p-1 -ml-1 hover:bg-[#ede2d1] rounded-xl transition-colors group text-left"
           title="Vigent (Virtual Agent Office) - Ganti Kantor Virtual atau Buat Kantor Baru"
         >
@@ -294,7 +294,7 @@ export const TopNav: React.FC<TopNavProps> = ({
               <button
                 onClick={() => {
                   setIsMoreMenuOpen(false);
-                  onOpenCompanyModal();
+                  onOpenCompanyModal('global_llm');
                 }}
                 className="w-full text-left px-2.5 py-2 hover:bg-[#ede2d1] rounded-xl flex items-center justify-between text-[#2c231c] transition-colors"
                 title="Atur provider LLM global kantor untuk Teks, Gambar, Fast, Vision, Audio"

@@ -51,6 +51,7 @@ export default function RealAgent3DPage() {
 
   const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>(undefined);
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
+  const [companyModalInitialTab, setCompanyModalInitialTab] = useState<'presets' | 'custom' | 'layout' | 'global_llm' | 'memory'>('presets');
   const [isTasksModalOpen, setIsTasksModalOpen] = useState(false);
   const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
   const [isMarketplaceOpen, setIsMarketplaceOpen] = useState(false);
@@ -97,10 +98,19 @@ export default function RealAgent3DPage() {
         // A. Load Company Profile & Progression
         const companyStorageKey = `vigent_company_${companyId}`;
         const savedCompanyJson = localStorage.getItem(companyStorageKey);
+        const savedLLM = localStorage.getItem(`vigent_company_llm_${companyId}`);
+        let loadedCompany: Company = currentCompany;
+
         if (savedCompanyJson) {
           try {
             const parsedComp = JSON.parse(savedCompanyJson);
             if (parsedComp && parsedComp.id === companyId && isMounted) {
+              if (savedLLM) {
+                try {
+                  parsedComp.globalLLMConfig = JSON.parse(savedLLM);
+                } catch {}
+              }
+              loadedCompany = parsedComp;
               setCurrentCompany(parsedComp);
             }
           } catch {}
@@ -112,10 +122,43 @@ export default function RealAgent3DPage() {
               body: JSON.stringify({ action: 'get_company', companyId }),
             }).then((r) => r.json());
             if (compRes?.success && compRes.company && isMounted) {
+              if (savedLLM) {
+                try {
+                  compRes.company.globalLLMConfig = JSON.parse(savedLLM);
+                } catch {}
+              }
+              loadedCompany = compRes.company;
               setCurrentCompany(compRes.company);
             }
           } catch {}
         }
+
+        // Helper to ensure all agents without manual custom API key use Company Global LLM
+        const applyGlobalLLMToUnconfiguredAgents = (rawAgents: Agent[]): Agent[] => {
+          const compLLM = loadedCompany.globalLLMConfig;
+          if (!compLLM) return rawAgents;
+          return rawAgents.map((ag) => {
+            const hasManualKey = ag.inheritedLLMCategory === 'manual' && Boolean(ag.llmConfig?.apiKey);
+            if (!hasManualKey) {
+              const cat = (ag.inheritedLLMCategory && ag.inheritedLLMCategory !== 'manual')
+                ? ag.inheritedLLMCategory
+                : 'text';
+              const catSetting = compLLM[cat] || compLLM.text;
+              return {
+                ...ag,
+                inheritedLLMCategory: cat,
+                llmConfig: {
+                  provider: catSetting?.provider || 'openai',
+                  baseUrl: catSetting?.baseUrl,
+                  apiKey: catSetting?.apiKey,
+                  model: catSetting?.model || 'gpt-4o',
+                  isLocked: false,
+                },
+              };
+            }
+            return ag;
+          });
+        };
 
         // B. Load Agents (XP, Level, Assigned Roles, Positions)
         const agentsStorageKey = `vigent_agents_${companyId}`;
@@ -124,7 +167,8 @@ export default function RealAgent3DPage() {
           try {
             const parsedAgents = JSON.parse(savedAgentsJson);
             if (Array.isArray(parsedAgents) && parsedAgents.length > 0 && isMounted) {
-              setAgents(parsedAgents);
+              const synchronizedAgents = applyGlobalLLMToUnconfiguredAgents(parsedAgents);
+              setAgents(synchronizedAgents);
             }
           } catch {}
         } else {
@@ -135,7 +179,8 @@ export default function RealAgent3DPage() {
               body: JSON.stringify({ action: 'get_agents', companyId }),
             }).then((r) => r.json());
             if (agentsRes?.success && Array.isArray(agentsRes.agents) && agentsRes.agents.length > 0 && isMounted) {
-              setAgents(agentsRes.agents);
+              const synchronizedAgents = applyGlobalLLMToUnconfiguredAgents(agentsRes.agents);
+              setAgents(synchronizedAgents);
             }
           } catch {}
         }
@@ -143,24 +188,39 @@ export default function RealAgent3DPage() {
         // C. Load Tasks
         const tasksStorageKey = `vigent_tasks_${companyId}`;
         const savedTasksJson = localStorage.getItem(tasksStorageKey);
+        let initialLocalTasks: TaskTicket[] = [];
         if (savedTasksJson) {
           try {
             const parsedTasks = JSON.parse(savedTasksJson);
-            if (Array.isArray(parsedTasks) && parsedTasks.length > 0 && isMounted) {
-              setTasks(parsedTasks);
+            if (Array.isArray(parsedTasks) && parsedTasks.length > 0) {
+              initialLocalTasks = parsedTasks;
             }
           } catch {}
-        } else {
-          try {
-            const tasksRes = await fetch('/api/workspace', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'get_tasks', companyId }),
-            }).then((r) => r.json());
-            if (tasksRes?.success && Array.isArray(tasksRes.tasks) && tasksRes.tasks.length > 0 && isMounted) {
-              setTasks(tasksRes.tasks);
+        }
+
+        try {
+          const tasksRes = await fetch('/api/workspace', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_tasks', companyId }),
+          }).then((r) => r.json());
+          if (tasksRes?.success && Array.isArray(tasksRes.tasks) && isMounted) {
+            const taskMap = new Map<string, TaskTicket>();
+            initialLocalTasks.forEach((t) => taskMap.set(t.id, t));
+            tasksRes.tasks.forEach((t: TaskTicket) => taskMap.set(t.id, t));
+            const merged = Array.from(taskMap.values());
+            if (merged.length > 0) {
+              setTasks(merged);
+            } else if (initialLocalTasks.length > 0) {
+              setTasks(initialLocalTasks);
             }
-          } catch {}
+          } else if (initialLocalTasks.length > 0 && isMounted) {
+            setTasks(initialLocalTasks);
+          }
+        } catch {
+          if (initialLocalTasks.length > 0 && isMounted) {
+            setTasks(initialLocalTasks);
+          }
         }
 
         // D. Load Activity Events
@@ -292,6 +352,39 @@ export default function RealAgent3DPage() {
     }
   }, [currentCompany]);
 
+  // 6. Periodic background check for tasks created externally (e.g. via Telegram War Room)
+  useEffect(() => {
+    let isSubscribed = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_tasks', companyId: currentCompany.id }),
+        });
+        if (!isSubscribed) return;
+        const data = await res.json();
+        if (data?.success && Array.isArray(data.tasks) && isSubscribed) {
+          setTasks((prev) => {
+            const existingIds = new Set(prev.map((t) => t.id));
+            const newTasks = data.tasks.filter((t: TaskTicket) => !existingIds.has(t.id));
+            if (newTasks.length > 0) {
+              return [...newTasks, ...prev];
+            }
+            return prev;
+          });
+        }
+      } catch {
+        // silent
+      }
+    }, 4000);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, [currentCompany.id]);
+
   // Simulation tick sync callback from 3D Canvas
   const handleSimulationUpdate = useCallback(
     (updatedAgents: Agent[], updatedTasks: TaskTicket[], newEvents: ActivityEvent[]) => {
@@ -327,14 +420,19 @@ export default function RealAgent3DPage() {
       if (seekingAgent) {
         setPendingDecisions((prevDecisions) => {
           const matchingReq = prevDecisions.find((d) => d.agentId === seekingAgent.id && d.status === 'pending');
-          if (matchingReq && (!activeDecisionModal || activeDecisionModal.id !== matchingReq.id)) {
-            setActiveDecisionModal(matchingReq);
+          if (matchingReq) {
+            setActiveDecisionModal((currentModal) => {
+              if (!currentModal || currentModal.id !== matchingReq.id) {
+                return matchingReq;
+              }
+              return currentModal;
+            });
           }
           return prevDecisions;
         });
       }
     },
-    [activeDecisionModal]
+    []
   );
 
   // Speed and Pause controls
@@ -617,15 +715,43 @@ export default function RealAgent3DPage() {
   const handleUpdateLLMConfig = (
     agentId: string,
     updatedConfig: LLMConfig,
-    inheritedCategory?: LLMCategory | 'manual'
+    inheritedCategory?: LLMCategory | 'manual',
+    applyToAllInCompany?: boolean
   ) => {
-    setAgents((prev) =>
-      prev.map((a) =>
-        a.id === agentId
-          ? { ...a, llmConfig: updatedConfig, inheritedLLMCategory: inheritedCategory }
-          : a
-      )
-    );
+    setAgents((prev) => {
+      const updatedAgents = prev.map((a) => {
+        if (applyToAllInCompany) {
+          return {
+            ...a,
+            llmConfig: updatedConfig,
+            inheritedLLMCategory: inheritedCategory,
+          };
+        }
+        if (a.id === agentId) {
+          return {
+            ...a,
+            llmConfig: updatedConfig,
+            inheritedLLMCategory: inheritedCategory,
+          };
+        }
+        return a;
+      });
+
+      // Synchronously persist updated agents to localStorage and disk
+      try {
+        const storageKey = `vigent_agents_${currentCompany.id}`;
+        localStorage.setItem(storageKey, JSON.stringify(updatedAgents));
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_agents', companyId: currentCompany.id, agents: updatedAgents }),
+        }).catch(console.error);
+      } catch (e) {
+        console.error('Error saving agents on LLM config update:', e);
+      }
+
+      return updatedAgents;
+    });
   };
 
   // Update Company's Global LLM Settings
@@ -634,11 +760,66 @@ export default function RealAgent3DPage() {
       const updated = { ...prev, globalLLMConfig: updatedGlobalLLM };
       try {
         localStorage.setItem(`vigent_company_llm_${prev.id}`, JSON.stringify(updatedGlobalLLM));
+        localStorage.setItem(`vigent_company_${prev.id}`, JSON.stringify(updated));
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_company', companyId: prev.id, company: updated }),
+        }).catch(console.error);
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_company_llm', companyId: prev.id, globalLLMConfig: updatedGlobalLLM }),
+        }).catch(console.error);
       } catch (e) {
         console.error(e);
       }
       return updated;
     });
+
+    // Update all agents who haven't set a manual custom key so they immediately inherit this Global LLM
+    setAgents((prevAgents) => {
+      const updatedAgents = prevAgents.map((ag) => {
+        const hasManualKey = ag.inheritedLLMCategory === 'manual' && Boolean(ag.llmConfig?.apiKey);
+        if (!hasManualKey) {
+          const category = (ag.inheritedLLMCategory && ag.inheritedLLMCategory !== 'manual')
+            ? ag.inheritedLLMCategory
+            : 'text';
+          const categorySetting = updatedGlobalLLM[category] || updatedGlobalLLM.text;
+          return {
+            ...ag,
+            inheritedLLMCategory: category,
+            llmConfig: {
+              provider: categorySetting?.provider || 'openai',
+              baseUrl: categorySetting?.baseUrl,
+              apiKey: categorySetting?.apiKey,
+              model: categorySetting?.model || 'gpt-4o',
+              isLocked: false,
+            },
+          };
+        }
+        return ag;
+      });
+
+      try {
+        const storageKey = `vigent_agents_${currentCompany.id}`;
+        localStorage.setItem(storageKey, JSON.stringify(updatedAgents));
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_agents', companyId: currentCompany.id, agents: updatedAgents }),
+        }).catch(console.error);
+      } catch (e) {
+        console.error('Error saving agents on global LLM update:', e);
+      }
+
+      return updatedAgents;
+    });
+  };
+
+  const handleOpenCompanyModal = (tab: 'presets' | 'custom' | 'layout' | 'global_llm' | 'memory' = 'presets') => {
+    setCompanyModalInitialTab(tab);
+    setIsCompanyModalOpen(true);
   };
 
   // Add Task to Board
@@ -859,7 +1040,7 @@ export default function RealAgent3DPage() {
         pendingDecisionsCount={pendingDecisions.length}
         onTogglePause={handleTogglePause}
         onChangeSpeed={handleChangeSpeed}
-        onOpenCompanyModal={() => setIsCompanyModalOpen(true)}
+        onOpenCompanyModal={handleOpenCompanyModal}
         onOpenTasksModal={() => setIsTasksModalOpen(true)}
         onOpenRosterModal={() => setIsRosterModalOpen(true)}
         onOpenOfficeChat={() => {
@@ -903,7 +1084,7 @@ export default function RealAgent3DPage() {
         onOpenTasks={() => setIsTasksModalOpen(true)}
         onOpenSettings={() => setIsWorkspaceModalOpen(true)}
         onOpenWorldMap={() => setIsWorldMapOpen(true)}
-        onOpenCompanyModal={() => setIsCompanyModalOpen(true)}
+        onOpenCompanyModal={handleOpenCompanyModal}
       />
 
       {/* Office Live Activity Feed Ticker (Bottom-Left) */}
@@ -970,6 +1151,7 @@ export default function RealAgent3DPage() {
       {isCompanyModalOpen && (
         <CompanyModal
           currentCompany={currentCompany}
+          initialTab={companyModalInitialTab}
           onClose={() => setIsCompanyModalOpen(false)}
           onSelectCompany={handleSelectCompany}
           onUpdateCompanyLLMConfig={handleUpdateCompanyLLMConfig}

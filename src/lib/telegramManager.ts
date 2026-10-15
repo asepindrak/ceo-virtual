@@ -9,10 +9,10 @@ import { Telegraf } from 'telegraf';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { Company, Agent, OfficeGroupChatMessage, TelegramConfig, TaskTicket } from '@/types/office';
+import { Company, Agent, OfficeGroupChatMessage, TelegramConfig, TaskTicket, TaskType } from '@/types/office';
 import { PRESET_COMPANIES, getEffectiveAgentLLMConfig } from './companyPresets';
 import { callLLMProvider } from './llmService';
-import { cloneGitRepository, extractGitHubUrl } from './workspaceManager';
+import { cloneGitRepository, extractGitHubUrl, createProjectDirectory, writeProjectFile, writeArtifactFile } from './workspaceManager';
 
 export interface BotRunnerInstance {
   companyId: string;
@@ -108,15 +108,424 @@ export function getCompanyTasks(companyId: string): TaskTicket[] {
   return preset?.tasks || [];
 }
 
-export function getCompanyAgents(companyId: string): Agent[] {
-  const preset = PRESET_COMPANIES.find((c) => c.id === companyId);
-  return preset?.agents || PRESET_COMPANIES[0].agents;
+export function saveCompanyTasks(companyId: string, tasks: TaskTicket[]): void {
+  try {
+    const filePath = path.join(getVigentDir(), `tasks_${companyId}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(tasks, null, 2), 'utf-8');
+  } catch (err) {
+    console.error(`[Telegram] Error saving tasks for ${companyId}:`, err);
+  }
+}
+
+export function addCompanyTask(companyId: string, task: TaskTicket): void {
+  const current = getCompanyTasks(companyId);
+  current.unshift(task);
+  saveCompanyTasks(companyId, current);
 }
 
 export function getCompanyData(companyId: string): Company {
-  const preset = PRESET_COMPANIES.find((c) => c.id === companyId);
-  if (preset) return preset;
-  return PRESET_COMPANIES[0];
+  const dir = getVigentDir();
+  let comp: Company | null = null;
+  try {
+    const compFile = path.join(dir, `company_${companyId}.json`);
+    if (fs.existsSync(compFile)) {
+      comp = JSON.parse(fs.readFileSync(compFile, 'utf-8'));
+    }
+  } catch {}
+
+  if (!comp) {
+    const preset = PRESET_COMPANIES.find((c) => c.id === companyId);
+    comp = preset ? { ...preset } : { ...PRESET_COMPANIES[0] };
+  }
+
+  // Merge any saved globalLLMConfig from disk
+  try {
+    const llmFile = path.join(dir, `company_${companyId}_llm.json`);
+    if (fs.existsSync(llmFile)) {
+      const savedLLM = JSON.parse(fs.readFileSync(llmFile, 'utf-8'));
+      comp.globalLLMConfig = { ...comp.globalLLMConfig, ...savedLLM };
+    }
+  } catch {}
+
+  return comp;
+}
+
+export function getCompanyAgents(companyId: string): Agent[] {
+  const comp = getCompanyData(companyId);
+  return comp.agents && comp.agents.length > 0 ? comp.agents : PRESET_COMPANIES[0].agents;
+}
+
+export function getCompanyLeader(company: Company): Agent {
+  const agents = company.agents && company.agents.length > 0 ? company.agents : getCompanyAgents(company.id);
+  const leader = agents.find((a) => {
+    const role = (a.role || '').toLowerCase();
+    const title = (a.roleTitle || '').toLowerCase();
+    return (
+      role === 'ceo' ||
+      title.includes('founder') ||
+      title.includes('lead') ||
+      title.includes('architect') ||
+      title.includes('director') ||
+      title.includes('head')
+    );
+  });
+  return leader || agents[0];
+}
+
+export function isTaskOrProjectInstruction(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  if (
+    /^(halo|hai|pagi|siang|malam|apa kabar|lagi apa|status|ping)\b/i.test(lower) &&
+    !lower.includes('bikin') &&
+    !lower.includes('buat') &&
+    !lower.includes('implement') &&
+    !lower.includes('proyek') &&
+    !lower.includes('fitur')
+  ) {
+    return false;
+  }
+  const taskKeywords = [
+    'bikin', 'buat', 'create', 'build', 'implement', 'implementasi',
+    'proyek', 'project', 'fitur', 'feature', 'web', 'aplikasi', 'app',
+    'landing', 'sistem', 'redesign', 'desain', 'tambahkan', 'kerjakan',
+    'diskusi', 'diskusikan', 'diskusiin', 'link tree', 'linktree', 'clone',
+    'kembangkan', 'integrasikan', 'kalian coba', 'tolong buatkan', 'coba kalian'
+  ];
+  return taskKeywords.some((kw) => lower.includes(kw));
+}
+
+export interface AutonomousWorkflowResult {
+  leaderReply: string;
+  createdTask: TaskTicket;
+  discussions: { agent: Agent; message: string }[];
+  telegramMessage: string;
+}
+
+export async function executeAutonomousCompanyWorkflow(
+  company: Company,
+  userInstruction: string,
+  primaryResponder?: Agent
+): Promise<AutonomousWorkflowResult> {
+  const leader = primaryResponder || getCompanyLeader(company);
+  const team = company.agents && company.agents.length > 0 ? company.agents : getCompanyAgents(company.id);
+
+  // Dynamic role matching across ANY company:
+  const designer =
+    team.find((a) => {
+      const t = (a.roleTitle + ' ' + a.role).toLowerCase();
+      return (
+        a.id !== leader.id &&
+        (t.includes('design') || t.includes('ui') || t.includes('creative') || t.includes('frontend'))
+      );
+    }) ||
+    team.find((a) => a.id !== leader.id) ||
+    leader;
+
+  const engineer =
+    team.find((a) => {
+      const t = (a.roleTitle + ' ' + a.role).toLowerCase();
+      return (
+        a.id !== leader.id &&
+        a.id !== designer.id &&
+        (t.includes('dev') ||
+          t.includes('engineer') ||
+          t.includes('backend') ||
+          t.includes('fullstack') ||
+          t.includes('mobile'))
+      );
+    }) ||
+    team.find((a) => a.id !== leader.id) ||
+    designer;
+
+  const effectiveConfig = getEffectiveAgentLLMConfig(leader, company);
+
+  let leaderReply = '';
+  let taskTitle = '';
+  let taskDescription = '';
+  let taskType: TaskType = 'coding';
+  let assignedAgentName = designer.name;
+  let parsedDiscussions: { agentName: string; message: string }[] = [];
+
+  // 1. Try real LLM first if apiKey is available
+  if (effectiveConfig?.apiKey) {
+    try {
+      const rosterList = team
+        .map((a) => `- ${a.name} (${a.roleTitle}, skill: ${a.skills?.join(', ') || a.role})`)
+        .join('\n');
+      const prompt = `Anda adalah AI Orchestrator untuk kantor otonom Vigent.
+Perusahaan: "${company.name}" (Industri: ${company.industry || 'Digital & Software'}).
+Leader Tim: ${leader.name} (${leader.roleTitle}).
+Roster Tim:
+${rosterList}
+
+Pesan Arahan dari Boss di Telegram:
+"${userInstruction}"
+
+TUGAS ANDA:
+1. Leader (${leader.name}) merespons langsung Boss (1-3 kalimat ramah, profesional, berterima kasih & memaparkan siap memimpin eksekusi).
+2. Tentukan judul tiket sprint baru yang ringkas & profesional (maksimal 7 kata, contoh: "[Web] Modern LinkTree Bio Page").
+3. Tentukan deskripsi tugas spesifik (fitur yang dibangun, spesifikasi visual, dan tech stack modern).
+4. Tentukan tipe tugas ("coding" atau "design" atau "architecture").
+5. Tunjuk 1 nama agent pelaksana utama dari daftar tim di atas.
+6. Buat 3 dialog diskusi inter-agent di War Room kantor:
+   - Pesan 1: ${leader.name} memberikan briefing arahan ke tim di War Room kantor.
+   - Pesan 2: Respon dari ${designer.name} (${designer.roleTitle}) mengenai visual UI/UX & estetika.
+   - Pesan 3: Respon dari ${engineer.name} (${engineer.roleTitle}) mengenai arsitektur kode & tech stack modern.
+
+Output HARUS HANYA format JSON valid tanpa tanda markdown:
+{
+  "leaderReply": "...",
+  "taskTitle": "...",
+  "taskDescription": "...",
+  "taskType": "coding",
+  "assignedAgentName": "${designer.name}",
+  "discussions": [
+    { "agentName": "${leader.name}", "message": "..." },
+    { "agentName": "${designer.name}", "message": "..." },
+    { "agentName": "${engineer.name}", "message": "..." }
+  ]
+}`;
+
+      const response = await callLLMProvider(effectiveConfig, [{ role: 'user', content: prompt }]);
+
+      if (response && response.content) {
+        let cleanJson = response.content.trim();
+        const jsonMatch = cleanJson.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanJson = jsonMatch[0];
+        }
+        const parsed = JSON.parse(cleanJson);
+        if (parsed.leaderReply && parsed.taskTitle) {
+          leaderReply = parsed.leaderReply.trim();
+          taskTitle = parsed.taskTitle.trim();
+          taskDescription = parsed.taskDescription?.trim() || userInstruction;
+          taskType = (['coding', 'design', 'architecture', 'qa'].includes(parsed.taskType) ? parsed.taskType : 'coding') as TaskType;
+          assignedAgentName = parsed.assignedAgentName || designer.name;
+          if (Array.isArray(parsed.discussions) && parsed.discussions.length >= 2) {
+            parsedDiscussions = parsed.discussions;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[Autonomous Workflow LLM Fallback for ${company.name}]:`, err);
+    }
+  }
+
+  // 2. Intelligent Dynamic Fallback (guarantees tailored response for ANY company & ANY project instruction)
+  if (!leaderReply || !taskTitle) {
+    const lower = userInstruction.toLowerCase();
+    let topic = 'Modern Web Application';
+    if (lower.includes('link tree') || lower.includes('linktree')) {
+      topic = 'Modern LinkTree Bio-Link';
+    } else if (lower.includes('landing')) {
+      topic = 'Modern Landing Page Showcase';
+    } else if (lower.includes('mobile') || lower.includes('app')) {
+      topic = 'Cross-Platform Mobile Feature';
+    } else if (lower.includes('dashboard') || lower.includes('admin')) {
+      topic = 'Executive Analytics Dashboard';
+    } else {
+      const match = userInstruction.match(/(?:bikin|buat|create|implementasi|tambahkan)\s+([^?.!]+)/i);
+      if (match && match[1]) {
+        topic = match[1].trim().slice(0, 35);
+      }
+    }
+
+    const isDesignDominant =
+      lower.includes('design') || lower.includes('desain') || lower.includes('ui') || lower.includes('warna');
+    taskType = isDesignDominant ? 'design' : 'coding';
+    const assigned = isDesignDominant ? designer : engineer;
+    assignedAgentName = assigned.name;
+    taskTitle = `[Fitur Baru] ${topic}`;
+    taskDescription = `Rancang dan implementasikan ${topic} menggunakan teknologi modern, struktur komponen modular, dan performa tinggi sesuai instruksi Boss.`;
+
+    const leaderFirst = leader.name.split(' ')[0];
+    leaderReply = `Baik Boss, arahan untuk membuat "${topic}" dengan teknologi modern telah saya terima. Tiket sprint resmi telah saya terbitkan di Kanban, dan tim langsung saya kumpulkan di War Room untuk bedah arsitektur dan eksekusi.`;
+
+    parsedDiscussions = [
+      {
+        agentName: leader.name,
+        message: `Halo tim @${designer.name.split(' ')[0]} @${engineer.name.split(' ')[0]}, Boss baru saja mengarahkan kita untuk membuat ${topic}. Mari kita diskusikan arsitektur dan eksekusinya sekarang!`,
+      },
+      {
+        agentName: designer.name,
+        message: `Siap @${leaderFirst}! Untuk ${topic}, saya rekomendasikan layout modern bergaya glassmorphism dengan clean typography, dark/light theme, dan micro-interaction yang smooth di mobile & desktop.`,
+      },
+      {
+        agentName: engineer.name,
+        message: `Sepakat! Dari sisi engineering kita gunakan Next.js 14 App Router + Tailwind CSS dan TypeScript. Komponen kita buat modular dan teroptimasi sub-second loading!`,
+      },
+    ];
+  }
+
+  // Match assigned agent from company's real roster
+  const assignedAgent =
+    team.find((a) => a.name.toLowerCase().includes(assignedAgentName.toLowerCase())) || designer;
+
+  // 3. Construct real TaskTicket
+  const newTicket: TaskTicket = {
+    id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    title: taskTitle,
+    projectName: taskTitle.replace(/^\[[^\]]+\]\s*/, ''),
+    description: taskDescription,
+    type: taskType,
+    departmentId: assignedAgent.departmentId || 'dept-eng',
+    assignedAgentId: assignedAgent.id,
+    status: 'in_progress',
+    progress: 15,
+    artifacts: [
+      {
+        id: `art-${Date.now()}-1`,
+        fileName: 'SPEC.md',
+        type: 'markdown',
+        content: `# ${taskTitle}\n\n**Perusahaan:** ${company.name}\n**Leader:** ${leader.name} (${leader.roleTitle})\n**Pelaksana Utama:** ${assignedAgent.name} (${assignedAgent.roleTitle})\n**Status:** In Progress (15%)\n\n## Deskripsi Tugas\n${taskDescription}\n\n## Kesepakatan Tim War Room\n- Framework & Stack: Modern Fullstack (Next.js / TypeScript / Tailwind CSS)\n- Tim Diskusi: ${leader.name}, ${designer.name}, ${engineer.name}\n- Status Workspace: Aktif`,
+      },
+    ],
+    logs: [
+      `Instruksi diterima dari Boss via Telegram pada ${new Date().toLocaleTimeString('id-ID')}.`,
+      `Tiket sprint otomatis diterbitkan oleh ${leader.name} dan ditugaskan ke ${assignedAgent.name}.`,
+      `Diskusi kolaborasi tim berlangsung di War Room kantor ${company.name}.`,
+    ],
+    createdAt: Date.now(),
+  };
+
+  // 4. Save to company's tasks
+  addCompanyTask(company.id, newTicket);
+
+  // Auto-scaffold real code and artifact deliverables in ~/.vigent/projects & ~/.vigent/artifacts
+  try {
+    const safeProject = (newTicket.projectName || newTicket.title || 'task-generated-project')
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '-')
+      .slice(0, 32);
+
+    createProjectDirectory(safeProject);
+    const summaryMd = `# ${newTicket.title}\n\n> 🤖 Dikerjakan secara otomatis oleh Agent: **${assignedAgent.name} (${assignedAgent.roleTitle})**\n> 🏢 Perusahaan: **${company.name}**\n> 📁 Proyek: \`${safeProject}\`\n> ⏰ Waktu Eksekusi: ${new Date().toLocaleString()}\n\n## Deskripsi Task\n${newTicket.description}\n\n## Rekomendasi Tim War Room\n${parsedDiscussions.map((d) => `- **${d.agentName}:** ${d.message}`).join('\n')}\n`;
+    writeArtifactFile(company.id, safeProject, 'TASK_SUMMARY.md', summaryMd);
+
+    if (newTicket.type === 'coding') {
+      const packageJson = {
+        name: safeProject,
+        version: '1.0.0',
+        private: true,
+        description: `Project for ${newTicket.title} by ${assignedAgent.name}`,
+        scripts: {
+          dev: 'vite',
+          build: 'vite build',
+          preview: 'vite preview',
+        },
+        dependencies: {
+          react: '^18.2.0',
+          'react-dom': '^18.2.0',
+          'framer-motion': '^11.0.0',
+          'lucide-react': '^0.350.0',
+        },
+        devDependencies: {
+          '@types/react': '^18.2.0',
+          '@types/react-dom': '^18.2.0',
+          '@vitejs/plugin-react': '^4.2.0',
+          vite: '^5.0.0',
+        },
+      };
+      writeProjectFile(safeProject, 'package.json', JSON.stringify(packageJson, null, 2));
+
+      const appJsx = `// 🚀 Vigent Autonomous Sprint Implementation
+// Task: ${newTicket.title}
+// Agent: ${assignedAgent.name} (${assignedAgent.roleTitle})
+// Company: ${company.name}
+
+import React, { useState } from 'react';
+
+export default function App() {
+  const [links] = useState([
+    { id: 1, title: '🌐 Official Studio Website', url: 'https://shadowmove.agency' },
+    { id: 2, title: '💼 Portfolio & Client Case Studies', url: 'https://shadowmove.agency/work' },
+    { id: 3, title: '💬 Schedule a War Room Call', url: 'https://t.me/ShadowMoveBot' },
+    { id: 4, title: '🐙 GitHub Open Source Repositories', url: 'https://github.com/vigent-team' },
+  ]);
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md bg-slate-900/80 border border-slate-800 rounded-2xl p-6 backdrop-blur-xl shadow-2xl flex flex-col items-center">
+        <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center text-3xl font-black mb-4 shadow-lg shadow-cyan-500/20">
+          SM
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-white">${company.name}</h1>
+        <p className="text-sm text-cyan-400 font-medium mb-6">Autonomous Cybernetic Studio</p>
+
+        <div className="w-full flex flex-col gap-3">
+          {links.map((link) => (
+            <a
+              key={link.id}
+              href={link.url}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full py-3 px-4 rounded-xl bg-slate-800/80 hover:bg-cyan-500/20 border border-slate-700/60 hover:border-cyan-500/50 text-center font-medium transition-all duration-200 hover:scale-[1.02]"
+            >
+              {link.title}
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+`;
+      writeProjectFile(safeProject, 'src/App.jsx', appJsx);
+    }
+  } catch (err) {
+    console.error('[Telegram Task Scaffold Error]:', err);
+  }
+
+  // 5. Append all discussions to War Room chat history
+  const discussionsForReturn: { agent: Agent; message: string }[] = [];
+  parsedDiscussions.forEach((disc, idx) => {
+    const speakerAgent =
+      team.find((a) => a.name.toLowerCase().includes(disc.agentName.toLowerCase())) ||
+      (idx === 0 ? leader : idx === 1 ? designer : engineer);
+
+    const chatMsg: OfficeGroupChatMessage = {
+      id: `tg-disc-${Date.now()}-${idx}-${speakerAgent.id}`,
+      senderType: 'agent',
+      agentId: speakerAgent.id,
+      senderName: speakerAgent.name,
+      senderRoleTitle: speakerAgent.roleTitle,
+      senderAvatarColor: speakerAgent.avatarColor,
+      message: disc.message,
+      timestamp: Date.now() + idx * 400,
+      source: 'telegram',
+    };
+    appendCompanyChatMessage(company.id, chatMsg);
+    discussionsForReturn.push({ agent: speakerAgent, message: disc.message });
+  });
+
+  // 6. Format rich Telegram response
+  const leaderEmoji = getAgentRoleEmoji(leader);
+  const assigneeEmoji = getAgentRoleEmoji(assignedAgent);
+
+  const discussionSnippets = discussionsForReturn
+    .map((d) => `• ${getAgentRoleEmoji(d.agent)} *${d.agent.name.split(' ')[0]}:* "${d.message}"`)
+    .join('\n');
+
+  const telegramMessage = `${leaderEmoji} *[${leader.name} - ${leader.roleTitle}]*
+${leaderReply}
+
+📋 *[TIKET SPRINT KANBAN DIBUAT]*
+• *Proyek:* \`${newTicket.title}\`
+• *Pelaksana:* ${assigneeEmoji} \`${assignedAgent.name}\` (_${assignedAgent.roleTitle}_)
+• *Status:* 🚀 \`In Progress (15%)\`
+• *Perusahaan:* *${company.name}*
+
+💬 *[DISKUSI WAR ROOM KANTOR ${company.name.toUpperCase()}]*
+${discussionSnippets}
+
+_💡 Tim kantor ${company.name} telah mencatat tiket ini di Kanban dan langsung mengeksekusinya di workspace!_`;
+
+  return {
+    leaderReply,
+    createdTask: newTicket,
+    discussions: discussionsForReturn,
+    telegramMessage,
+  };
 }
 
 // Map agent role to emoji icon for Telegram label
@@ -182,29 +591,35 @@ async function generateAgentAnswer(
   company: Company,
   tasks: TaskTicket[]
 ): Promise<string> {
+  // Always use fresh company data to ensure recently saved global LLM configs are loaded
+  const freshCompany = getCompanyData(company.id);
   const currentTask = tasks.find((t) => t.id === agent.currentTaskId) || tasks[0];
   const activeProject = currentTask?.projectName || 'ShadowMove Platform';
 
   // Try calling real LLM using effective config (inherited company global or manual BYOK)
-  const effectiveConfig = getEffectiveAgentLLMConfig(agent, company);
+  const effectiveConfig = getEffectiveAgentLLMConfig(agent, freshCompany);
   if (effectiveConfig?.apiKey) {
     try {
       let memorySnippet = '';
       try {
         const { searchCompanyMemories } = await import('./memoryManager');
-        const relevantMemories = await searchCompanyMemories(company.id, userMessage, 2);
+        const relevantMemories = await searchCompanyMemories(freshCompany.id, userMessage, 2);
         if (relevantMemories.length > 0) {
           memorySnippet = `\nMemori Pengalaman Kantor Relevan:\n` + relevantMemories.map(m => `- [${m.memory.type}] ${m.memory.title}: ${m.memory.content}`).join('\n');
         }
       } catch {}
 
-      const prompt = `Anda adalah ${agent.name}, memegang posisi "${agent.roleTitle}" di perusahaan ${company.name}.
-Karakteristik MBTI: ${agent.personality?.mbti || 'INTJ'}, gaya bicara: ${agent.personality?.speakingStyle || 'Profesional dan tanggap'}.
+      const prompt = `Anda adalah ${agent.name}, memegang posisi "${agent.roleTitle}" di perusahaan ${freshCompany.name}.
+Karakteristik MBTI: ${agent.personality?.mbti || 'INTJ'}, gaya bicara: ${agent.personality?.speakingStyle || 'Profesional, ramah, to the point'}.
 Project aktif: ${activeProject}.
 Tugas Anda saat ini: "${currentTask?.title || 'Pengembangan fitur utama'}" (Status: ${currentTask?.status || 'in_progress'}).${memorySnippet}
 Pesan dari Boss di Telegram: "${userMessage}".
 
-Jawablah secara singkat, padat, profesional, ramah (1-3 kalimat). Langsung ke poin solusi atau progres Anda. Gunakan Bahasa Indonesia yang natural.`;
+Instruksi:
+- Jawablah secara natural, ramah, dan profesional sesuai peran Anda.
+- Jika Boss menyapa atau bertanya sedang apa (misal: "lagi pada ngapain", "halo", "apa kabar"), jawab secara santai tapi profesional mengenai apa yang sedang Anda kerjakan di kantor ${freshCompany.name}.
+- Jika Boss memanggil nama Anda, jawab bahwa Anda hadir dan siap menerima arahan.
+- Gunakan Bahasa Indonesia yang luwes (1-3 kalimat).`;
 
       const response = await callLLMProvider(effectiveConfig, [
         { role: 'user', content: prompt }
@@ -212,45 +627,15 @@ Jawablah secara singkat, padat, profesional, ramah (1-3 kalimat). Langsung ke po
       if (response && response.content) {
         return response.content.trim();
       }
-    } catch (err) {
-      console.warn(`[Telegram LLM] Fallback for ${agent.name}:`, err);
+    } catch (err: any) {
+      console.error(`[Telegram LLM Error for ${agent.name}]:`, err);
+      const errMsg = err?.message || 'Gagal memanggil model AI';
+      return `Halo Boss! Saya ${agent.name} (${agent.roleTitle}).\n\nPesan Anda: "${userMessage}"\n\n⚠️ *Gagal menghubungi LLM [${effectiveConfig.provider} - ${effectiveConfig.model}]:*\n\`${errMsg}\`\n\nMohon periksa status koneksi / endpoint LLM di menu Global LLM dashboard Vigent.`;
     }
   }
 
-  // Persona-rich Indonesian response generator
-  const lowerMsg = userMessage.toLowerCase();
-  const firstName = agent.name.split(' ')[0];
-  const roleTitle = agent.roleTitle.toLowerCase();
-
-  if (roleTitle.includes('founder') || roleTitle.includes('architect')) {
-    if (lowerMsg.includes('status') || lowerMsg.includes('progres') || lowerMsg.includes('progress') || lowerMsg.includes('update')) {
-      return `Halo Boss! Seluruh arsitektur sprint terkontrol dengan baik. Tiket utama "${currentTask?.title || 'Sistem Inti'}" saat ini berjalan stabil di 100%. Tim siap menerima arahan untuk fase berikutnya.`;
-    }
-    if (lowerMsg.includes('deploy') || lowerMsg.includes('server') || lowerMsg.includes('port')) {
-      return `Dev server lokal aktif di port 28483 (/preview/shadowmove/index.html). Container isolasi dan microservice aman untuk staging.`;
-    }
-    return `Baik Boss, saya ${firstName} telah mencatat instruksi ini ke dalam prioritas arsitektur sistem ${company.name}. Tim akan segera mengeksekusinya.`;
-  }
-
-  if (roleTitle.includes('design') || roleTitle.includes('creative') || roleTitle.includes('ui')) {
-    if (lowerMsg.includes('warna') || lowerMsg.includes('tampilan') || lowerMsg.includes('layout') || lowerMsg.includes('desain')) {
-      return `Siap Boss! Visual UI sudah mengadopsi palet modern cyber-dark dengan aksen neon glow yang presisi. Tipografi Outfit & JetBrains Mono memberikan readability optimal di mobile & desktop.`;
-    }
-    return `Halo! Dari divisi UI/UX saya pastikan pengalaman interaksi pengguna tetap mulus dan visualnya stand-out, Boss!`;
-  }
-
-  if (roleTitle.includes('engineering') || roleTitle.includes('full-stack') || roleTitle.includes('backend')) {
-    if (lowerMsg.includes('api') || lowerMsg.includes('database') || lowerMsg.includes('bug') || lowerMsg.includes('endpoint')) {
-      return `Sip Boss! Endpoint API terisolasi per perusahaan dan struktur skema data sudah sinkron. Performa respon sub-second terjamin!`;
-    }
-    return `Siap dieksekusi! Pipeline kode dan logic full-stack langsung saya sinkronkan sekarang juga.`;
-  }
-
-  if (roleTitle.includes('qa') || roleTitle.includes('reliability') || roleTitle.includes('test')) {
-    return `Audit kualitas berjalan otomatis Boss! Tidak ditemukan critical error, responsivitas breakpoint mobile & desktop telah lolos uji 100%.`;
-  }
-
-  return `Halo Boss, pesan diterima dengan baik oleh ${agent.name}. Pekerjaan pada "${currentTask?.title || 'Sprint Aktif'}" siap diselesaikan sesuai target.`;
+  // If no API Key configured for this company/agent:
+  return `Halo Boss! Saya ${agent.name} (${agent.roleTitle}).\n\nPesan Anda: "${userMessage}" telah saya terima. Namun API Key LLM untuk kantor "${freshCompany.name}" belum terkonfigurasi pada backend.\n\nSilakan buka menu **Global LLM** di dashboard Vigent, masukkan API Key / Base URL, lalu klik **Simpan Semua Pengaturan LLM Global** agar saya dapat merespons pesan Boss secara cerdas menggunakan AI.`;
 }
 
 /**
@@ -516,12 +901,17 @@ Ketik nama panggilan setelah tanda @, misalnya:
         }
       }
 
+      // Refresh current company profile, LLM configs, agents, and tasks fresh on every message!
+      const currentCompany = getCompanyData(companyId);
+      const currentAgents = getCompanyAgents(companyId);
+      const currentTasks = getCompanyTasks(companyId);
+
       // Parse tags
       const lowerText = text.toLowerCase();
       const isAllTagged = lowerText.includes('@all') || lowerText.includes('@everyone') || lowerText.includes('@semua');
       const taggedAgents: Agent[] = [];
 
-      agents.forEach((ag) => {
+      currentAgents.forEach((ag) => {
         const fullName = ag.name.toLowerCase();
         const firstName = ag.name.split(' ')[0].toLowerCase();
         if (
@@ -533,8 +923,29 @@ Ketik nama panggilan setelah tanda @, misalnya:
         }
       });
 
-      // If no tag is used, default responder is the primary lead / Founder
-      const responders: Agent[] = taggedAgents.length > 0 ? taggedAgents : [agents[0]];
+      // Find company leader dynamically (NEVER hardcoded to Kenji or ShadowMove!)
+      const leader = getCompanyLeader(currentCompany);
+      const effectiveUserPrompt = gitCloneNote ? `${text}${gitCloneNote}` : text;
+
+      // 🚀 AUTONOMOUS TASK & TEAM DISCUSSION WORKFLOW
+      // If the Boss gives a project/feature/task instruction, trigger the entire team workflow!
+      if (isTaskOrProjectInstruction(text)) {
+        try {
+          await ctx.sendChatAction('typing');
+        } catch {}
+
+        const workflow = await executeAutonomousCompanyWorkflow(
+          currentCompany,
+          effectiveUserPrompt,
+          taggedAgents.length > 0 ? taggedAgents[0] : leader
+        );
+
+        await ctx.reply(workflow.telegramMessage, { parse_mode: 'Markdown' });
+        return;
+      }
+
+      // If no tag is used for normal conversation, default responder is the company leader
+      const responders: Agent[] = taggedAgents.length > 0 ? taggedAgents : [leader];
       const isDefaultResponder = taggedAgents.length === 0;
 
       // Show typing indicator in Telegram
@@ -542,20 +953,16 @@ Ketik nama panggilan setelah tanda @, misalnya:
         await ctx.sendChatAction('typing');
       } catch {}
 
-      // Refresh tasks
-      tasks = getCompanyTasks(companyId);
-
       // Generate responses for each tagged agent
-      const effectiveUserPrompt = gitCloneNote ? `${text}${gitCloneNote}` : text;
       for (const responder of responders) {
-        const replyText = await generateAgentAnswer(responder, effectiveUserPrompt, company, tasks);
+        const replyText = await generateAgentAnswer(responder, effectiveUserPrompt, currentCompany, currentTasks);
 
         // Format labeled response
         let finalTelegramReply = formatAgentTelegramReply(responder, replyText);
 
         // If no tag was used, append a subtle helpful tip to teach user how to tag!
         if (isDefaultResponder) {
-          finalTelegramReply += `\n\n💡 _Tip: Kamu bisa tag karyawan spesifik (@${agents.map(a => a.name.split(' ')[0]).join(', @')}, atau @all)_`;
+          finalTelegramReply += `\n\n💡 _Tip: Kamu bisa tag karyawan spesifik (@${currentAgents.map(a => a.name.split(' ')[0]).join(', @')}, atau @all)_`;
         }
 
         // Send to Telegram

@@ -30,6 +30,7 @@ import {
   Zap,
   Eye,
   Mic,
+  Users,
 } from 'lucide-react';
 
 interface AgentInspectorProps {
@@ -46,7 +47,12 @@ interface AgentInspectorProps {
   onReturnDesk: (agentId: string) => void;
   onTriggerHumanDecision: (agentId: string) => void;
   onFireAgent: (agentId: string) => void;
-  onUpdateLLMConfig: (agentId: string, updatedConfig: LLMConfig, inheritedCategory?: LLMCategory | 'manual') => void;
+  onUpdateLLMConfig: (
+    agentId: string,
+    updatedConfig: LLMConfig,
+    inheritedCategory?: LLMCategory | 'manual',
+    applyToAllInCompany?: boolean
+  ) => void;
 }
 
 interface ChatMessage {
@@ -78,9 +84,11 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
   const [activeTab, setActiveTab] = useState<'screen' | 'chat' | 'llm' | 'bio'>('chat');
   const [confirmFire, setConfirmFire] = useState(false);
 
-  // Global LLM vs Manual Mode state
+  // Global LLM vs Manual Mode state:
+  // Default to 'global' if agent hasn't explicitly configured manual BYOK with an active API Key
+  const hasManualCustomKey = agent.inheritedLLMCategory === 'manual' && Boolean(agent.llmConfig?.apiKey);
   const [llmMode, setLlmMode] = useState<'global' | 'manual'>(
-    agent.inheritedLLMCategory && agent.inheritedLLMCategory !== 'manual' ? 'global' : 'manual'
+    hasManualCustomKey ? 'manual' : 'global'
   );
   const [selectedGlobalCategory, setSelectedGlobalCategory] = useState<LLMCategory>(
     agent.inheritedLLMCategory && agent.inheritedLLMCategory !== 'manual'
@@ -95,6 +103,11 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
   const [baseUrl, setBaseUrl] = useState(agent.llmConfig?.baseUrl || '');
   const [apiKey, setApiKey] = useState(agent.llmConfig?.apiKey || '');
   const [model, setModel] = useState(agent.llmConfig?.model || 'gpt-4o');
+  
+  // Loading & notification states
+  const [isApplyingGlobal, setIsApplyingGlobal] = useState(false);
+  const [appliedGlobalMsg, setAppliedGlobalMsg] = useState<string | null>(null);
+  const [isSavingManual, setIsSavingManual] = useState(false);
   const [savedLLMMsg, setSavedLLMMsg] = useState(false);
 
   // Connection testing state
@@ -117,20 +130,26 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
   // When selected agent changes or opens, always default to Live Chat tab & re-seed state
   useEffect(() => {
     setActiveTab('chat');
-    setProvider(agent.llmConfig?.provider || 'openai');
-    setBaseUrl(agent.llmConfig?.baseUrl || '');
-    setApiKey(agent.llmConfig?.apiKey || '');
-    setModel(agent.llmConfig?.model || 'gpt-4o');
-    const currentCat =
-      agent.inheritedLLMCategory && agent.inheritedLLMCategory !== 'manual'
-        ? agent.inheritedLLMCategory
-        : undefined;
-    if (currentCat) {
-      setLlmMode('global');
-      setSelectedGlobalCategory(currentCat);
-    } else {
+    const hasManualKey = agent.inheritedLLMCategory === 'manual' && Boolean(agent.llmConfig?.apiKey);
+    if (hasManualKey) {
       setLlmMode('manual');
+      setProvider(agent.llmConfig?.provider || 'openai');
+      setBaseUrl(agent.llmConfig?.baseUrl || '');
+      setApiKey(agent.llmConfig?.apiKey || '');
+      setModel(agent.llmConfig?.model || 'gpt-4o');
+    } else {
+      setLlmMode('global');
+      const cat = (agent.inheritedLLMCategory && agent.inheritedLLMCategory !== 'manual')
+        ? agent.inheritedLLMCategory
+        : 'text';
+      setSelectedGlobalCategory(cat);
+      const catSetting = company?.globalLLMConfig?.[cat] || company?.globalLLMConfig?.text;
+      setProvider(catSetting?.provider || 'openai');
+      setBaseUrl(catSetting?.baseUrl || '');
+      setApiKey(catSetting?.apiKey || '');
+      setModel(catSetting?.model || 'gpt-4o');
     }
+
     setSelectedColleagueId(allAgents.find((a) => a.id !== agent.id)?.id || '');
     setChatMessages([
       {
@@ -138,43 +157,69 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
         content: `Halo Boss! Saya ${agent.name} (${agent.roleTitle}). Siap mengerjakan tugas koding, menulis konten, atau analisis arsitektur. Anda juga bisa mengunggah screenshot gambar untuk saya review.`,
       },
     ]);
-  }, [agent.id]);
+  }, [agent.id, company?.id]);
 
   const isLocked = agent.llmConfig?.isLocked ?? false;
   const otherAgents = allAgents.filter((a) => a.id !== agent.id);
 
-  const handleApplyGlobalLLM = () => {
-    const catSetting = company?.globalLLMConfig?.[selectedGlobalCategory];
-    const effectiveConfig: LLMConfig = {
-      provider: catSetting?.provider || 'openai',
-      baseUrl: catSetting?.baseUrl,
-      apiKey: catSetting?.apiKey,
-      model: catSetting?.model || 'gpt-4o',
-      isLocked: false,
-    };
-    onUpdateLLMConfig(agent.id, effectiveConfig, selectedGlobalCategory);
-    setSavedLLMMsg(true);
-    setTimeout(() => setSavedLLMMsg(false), 2000);
+  const handleApplyGlobalLLM = async (applyToAll: boolean = false) => {
+    setIsApplyingGlobal(true);
+    setAppliedGlobalMsg(null);
+
+    try {
+      const catSetting = company?.globalLLMConfig?.[selectedGlobalCategory] || company?.globalLLMConfig?.text;
+      const effectiveConfig: LLMConfig = {
+        provider: catSetting?.provider || 'openai',
+        baseUrl: catSetting?.baseUrl,
+        apiKey: catSetting?.apiKey,
+        model: catSetting?.model || 'gpt-4o',
+        isLocked: false,
+      };
+
+      onUpdateLLMConfig(agent.id, effectiveConfig, selectedGlobalCategory, applyToAll);
+
+      // Loading delay for visual feedback
+      await new Promise((r) => setTimeout(r, 450));
+
+      setIsApplyingGlobal(false);
+      if (applyToAll) {
+        setAppliedGlobalMsg(`✓ Model global ${effectiveConfig.provider.toUpperCase()} (${effectiveConfig.model}) berhasil diterapkan ke SELURUH agen kantor ${company?.name || ''} & tersimpan persisten!`);
+      } else {
+        setAppliedGlobalMsg(`✓ Model global ${effectiveConfig.provider.toUpperCase()} (${effectiveConfig.model}) berhasil diterapkan ke ${agent.name} & tersimpan persisten!`);
+      }
+
+      setTimeout(() => setAppliedGlobalMsg(null), 5000);
+    } catch (err: any) {
+      setIsApplyingGlobal(false);
+      setTestState({ status: 'error', message: err.message || 'Gagal menerapkan model global' });
+    }
   };
 
-  const handleSaveLLM = (e: React.FormEvent) => {
+  const handleSaveLLM = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLocked) return;
 
-    onUpdateLLMConfig(
-      agent.id,
-      {
+    setIsSavingManual(true);
+    setSavedLLMMsg(false);
+
+    try {
+      const manualConfig: LLMConfig = {
         provider,
         baseUrl: baseUrl.trim() || undefined,
         apiKey: apiKey.trim() || undefined,
         model: model.trim() || 'default-model',
         isLocked: false,
-      },
-      'manual'
-    );
+      };
 
-    setSavedLLMMsg(true);
-    setTimeout(() => setSavedLLMMsg(false), 2000);
+      onUpdateLLMConfig(agent.id, manualConfig, 'manual', false);
+
+      await new Promise((r) => setTimeout(r, 400));
+      setIsSavingManual(false);
+      setSavedLLMMsg(true);
+      setTimeout(() => setSavedLLMMsg(false), 3500);
+    } catch {
+      setIsSavingManual(false);
+    }
   };
 
   const handleTestConnection = async () => {
@@ -262,13 +307,32 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
         });
       }
 
-      const activeConfig: LLMConfig = {
-        provider,
-        baseUrl: baseUrl.trim() || undefined,
-        apiKey: apiKey.trim() || undefined,
-        model: model.trim() || 'gpt-4o',
-        isLocked: false,
-      };
+      let activeConfig: LLMConfig;
+      if (llmMode === 'global') {
+        const catSetting = company?.globalLLMConfig?.[selectedGlobalCategory] || company?.globalLLMConfig?.text;
+        activeConfig = {
+          provider: catSetting?.provider || 'openai',
+          baseUrl: catSetting?.baseUrl,
+          apiKey: catSetting?.apiKey,
+          model: catSetting?.model || 'gpt-4o',
+          isLocked: false,
+        };
+      } else {
+        activeConfig = {
+          provider,
+          baseUrl: baseUrl.trim() || undefined,
+          apiKey: apiKey.trim() || undefined,
+          model: model.trim() || 'gpt-4o',
+          isLocked: false,
+        };
+        // Fallback to company global text if manual apiKey is empty
+        if (!activeConfig.apiKey && company?.globalLLMConfig?.text?.apiKey) {
+          activeConfig.apiKey = company.globalLLMConfig.text.apiKey;
+          activeConfig.provider = company.globalLLMConfig.text.provider;
+          activeConfig.baseUrl = company.globalLLMConfig.text.baseUrl;
+          activeConfig.model = company.globalLLMConfig.text.model;
+        }
+      }
 
       const res = await fetch('/api/agent/chat', {
         method: 'POST',
@@ -930,22 +994,61 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
 
                   <button
                     type="button"
-                    onClick={handleApplyGlobalLLM}
-                    className="flex-1 py-2 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                    onClick={() => handleApplyGlobalLLM(false)}
+                    disabled={isApplyingGlobal}
+                    className={`flex-1 py-2 font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs ${
+                      isApplyingGlobal
+                        ? 'bg-[#4f46e5]/80 text-white cursor-wait opacity-90'
+                        : appliedGlobalMsg
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
+                        : 'bg-[#4f46e5] hover:bg-[#4338ca] text-white active:scale-[0.98]'
+                    }`}
                   >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Terapkan ke Agent</span>
+                    {isApplyingGlobal ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                        <span>Menerapkan...</span>
+                      </>
+                    ) : appliedGlobalMsg ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-white" />
+                        <span>Tersimpan!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3.5 h-3.5" />
+                        <span>Terapkan ke {agent.name.split(' ')[0]}</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleApplyGlobalLLM(true)}
+                    disabled={isApplyingGlobal}
+                    title={`Terapkan LLM global ini ke seluruh agen di kantor ${company?.name || ''}`}
+                    className="py-2 px-3 bg-[#f5efe6] hover:bg-[#ede2d1] border border-[#d6c5ad] text-[#2c231c] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all text-xs active:scale-[0.98] shrink-0"
+                  >
+                    <Users className="w-3.5 h-3.5 text-[#4f46e5]" />
+                    <span>Ke Semua Agen</span>
                   </button>
                 </div>
 
+                {appliedGlobalMsg && (
+                  <div className="p-2.5 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] text-[#065f46] text-[11px] font-semibold flex items-center gap-2 animate-in fade-in">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{appliedGlobalMsg}</span>
+                  </div>
+                )}
+
                 {testState.status === 'success' && (
-                  <div className="p-2 rounded-lg bg-[#e6f4f2] border border-[#a2d8d0] text-[#1f6860] text-[11px] font-semibold flex items-center gap-1.5">
+                  <div className="p-2 rounded-lg bg-[#e6f4f2] border border-[#a2d8d0] text-[#1f6860] text-[11px] font-semibold flex items-center gap-1.5 animate-in fade-in">
                     <Check className="w-3.5 h-3.5 shrink-0" />
                     <span>{testState.message}</span>
                   </div>
                 )}
                 {testState.status === 'error' && (
-                  <div className="p-2 rounded-lg bg-[#fdf0f0] border border-[#f5c6c6] text-[#b93838] text-[11px] font-semibold flex items-center gap-1.5">
+                  <div className="p-2 rounded-lg bg-[#fdf0f0] border border-[#f5c6c6] text-[#b93838] text-[11px] font-semibold flex items-center gap-1.5 animate-in fade-in">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                     <span>{testState.message}</span>
                   </div>
@@ -1068,23 +1171,51 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                     {!isLocked && (
                       <button
                         type="submit"
-                        className="flex-1 py-1.5 bg-[#c85a2b] hover:bg-[#b54d22] text-white font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs"
+                        disabled={isSavingManual}
+                        className={`flex-1 py-1.5 font-semibold rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs ${
+                          isSavingManual
+                            ? 'bg-[#c85a2b]/80 text-white cursor-wait opacity-90'
+                            : savedLLMMsg
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            : 'bg-[#c85a2b] hover:bg-[#b54d22] text-white active:scale-[0.98]'
+                        }`}
                       >
-                        <Save className="w-3.5 h-3.5" />
-                        <span>Simpan Manual</span>
+                        {isSavingManual ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                            <span>Menyimpan...</span>
+                          </>
+                        ) : savedLLMMsg ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-white" />
+                            <span>Tersimpan!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-3.5 h-3.5" />
+                            <span>Simpan Manual</span>
+                          </>
+                        )}
                       </button>
                     )}
                   </div>
 
+                  {savedLLMMsg && (
+                    <div className="p-2.5 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] text-[#065f46] text-[11px] font-semibold flex items-center gap-2 animate-in fade-in">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>✓ Pengaturan LLM manual untuk {agent.name} berhasil disimpan dan aktif permanen!</span>
+                    </div>
+                  )}
+
                   {testState.status === 'success' && (
-                    <div className="p-2 rounded-lg bg-[#e6f4f2] border border-[#a2d8d0] text-[#1f6860] text-[11px] font-semibold flex items-center gap-1.5">
+                    <div className="p-2 rounded-lg bg-[#e6f4f2] border border-[#a2d8d0] text-[#1f6860] text-[11px] font-semibold flex items-center gap-1.5 animate-in fade-in">
                       <Check className="w-3.5 h-3.5 shrink-0" />
                       <span>{testState.message}</span>
                     </div>
                   )}
 
                   {testState.status === 'error' && (
-                    <div className="p-2 rounded-lg bg-[#fdf0f0] border border-[#f5c6c6] text-[#b93838] text-[11px] font-semibold flex items-center gap-1.5">
+                    <div className="p-2 rounded-lg bg-[#fdf0f0] border border-[#f5c6c6] text-[#b93838] text-[11px] font-semibold flex items-center gap-1.5 animate-in fade-in">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       <span>{testState.message}</span>
                     </div>

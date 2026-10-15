@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Agent, Company, TaskTicket, OfficeGroupChatMessage, ActivityEvent, AgentCollaborationLog, TelegramConfig } from '@/types/office';
+import { getEffectiveAgentLLMConfig } from '@/lib/companyPresets';
+import { LLMMessage } from '@/lib/llmService';
 import {
   X,
   Send,
@@ -331,6 +333,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
   useEffect(() => {
     if (activeTab !== 'war_room') return;
 
+    let isSubscribed = true;
     const interval = setInterval(async () => {
       try {
         const res = await fetch('/api/telegram', {
@@ -338,8 +341,9 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'get_chat_history', companyId: company.id }),
         });
+        if (!isSubscribed) return;
         const data = await res.json();
-        if (data.success && Array.isArray(data.history) && data.history.length > 0) {
+        if (data.success && Array.isArray(data.history) && data.history.length > 0 && isSubscribed) {
           setMessages((prev) => {
             const existingIds = new Set(prev.map((m) => m.id));
             const newItems = data.history.filter((m: OfficeGroupChatMessage) => !existingIds.has(m.id));
@@ -354,7 +358,10 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
       }
     }, 3000);
 
-    return () => clearInterval(interval);
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
   }, [activeTab, company.id]);
 
   const handleTestBotToken = async () => {
@@ -447,6 +454,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
     if (recentInteractions.length > 0) {
       setCollabLogs((prev) => {
         let updated = [...prev];
+        let hasChanged = false;
         recentInteractions.forEach((ev) => {
           let cleanDialog = ev.description;
           const quoteStart = ev.description.indexOf(': "');
@@ -495,11 +503,14 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             // If the incoming event has a longer / fuller dialog, replace the truncated one
             if (cleanDialog.length > updated[existingIdx].dialog.length) {
               updated[existingIdx] = newLogItem;
+              hasChanged = true;
             }
           } else {
             updated.unshift(newLogItem);
+            hasChanged = true;
           }
         });
+        if (!hasChanged) return prev;
         return updated;
       });
     }
@@ -631,7 +642,11 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
     if (!text || isTyping) return;
 
     const mentionedAgentIds: string[] = [];
-    const isAllMentioned = text.toLowerCase().includes('@all');
+    const isAllMentioned =
+      text.toLowerCase().includes('@all') ||
+      text.toLowerCase().includes('@everyone') ||
+      text.toLowerCase().includes('@semua') ||
+      text.toLowerCase().includes('@team');
 
     agents.forEach((ag) => {
       const first = ag.name.split(' ')[0].toLowerCase();
@@ -747,27 +762,54 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
       try {
         const currentTask = tasks.find((t) => t.id === responder.currentTaskId);
         const promptForAgent = cloneSuccessNote ? `${text}${cloneSuccessNote}` : text;
+        const effectiveConfig = getEffectiveAgentLLMConfig(responder, company);
+
+        const historyMessages: LLMMessage[] = messages.slice(-8).map((m) => ({
+          role: m.senderType === 'user' ? ('user' as const) : ('assistant' as const),
+          content: `${m.senderName} (${m.senderRoleTitle || (m.senderType === 'user' ? 'Owner / Boss' : 'Agent')}): ${m.message}`,
+        }));
+
+        const apiPayloadMessages: LLMMessage[] = [
+          ...historyMessages,
+          {
+            role: 'user' as const,
+            content: `Boss (Owner): ${promptForAgent}`,
+          },
+        ];
+
         const res = await fetch('/api/agent/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            agent: responder,
-            userMessage: promptForAgent,
+            config: effectiveConfig,
+            messages: apiPayloadMessages,
+            agentName: responder.name,
+            agentRole: responder.roleTitle || responder.role,
             currentTask: currentTask || null,
             allTasks: tasks || [],
             companyName: company.name,
             companyId: company.id,
-            activeProject: currentTask?.projectName || 'ShadowMove Landing Page',
-            history: messages.slice(-6).map((m) => ({
-              role: m.senderType === 'user' ? 'user' : 'assistant',
-              content: `${m.senderName}: ${m.message}`,
-            })),
+            activeProject: currentTask?.projectName || 'ShadowMove Platform',
+            agentPersonality: responder.personality,
+            enableTools: true,
+            autoExecuteTools: true,
           }),
         });
 
         const data = await res.json();
-        const replyText =
-          data.reply || `Baik Boss, saya ${responder.name} siap mengeksekusi rencana tersebut.`;
+        let replyText = '';
+
+        if (data.success && data.content) {
+          replyText = data.content;
+        } else if (data.error) {
+          const taskStatus = currentTask
+            ? `saat ini saya sedang mengerjakan tugas **${currentTask.title}** (${Math.round(currentTask.progress || 0)}% selesai, status: ${currentTask.status}).`
+            : `saat ini saya sedang standby di meja kantor dan siap mengerjakan sprint tiket baru dari Boss.`;
+
+          replyText = `Halo Boss! Saya ${responder.name} (${responder.roleTitle}), ${taskStatus}\n\n*(ℹ️ Respon LLM [${effectiveConfig.provider} - ${effectiveConfig.model}]: ${data.error}. Pastikan API Key telah diisi di menu Global LLM)*`;
+        } else {
+          replyText = `Halo Boss, saya ${responder.name} (${responder.roleTitle}) siap menerima instruksi dan mengeksekusi rencana sprint.`;
+        }
 
         const agentMsg: OfficeGroupChatMessage = {
           id: `msg-agent-${Date.now()}-${responder.id}`,
@@ -792,8 +834,19 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             message: agentMsg,
           }),
         }).catch(console.error);
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
+        const agentMsg: OfficeGroupChatMessage = {
+          id: `msg-agent-${Date.now()}-${responder.id}`,
+          senderType: 'agent',
+          agentId: responder.id,
+          senderName: responder.name,
+          senderAvatarColor: responder.avatarColor,
+          senderRoleTitle: responder.roleTitle,
+          message: `⚠️ Terjadi kendala teknis saat menghubungi LLM: ${err.message || err}`,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, agentMsg]);
       }
     }
     setIsTyping(false);

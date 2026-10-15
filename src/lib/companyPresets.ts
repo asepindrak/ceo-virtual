@@ -163,10 +163,12 @@ export function getEffectiveAgentLLMConfig(agent: Agent, company?: Company): LLM
     }
   }
 
-  if (agent.llmConfig) {
+  // If the agent has explicitly set manual BYOK with an active API Key, use manual config
+  if (agent.inheritedLLMCategory === 'manual' && agent.llmConfig?.apiKey) {
     return agent.llmConfig;
   }
 
+  // Default to Company's Global LLM (text category)
   if (company?.globalLLMConfig?.text && company.globalLLMConfig.text.isEnabled) {
     return {
       provider: company.globalLLMConfig.text.provider,
@@ -177,7 +179,11 @@ export function getEffectiveAgentLLMConfig(agent: Agent, company?: Company): LLM
     };
   }
 
-  return SHADOWMOVE_LLM_CONFIG;
+  if (agent.llmConfig && agent.llmConfig.apiKey) {
+    return agent.llmConfig;
+  }
+
+  return agent.llmConfig || SHADOWMOVE_LLM_CONFIG;
 }
 
 export const PRESET_COMPANIES: Company[] = [
