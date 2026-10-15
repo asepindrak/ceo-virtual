@@ -12,7 +12,7 @@ import os from 'os';
 import { Company, Agent, OfficeGroupChatMessage, TelegramConfig, TaskTicket, TaskType } from '@/types/office';
 import { PRESET_COMPANIES, getEffectiveAgentLLMConfig } from './companyPresets';
 import { callLLMProvider } from './llmService';
-import { cloneGitRepository, extractGitHubUrl, createProjectDirectory, writeProjectFile, writeArtifactFile } from './workspaceManager';
+import { cloneGitRepository, extractGitHubUrl, createProjectDirectory, writeProjectFile, writeArtifactFile, VIGENT_HOME } from './workspaceManager';
 
 export interface BotRunnerInstance {
   companyId: string;
@@ -39,11 +39,10 @@ const getGlobalRunners = (): Map<string, BotRunnerInstance> => {
 
 // Data paths
 function getVigentDir(): string {
-  const dir = path.join(os.homedir(), '.vigent');
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(VIGENT_HOME)) {
+    fs.mkdirSync(VIGENT_HOME, { recursive: true });
   }
-  return dir;
+  return VIGENT_HOME;
 }
 
 export function getCompanyTelegramConfig(companyId: string): TelegramConfig | null {
@@ -267,7 +266,7 @@ export async function executeAutonomousCompanyWorkflow(
       const rosterList = team
         .map((a) => `- ${a.name} (${a.roleTitle}, skill: ${a.skills?.join(', ') || a.role})`)
         .join('\n');
-      const prompt = `Anda adalah AI Orchestrator untuk kantor otonom Vigent.
+      const prompt = `Anda adalah AI Orchestrator untuk kantor otonom CEO Virtual.
 Perusahaan: "${company.name}" (Industri: ${company.industry || 'Digital & Software'}).
 Leader Tim: ${leader.name} (${leader.roleTitle}).
 Roster Tim:
@@ -477,7 +476,7 @@ Output HARUS HANYA format JSON valid tanpa tanda markdown:
         };
         writeProjectFile(safeProject, 'package.json', JSON.stringify(packageJson, null, 2));
 
-        const appJsx = `// 🚀 Vigent Autonomous Sprint Implementation
+        const appJsx = `// 🚀 CEO Virtual Autonomous Sprint Implementation
 // Task: ${newTicket.title}
 // Agent: ${assignedAgent.name} (${assignedAgent.roleTitle})
 // Company: ${company.name}
@@ -686,12 +685,12 @@ Instruksi:
     } catch (err: any) {
       console.error(`[Telegram LLM Error for ${agent.name}]:`, err);
       const errMsg = err?.message || 'Gagal memanggil model AI';
-      return `Halo Boss! Saya ${agent.name} (${agent.roleTitle}).\n\nPesan Anda: "${userMessage}"\n\n⚠️ *Gagal menghubungi LLM [${effectiveConfig.provider} - ${effectiveConfig.model}]:*\n\`${errMsg}\`\n\nMohon periksa status koneksi / endpoint LLM di menu Global LLM dashboard Vigent.`;
+      return `Halo Boss! Saya ${agent.name} (${agent.roleTitle}).\n\nPesan Anda: "${userMessage}"\n\n⚠️ *Gagal menghubungi LLM [${effectiveConfig.provider} - ${effectiveConfig.model}]:*\n\`${errMsg}\`\n\nMohon periksa status koneksi / endpoint LLM di menu Global LLM dashboard CEO Virtual.`;
     }
   }
 
   // If no API Key configured for this company/agent:
-  return `Halo Boss! Saya ${agent.name} (${agent.roleTitle}).\n\nPesan Anda: "${userMessage}" telah saya terima. Namun API Key LLM untuk kantor "${freshCompany.name}" belum terkonfigurasi pada backend.\n\nSilakan buka menu **Global LLM** di dashboard Vigent, masukkan API Key / Base URL, lalu klik **Simpan Semua Pengaturan LLM Global** agar saya dapat merespons pesan Boss secara cerdas menggunakan AI.`;
+  return `Halo Boss! Saya ${agent.name} (${agent.roleTitle}).\n\nPesan Anda: "${userMessage}" telah saya terima. Namun API Key LLM untuk kantor "${freshCompany.name}" belum terkonfigurasi pada backend.\n\nSilakan buka menu **Global LLM** di dashboard CEO Virtual, masukkan API Key / Base URL, lalu klik **Simpan Semua Pengaturan LLM Global** agar saya dapat merespons pesan Boss secara cerdas menggunakan AI.`;
 }
 
 /**
@@ -751,7 +750,7 @@ export async function startCompanyTelegramBot(
         .join('\n');
 
       const welcomeMsg = `🏢 *War Room Group Chat - ${company.name}*
-Selamat datang di bot kantor otonom Vigent!
+Selamat datang di bot kantor otonom CEO Virtual!
 
 🆔 *Chat ID Anda:* \`${chatId}\`
 _(Gunakan Chat ID ini pada pengaturan kantor jika belum tersimpan)_
@@ -852,7 +851,7 @@ Setiap karyawan yang Anda tag akan langsung membalas dengan label identitas mere
       const res = await cloneGitRepository(extracted.url, extracted.projectName);
       if (res.success) {
         await ctx.reply(
-          `✅ *Clone Repository Berhasil!*\n\n📁 *Proyek:* \`${res.projectName}\`\n📂 *Lokasi:* \`${res.folderPath}\`\n📄 *Total:* ${res.filesCount} file\n\nProyek langsung tersimpan di workspaces Vigent dan siap dikerjakan oleh tim agen! 🚀`,
+          `✅ *Clone Repository Berhasil!*\n\n📁 *Proyek:* \`${res.projectName}\`\n📂 *Lokasi:* \`${res.folderPath}\`\n📄 *Total:* ${res.filesCount} file\n\nProyek langsung tersimpan di workspaces CEO Virtual dan siap dikerjakan oleh tim agen! 🚀`,
           { parse_mode: 'Markdown' }
         );
 
@@ -872,7 +871,7 @@ Setiap karyawan yang Anda tag akan langsung membalas dengan label identitas mere
     // Command: /help
     bot.command('help', async (ctx) => {
       await ctx.reply(
-        `🤖 *Perintah Bot Telegram Vigent:*\n
+        `🤖 *Perintah Bot Telegram CEO Virtual:*\n
 /start - Menampilkan panduan dan Chat ID Anda
 /clone <url> - Clone repository GitHub langsung ke workspaces
 /team - Daftar karyawan yang bisa di-tag
@@ -932,7 +931,7 @@ Ketik nama panggilan setelah tanda @, misalnya:
 
           if (cloneRes.success) {
             await ctx.reply(
-              `✅ *Clone GitHub Berhasil!*\n\n📁 *Proyek:* \`${cloneRes.projectName}\`\n📂 *Lokasi:* \`${cloneRes.folderPath}\`\n📄 *Total:* ${cloneRes.filesCount} file\n\nProyek langsung tersimpan di workspaces Vigent dan siap dikerjakan tim! 🚀`,
+              `✅ *Clone GitHub Berhasil!*\n\n📁 *Proyek:* \`${cloneRes.projectName}\`\n📂 *Lokasi:* \`${cloneRes.folderPath}\`\n📄 *Total:* ${cloneRes.filesCount} file\n\nProyek langsung tersimpan di workspaces CEO Virtual dan siap dikerjakan tim! 🚀`,
               { parse_mode: 'Markdown' }
             );
 

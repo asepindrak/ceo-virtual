@@ -4,6 +4,7 @@ import { VIGENT_HOME } from './workspaceManager';
 import { AgentRole } from '@/types/office';
 
 export const VIGENT_SKILLS_DIR = path.join(VIGENT_HOME, 'skills');
+export const CEO_SKILLS_DIR = VIGENT_SKILLS_DIR;
 
 export interface VigentSkill {
   id: string;
@@ -17,6 +18,7 @@ export interface VigentSkill {
   filePath: string;
   createdAt: number;
 }
+export type CeoVirtualSkill = VigentSkill;
 
 // Ensure ~/.vigent/skills directory and populate starter skills
 export function initSkillsDirectory(): VigentSkill[] {

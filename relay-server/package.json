@@ -1,12 +1,12 @@
 {
-  "name": "vigent-relay-hub",
+  "name": "ceo-virtual-relay-hub",
   "version": "1.0.0",
-  "description": "Public P2P Rendezvous & Signaling Relay Server for Vigent Virtual Offices",
+  "description": "Public P2P Rendezvous & Signaling Relay Server for CEO Virtual Offices",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": ["vigent", "p2p", "relay", "rendezvous", "signaling", "dokploy"],
-  "author": "Vigent",
+  "keywords": ["ceo-virtual", "p2p", "relay", "rendezvous", "signaling", "dokploy"],
+  "author": "CEO Virtual",
   "license": "MIT"
 }

@@ -3,8 +3,19 @@ import path from 'path';
 import os from 'os';
 import { exec } from 'child_process';
 
-// Dedicated Vigent (Virtual Office Agent) home directory: ~/.vigent
-export const VIGENT_HOME = path.join(os.homedir(), '.vigent');
+// Dedicated CEO Virtual home directory: ~/.ceo-virtual (with auto-migration from legacy ~/.vigent)
+const CEO_VIRTUAL_HOME = path.join(os.homedir(), '.ceo-virtual');
+const LEGACY_VIGENT_HOME = path.join(os.homedir(), '.vigent');
+
+if (!fs.existsSync(CEO_VIRTUAL_HOME) && fs.existsSync(LEGACY_VIGENT_HOME)) {
+  try {
+    fs.cpSync(LEGACY_VIGENT_HOME, CEO_VIRTUAL_HOME, { recursive: true });
+  } catch (err) {}
+}
+
+export const VIGENT_HOME = fs.existsSync(CEO_VIRTUAL_HOME) ? CEO_VIRTUAL_HOME : (fs.existsSync(LEGACY_VIGENT_HOME) ? LEGACY_VIGENT_HOME : CEO_VIRTUAL_HOME);
+export const CEO_HOME = VIGENT_HOME;
+
 // Option 3 Hybrid: Clear separation between Project Codebases and Task Artifacts
 export const VIGENT_PROJECTS = path.join(VIGENT_HOME, 'projects');
 export const VIGENT_ARTIFACTS = path.join(VIGENT_HOME, 'artifacts');
@@ -14,7 +25,10 @@ export const VIGENT_LOGS_DIR = path.join(VIGENT_HOME, 'logs');
 export const VIGENT_PID_FILE = path.join(VIGENT_HOME, 'server.pid');
 export const DEFAULT_PORT = 28483; // Uncommon dedicated port
 
-// Backward compatibility aliases
+// CEO Virtual and backward compatibility aliases
+export const CEO_PROJECTS = VIGENT_PROJECTS;
+export const CEO_ARTIFACTS = VIGENT_ARTIFACTS;
+export const CEO_WORKSPACES = VIGENT_WORKSPACES;
 export const REALAGENT_HOME = VIGENT_HOME;
 export const REALAGENT_PROJECTS = VIGENT_PROJECTS;
 export const REALAGENT_ARTIFACTS = VIGENT_ARTIFACTS;
@@ -173,7 +187,7 @@ function ensureStarterDemoProject() {
     
     fs.writeFileSync(
       path.join(demoDir, 'README.md'),
-      `# 🤖 Vigent (Virtual Office Agent) - Starter Project\n\nDirektori ini dibuat secara otomatis oleh Vigent di: \`${VIGENT_PROJECTS}\`.\n\nSetiap kali AI Agent menerima task koding atau content writing, file kode asli, package, dan dokumentasi akan di-generate di sini.\n\n- Port: ${DEFAULT_PORT}\n- Dibuat pada: ${new Date().toLocaleString()}\n`,
+      `# 👑 CEO Virtual - Starter Project\n\nDirektori ini dibuat secara otomatis oleh CEO Virtual di: \`${VIGENT_PROJECTS}\`.\n\nSetiap kali AI Agent menerima task koding atau content writing, file kode asli, package, dan dokumentasi akan di-generate di sini.\n\n- Port: ${DEFAULT_PORT}\n- Dibuat pada: ${new Date().toLocaleString()}\n`,
       'utf-8'
     );
 
@@ -199,7 +213,7 @@ function ensureStarterDemoProject() {
     if (!fs.existsSync(srcDir)) fs.mkdirSync(srcDir, { recursive: true });
     fs.writeFileSync(
       path.join(srcDir, 'index.js'),
-      `// Vigent Autonomous Worker Script\nconsole.log("🚀 Vigent (Virtual Office Agent) initialized at port ${DEFAULT_PORT}");\nconsole.log("Workspace: ${demoDir.replace(/\\/g, '\\\\')}");\n`,
+      `// CEO Virtual Autonomous Worker Script\nconsole.log("🚀 CEO Virtual initialized at port ${DEFAULT_PORT}");\nconsole.log("Workspace: ${demoDir.replace(/\\/g, '\\\\')}");\n`,
       'utf-8'
     );
   }
@@ -549,9 +563,10 @@ export function isAutorunConfigured(): boolean {
         'Programs',
         'Startup'
       );
-      const batPath = path.join(startupFolder, 'Vigent.bat');
+      const batPath = path.join(startupFolder, 'CEOVirtual.bat');
+      const legacyBat = path.join(startupFolder, 'Vigent.bat');
       const oldBat = path.join(startupFolder, 'RealAgent3D.bat');
-      return fs.existsSync(batPath) || fs.existsSync(oldBat);
+      return fs.existsSync(batPath) || fs.existsSync(legacyBat) || fs.existsSync(oldBat);
     } catch {
       return false;
     }
@@ -570,7 +585,8 @@ export function setAutorun(enable: boolean, appPath?: string): boolean {
       'Programs',
       'Startup'
     );
-    const batPath = path.join(startupFolder, 'Vigent.bat');
+    const batPath = path.join(startupFolder, 'CEOVirtual.bat');
+    const legacyBat = path.join(startupFolder, 'Vigent.bat');
     const oldBat = path.join(startupFolder, 'RealAgent3D.bat');
 
     if (enable) {
@@ -580,12 +596,16 @@ export function setAutorun(enable: boolean, appPath?: string): boolean {
       if (fs.existsSync(oldBat)) {
         try { fs.unlinkSync(oldBat); } catch {}
       }
+      if (fs.existsSync(legacyBat)) {
+        try { fs.unlinkSync(legacyBat); } catch {}
+      }
       const scriptContent = `@echo off\r\ncd /d "${targetAppPath}"\r\nstart /b npm run dev -- -p ${DEFAULT_PORT}\r\n`;
       fs.writeFileSync(batPath, scriptContent, 'utf-8');
       updateRealAgentConfig({ autorunAtStartup: true });
       return true;
     } else {
       if (fs.existsSync(batPath)) fs.unlinkSync(batPath);
+      if (fs.existsSync(legacyBat)) fs.unlinkSync(legacyBat);
       if (fs.existsSync(oldBat)) fs.unlinkSync(oldBat);
       updateRealAgentConfig({ autorunAtStartup: false });
       return false;
@@ -636,8 +656,8 @@ Path=${targetAppPath}
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Name=Vigent
-Comment=Start Vigent Virtual Office Agent on login
+Name=CEO Virtual
+Comment=Start CEO Virtual on login
 `;
       fs.writeFileSync(desktopPath, desktopEntry, 'utf-8');
       updateRealAgentConfig({ autorunAtStartup: true });

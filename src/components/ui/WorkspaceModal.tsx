@@ -302,7 +302,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-[#2c231c]">Vigent CLI & Autonomous Workspaces</h2>
+                <h2 className="text-lg font-bold text-[#2c231c]">CEO Virtual CLI & Autonomous Workspaces</h2>
                 <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#eef2f8] text-[#2d4263] border border-[#c4d1e4] font-bold">
                   Port :{port}
                 </span>

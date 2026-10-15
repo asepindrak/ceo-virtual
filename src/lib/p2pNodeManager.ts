@@ -1,5 +1,5 @@
 /**
- * 📡 VIGENT - Decentralized P2P Node Engine & Auto-Discovery Daemon
+ * 📡 CEO VIRTUAL - Decentralized P2P Node Engine & Auto-Discovery Daemon
  * 
  * Features:
  * 1. Cryptographic Node Identity (nodeId, Ed25519/SHA256 fingerprint in ~/.vigent/node_identity.json).
@@ -14,8 +14,9 @@ import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
 import dgram from 'dgram';
+import { VIGENT_HOME } from './workspaceManager';
 
-const VIGENT_DIR = path.join(os.homedir(), '.vigent');
+const VIGENT_DIR = VIGENT_HOME;
 const IDENTITY_FILE = path.join(VIGENT_DIR, 'node_identity.json');
 const PEERS_FILE = path.join(VIGENT_DIR, 'p2p_peers.json');
 const CONFIG_FILE = path.join(VIGENT_DIR, 'p2p_config.json');

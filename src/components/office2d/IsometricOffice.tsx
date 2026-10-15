@@ -5365,7 +5365,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
               <span className="text-2xl">🐱</span>
               <div>
                 <div className="font-bold text-sm text-[#c85a2b]">Mochi si Kucing Kantor</div>
-                <div className="text-xs text-[#786653]">Maskot Resmi Vigent • Klik untuk elus-elus ❤️</div>
+                <div className="text-xs text-[#786653]">Maskot Resmi CEO Virtual • Klik untuk elus-elus ❤️</div>
               </div>
             </div>
           </div>

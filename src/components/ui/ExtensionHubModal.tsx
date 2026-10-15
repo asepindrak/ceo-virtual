@@ -209,7 +209,7 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-[#2c231c]">Vigent Extension & Skills Hub</h2>
+                <h2 className="text-lg font-bold text-[#2c231c]">CEO Virtual Extension & Skills Hub</h2>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#eef2f8] text-[#2d4263] border border-[#c4d1e4] font-bold">
                   Model Context Protocol
                 </span>

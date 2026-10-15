@@ -86,6 +86,17 @@ export default function RealAgent3DPage() {
   // Data loading guard ref to prevent saving empty/default state over stored memory on mount
   const isDataLoadedRef = useRef(false);
 
+  // Storage helper supporting both ceo_virtual_* and legacy vigent_* keys
+  const getStorageItem = (prefix: string, id: string) => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(`ceo_virtual_${prefix}_${id}`) || localStorage.getItem(`vigent_${prefix}_${id}`);
+  };
+  const setStorageItem = (prefix: string, id: string, val: string) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(`ceo_virtual_${prefix}_${id}`, val);
+    localStorage.setItem(`vigent_${prefix}_${id}`, val);
+  };
+
   // 1. Load persisted company, agents, tasks & events on initial mount or office switch
   useEffect(() => {
     let isMounted = true;
@@ -96,9 +107,8 @@ export default function RealAgent3DPage() {
         const companyId = currentCompany.id;
 
         // A. Load Company Profile & Progression
-        const companyStorageKey = `vigent_company_${companyId}`;
-        const savedCompanyJson = localStorage.getItem(companyStorageKey);
-        const savedLLM = localStorage.getItem(`vigent_company_llm_${companyId}`);
+        const savedCompanyJson = getStorageItem('company', companyId);
+        const savedLLM = getStorageItem('company_llm', companyId);
         let loadedCompany: Company = currentCompany;
 
         if (savedCompanyJson) {
@@ -161,8 +171,7 @@ export default function RealAgent3DPage() {
         };
 
         // B. Load Agents (XP, Level, Assigned Roles, Positions)
-        const agentsStorageKey = `vigent_agents_${companyId}`;
-        const savedAgentsJson = localStorage.getItem(agentsStorageKey);
+        const savedAgentsJson = getStorageItem('agents', companyId);
         if (savedAgentsJson) {
           try {
             const parsedAgents = JSON.parse(savedAgentsJson);
@@ -186,8 +195,7 @@ export default function RealAgent3DPage() {
         }
 
         // C. Load Tasks
-        const tasksStorageKey = `vigent_tasks_${companyId}`;
-        const savedTasksJson = localStorage.getItem(tasksStorageKey);
+        const savedTasksJson = getStorageItem('tasks', companyId);
         let initialLocalTasks: TaskTicket[] = [];
         if (savedTasksJson) {
           try {
@@ -224,8 +232,7 @@ export default function RealAgent3DPage() {
         }
 
         // D. Load Activity Events
-        const eventsStorageKey = `vigent_events_${companyId}`;
-        const savedEventsJson = localStorage.getItem(eventsStorageKey);
+        const savedEventsJson = getStorageItem('events', companyId);
         if (savedEventsJson) {
           try {
             const parsedEvents = JSON.parse(savedEventsJson);
@@ -275,8 +282,7 @@ export default function RealAgent3DPage() {
   useEffect(() => {
     if (!isDataLoadedRef.current || !tasks || tasks.length === 0) return;
     try {
-      const storageKey = `vigent_tasks_${currentCompany.id}`;
-      localStorage.setItem(storageKey, JSON.stringify(tasks));
+      setStorageItem('tasks', currentCompany.id, JSON.stringify(tasks));
 
       const timer = setTimeout(() => {
         fetch('/api/workspace', {
@@ -295,9 +301,8 @@ export default function RealAgent3DPage() {
   useEffect(() => {
     if (!isDataLoadedRef.current || !events || events.length === 0) return;
     try {
-      const storageKey = `vigent_events_${currentCompany.id}`;
       const recentToSave = events.slice(-300);
-      localStorage.setItem(storageKey, JSON.stringify(recentToSave));
+      setStorageItem('events', currentCompany.id, JSON.stringify(recentToSave));
 
       const timer = setTimeout(() => {
         fetch('/api/workspace', {
@@ -316,8 +321,7 @@ export default function RealAgent3DPage() {
   useEffect(() => {
     if (!isDataLoadedRef.current || !agents || agents.length === 0) return;
     try {
-      const storageKey = `vigent_agents_${currentCompany.id}`;
-      localStorage.setItem(storageKey, JSON.stringify(agents));
+      setStorageItem('agents', currentCompany.id, JSON.stringify(agents));
 
       const timer = setTimeout(() => {
         fetch('/api/workspace', {
@@ -336,8 +340,7 @@ export default function RealAgent3DPage() {
   useEffect(() => {
     if (!isDataLoadedRef.current || !currentCompany) return;
     try {
-      const storageKey = `vigent_company_${currentCompany.id}`;
-      localStorage.setItem(storageKey, JSON.stringify(currentCompany));
+      setStorageItem('company', currentCompany.id, JSON.stringify(currentCompany));
 
       const timer = setTimeout(() => {
         fetch('/api/workspace', {
@@ -533,7 +536,7 @@ export default function RealAgent3DPage() {
         type: 'break',
         agentId: agents[0]?.id || 'user',
         agentName: 'Office Manager',
-        description: `🛒 Membeli [${item.name}] seharga ${item.price} pts di Vigent SuperMart 24/7. Efek: ${item.effect}`,
+        description: `🛒 Membeli [${item.name}] seharga ${item.price} pts di CEO Virtual SuperMart 24/7. Efek: ${item.effect}`,
       };
       setEvents((prev) => [buyEvent, ...prev.slice(0, 299)]);
     },
@@ -670,7 +673,7 @@ export default function RealAgent3DPage() {
     setCurrentCompany((prev) => {
       const updated = { ...prev, leaderAgentId: agentId };
       try {
-        localStorage.setItem(`vigent_company_${prev.id}`, JSON.stringify(updated));
+        setStorageItem('company', prev.id, JSON.stringify(updated));
         fetch('/api/workspace', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -688,7 +691,7 @@ export default function RealAgent3DPage() {
         isLeader: ag.id === agentId,
       }));
       try {
-        localStorage.setItem(`vigent_agents_${currentCompany.id}`, JSON.stringify(updatedAgents));
+        setStorageItem('agents', currentCompany.id, JSON.stringify(updatedAgents));
         fetch('/api/workspace', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -790,8 +793,7 @@ export default function RealAgent3DPage() {
 
       // Synchronously persist updated agents to localStorage and disk
       try {
-        const storageKey = `vigent_agents_${currentCompany.id}`;
-        localStorage.setItem(storageKey, JSON.stringify(updatedAgents));
+        setStorageItem('agents', currentCompany.id, JSON.stringify(updatedAgents));
         fetch('/api/workspace', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -810,8 +812,8 @@ export default function RealAgent3DPage() {
     setCurrentCompany((prev) => {
       const updated = { ...prev, globalLLMConfig: updatedGlobalLLM };
       try {
-        localStorage.setItem(`vigent_company_llm_${prev.id}`, JSON.stringify(updatedGlobalLLM));
-        localStorage.setItem(`vigent_company_${prev.id}`, JSON.stringify(updated));
+        setStorageItem('company_llm', prev.id, JSON.stringify(updatedGlobalLLM));
+        setStorageItem('company', prev.id, JSON.stringify(updated));
         fetch('/api/workspace', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

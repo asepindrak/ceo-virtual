@@ -1,8 +1,8 @@
 /**
- * 🌐 VIGENT - Public P2P Rendezvous & Community Relay Hub
+ * 🌐 CEO VIRTUAL - Public P2P Rendezvous & Community Relay Hub
  * 
  * Standalone, ultra-lightweight server (~10MB RAM) for Dokploy / Docker deployment.
- * Connects Vigent nodes across the public internet, bypassing NAT/Firewalls.
+ * Connects CEO Virtual nodes across the public internet, bypassing NAT/Firewalls.
  */
 
 const http = require('http');
@@ -11,7 +11,7 @@ const url = require('url');
 const PORT = process.env.PORT || 3000;
 const PEER_TIMEOUT_MS = 60000; // 60 seconds stale timeout
 
-// In-Memory Global Registry of Active Vigent Nodes
+// In-Memory Global Registry of Active CEO Virtual Nodes
 const nodesRegistry = new Map();
 let totalRelayedMessages = 0;
 const serverStartTime = Date.now();
@@ -339,11 +339,11 @@ const server = http.createServer(async (req, res) => {
   <div class="container">
     <div class="header">
       <h1>
-        🌐 Vigent P2P Public Rendezvous & Relay Hub
+        🌐 CEO Virtual P2P Public Rendezvous & Relay Hub
         <span class="tag">DOKPLOY LIVE</span>
       </h1>
       <p>
-        Server penghubung desentralisasi untuk mempertemukan node-node kantor virtual Vigent di seluruh dunia.
+        Server penghubung desentralisasi untuk mempertemukan node-node kantor virtual CEO Virtual di seluruh dunia.
         Memungkinkan auto-discovery dan pertukaran data pasar publik lintas router/NAT tanpa menyentuh data privat Anda.
       </p>
     </div>
@@ -371,7 +371,7 @@ const server = http.createServer(async (req, res) => {
       <h2>Daftar Node Komunitas yang Sedang Terhubung (${nodesList.length})</h2>
       ${
         nodesList.length === 0
-          ? `<div class="empty">Belum ada node yang online. Nyalakan Vigent di PC Anda dan masukkan URL relay ini pada pengaturan P2P!</div>`
+          ? `<div class="empty">Belum ada node yang online. Nyalakan CEO Virtual di PC Anda dan masukkan URL relay ini pada pengaturan P2P!</div>`
           : `<table>
             <thead>
               <tr>
@@ -425,15 +425,15 @@ function escapeHtml(str) {
 }
 
 process.on('uncaughtException', (err) => {
-  console.error('[Vigent Relay Hub Uncaught Exception]:', err);
+  console.error('[CEO Virtual Relay Hub Uncaught Exception]:', err);
 });
 
 process.on('unhandledRejection', (reason) => {
-  console.error('[Vigent Relay Hub Unhandled Rejection]:', reason);
+  console.error('[CEO Virtual Relay Hub Unhandled Rejection]:', reason);
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[Vigent Relay Hub]: Running on http://0.0.0.0:${PORT}`);
-  console.log(`[Vigent Relay Hub]: Dokploy Healthcheck available at /health`);
+  console.log(`[CEO Virtual Relay Hub]: Running on http://0.0.0.0:${PORT}`);
+  console.log(`[CEO Virtual Relay Hub]: Dokploy Healthcheck available at /health`);
 });
 

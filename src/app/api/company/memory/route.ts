@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       const result = await recordTaskCompletionExperience(
         companyId,
         mockTask,
-        body.agentName || 'Tim Vigent'
+        body.agentName || 'Tim CEO Virtual'
       );
       return NextResponse.json({
         success: true,

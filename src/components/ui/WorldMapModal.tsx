@@ -1054,7 +1054,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-xs tracking-wide text-[#2c231c]">🌐 Jaringan Komunitas Global Vigent</h3>
+                        <h3 className="font-bold text-xs tracking-wide text-[#2c231c]">🌐 Jaringan Komunitas Global CEO Virtual</h3>
                         <span className="text-[9px] px-2 py-0.5 rounded-full font-mono font-semibold bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]">
                           Auto-Connected
                         </span>
@@ -1142,7 +1142,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                       Menunggu Deteksi Peer di Jaringan Anda...
                     </div>
                     <p className="max-w-md mx-auto text-[11px] leading-relaxed">
-                      Daemon UDP sedang memancarkan beacon di port 28484. Begitu ada PC lain yang menjalankan Vigent di Wi-Fi/LAN yang sama, node tersebut akan otomatis muncul di sini! Anda juga bisa menghubungkan PC rekan secara manual melalui form IP di atas.
+                      Daemon UDP sedang memancarkan beacon di port 28484. Begitu ada PC lain yang menjalankan CEO Virtual di Wi-Fi/LAN yang sama, node tersebut akan otomatis muncul di sini! Anda juga bisa menghubungkan PC rekan secara manual melalui form IP di atas.
                     </p>
                   </div>
                 ) : (
@@ -1202,7 +1202,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
               <div className="p-4 rounded-2xl bg-[#f5efe4] border border-[#d6c5ad] text-xs text-[#5c4939] space-y-2">
                 <div className="font-bold text-[#2c231c] flex items-center gap-1.5">
                   <Shield className="w-4 h-4 text-[#059669]" />
-                  <span>Prinsip Keamanan & Desentralisasi Multi-Tenant Vigent</span>
+                  <span>Prinsip Keamanan & Desentralisasi Multi-Tenant CEO Virtual</span>
                 </div>
                 <p className="leading-relaxed text-[11px]">
                   <strong>100% Zero-Knowledge untuk Dokumen Privat:</strong> Komunikasi P2P antar-node hanya membagikan paket telemetri publik (nama kantor, avatar di lobi, ketersediaan bursa bounty). Seluruh obrolan LLM internal, kode proyek di <code>~/.vigent/projects</code>, artefak tugas, dan API key rahasia Anda <strong>TIDAK PERNAH dikirimkan ke node rekan</strong> dan tetap terisolasi di disk PC lokal Anda.

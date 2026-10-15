@@ -37,7 +37,7 @@ const DEFAULT_SERVERS: DevServer[] = [
   },
   {
     id: 'srv-vigent-app',
-    projectName: 'Vigent Virtual Office Core',
+    projectName: 'CEO Virtual Office Core',
     port: 28483,
     url: '/',
     status: 'running',
@@ -146,7 +146,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
       url: newUrl.trim(),
       status: 'running',
       framework: newFramework.trim() || 'Custom Dev Server',
-      description: newDescription.trim() || 'Server pengembangan lokal terhubung ke Vigent.',
+      description: newDescription.trim() || 'Server pengembangan lokal terhubung ke CEO Virtual.',
     };
 
     setServers((prev) => [...prev, newServer]);
@@ -547,7 +547,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                 Pilih Dev Server untuk Live Preview
               </h3>
               <p className="text-xs max-w-sm text-[#786653] leading-relaxed mb-4">
-                Pilih salah satu port di sebelah kiri atau klik tombol <strong className="text-[#1f6860]">In-App Preview</strong> untuk melihat live web langsung di dalam antarmuka Vigent!
+                Pilih salah satu port di sebelah kiri atau klik tombol <strong className="text-[#1f6860]">In-App Preview</strong> untuk melihat live web langsung di dalam antarmuka CEO Virtual!
               </p>
               <button
                 onClick={() => handlePreviewInApp(servers[0])}

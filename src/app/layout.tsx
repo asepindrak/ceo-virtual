@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vigent - Virtual Office Agent",
-  description: "Virtual Office Agent (Vigent) - Multi-Agent AI workplace performing autonomous coding, content writing, and real file generation.",
+  title: "CEO Virtual - Virtual Office Agent",
+  description: "CEO Virtual - Multi-Agent AI workplace performing autonomous coding, content writing, and real file generation.",
 };
 
 export default function RootLayout({

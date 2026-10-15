@@ -1,5 +1,5 @@
 /**
- * 🗺️ VIGENT - Open World Regional Districts & Decentralized Transit Engine
+ * 🗺️ CEO VIRTUAL - Open World Regional Districts & Decentralized Transit Engine
  * 
  * Features:
  * 1. Macro World Map with 5 Distinct Regional Districts.
@@ -18,8 +18,9 @@ import {
   CommuteMode,
   TravelMissionType,
 } from '@/types/office';
+import { VIGENT_HOME } from './workspaceManager';
 
-const VIGENT_DIR = path.join(os.homedir(), '.vigent');
+const VIGENT_DIR = VIGENT_HOME;
 const MISSIONS_FILE = path.join(VIGENT_DIR, 'world_missions.json');
 
 function ensureVigentDir() {
@@ -426,7 +427,7 @@ export const REGIONAL_DISTRICTS: RegionalDistrict[] = [
         openBounties: [
           {
             id: 'bounty-iw-1',
-            title: 'Rancang Skema Enkripsi E2EE untuk Private Meeting Agen Vigent',
+            title: 'Rancang Skema Enkripsi E2EE untuk Private Meeting Agen CEO Virtual',
             rewardXp: 500,
             budgetCoins: 1800,
             type: 'audit',
@@ -500,7 +501,7 @@ export const REGIONAL_DISTRICTS: RegionalDistrict[] = [
         openBounties: [
           {
             id: 'bounty-gg-1',
-            title: 'Audit Keamanan Lintas-Regional Protocol Vigent P2P Node',
+            title: 'Audit Keamanan Lintas-Regional Protocol CEO Virtual P2P Node',
             rewardXp: 750,
             budgetCoins: 3000,
             type: 'audit',

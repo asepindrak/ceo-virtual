@@ -107,10 +107,10 @@ export const TopNav: React.FC<TopNavProps> = ({
         <button
           onClick={() => onOpenCompanyModal()}
           className="flex items-center gap-2 p-1 -ml-1 hover:bg-[#ede2d1] rounded-xl transition-colors group text-left"
-          title="Vigent (Virtual Agent Office) - Ganti Kantor Virtual atau Buat Kantor Baru"
+          title="CEO Virtual - Ganti Kantor Virtual atau Buat Kantor Baru"
         >
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[#c85a2b] via-[#d97736] to-[#c68f23] flex items-center justify-center font-black text-white shadow-md border border-[#ad4b20] group-hover:scale-105 transition-transform tracking-wider text-xs">
-            VG
+            CV
           </div>
           <div>
             <div className="font-bold text-xs sm:text-sm text-[#2c231c] flex items-center gap-1.5 leading-tight">
@@ -269,7 +269,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           {isMoreMenuOpen && (
             <div className="absolute right-0 mt-2 w-56 bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-2xl shadow-2xl p-1.5 z-50 text-xs animate-in fade-in slide-in-from-top-2">
               <div className="px-2.5 py-1.5 text-[10px] font-bold text-[#786653] uppercase tracking-wider border-b border-[#d6c5ad] mb-1 flex items-center justify-between">
-                <span>Alat Kantor Vigent</span>
+                <span>Alat Kantor CEO Virtual</span>
                 <span className="font-mono text-[#c85a2b]">v1.0</span>
               </div>
 

@@ -1,6 +1,6 @@
-# 🚀 Panduan Deploy Vigent P2P Relay Hub di Dokploy (VPS)
+# 🚀 Panduan Deploy CEO Virtual P2P Relay Hub di Dokploy (VPS)
 
-Server ini berfungsi sebagai **Public Rendezvous & Signaling Relay** untuk menghubungkan instalasi Vigent di seluruh dunia secara otomatis tanpa terhalang firewall/NAT router.
+Server ini berfungsi sebagai **Public Rendezvous & Signaling Relay** untuk menghubungkan instalasi CEO Virtual di seluruh dunia secara otomatis tanpa terhalang firewall/NAT router.
 
 ---
 
@@ -42,13 +42,13 @@ Server ini berfungsi sebagai **Public Rendezvous & Signaling Relay** untuk mengh
 
 ## 🧪 Verifikasi Setelah Deploy:
 1. Buka URL domain Anda di browser: `https://relay.domainanda.com`
-   - Anda akan melihat **Vigent P2P Dashboard** dengan status `Healthy 🟢` dan daftar node yang terhubung.
+   - Anda akan melihat **CEO Virtual P2P Dashboard** dengan status `Healthy 🟢` dan daftar node yang terhubung.
 2. Endpoint `/health` akan menampilkan JSON status server.
 
 ---
 
-## 🔗 Hubungkan Vigent Desktop ke Relay Ini:
-1. Di aplikasi Vigent desktop/laptop Anda:
+## 🔗 Hubungkan CEO Virtual Desktop ke Relay Ini:
+1. Di aplikasi CEO Virtual desktop/laptop Anda:
 2. Buka **Peta Kota** ➔ Klik tab **"📡 Node P2P Mesh"**.
 3. Di bagian **"Public Community Relay Hub"**, masukkan URL VPS Anda:
    ```text

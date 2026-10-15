@@ -1,18 +1,18 @@
 {
-  "name": "vigent",
+  "name": "ceo-virtual",
   "version": "0.1.0",
-  "description": "Vigent - Virtual Office Agent with Autonomous Multi-Agent Workplace",
+  "description": "CEO Virtual - Autonomous Multi-Agent Virtual Office & Development Workplace",
   "private": true,
   "bin": {
-    "vigent": "./bin/vigent.js",
-    "realagent": "./bin/vigent.js"
+    "ceo-virtual": "./bin/ceo-virtual.js",
+    "vigent": "./bin/ceo-virtual.js"
   },
   "scripts": {
     "dev": "next dev -p 28483",
     "build": "next build",
     "start": "next start -p 28483",
-    "vigent": "node ./bin/vigent.js",
-    "realagent": "node ./bin/vigent.js",
+    "ceo-virtual": "node ./bin/ceo-virtual.js",
+    "vigent": "node ./bin/ceo-virtual.js",
     "lint": "eslint"
   },
   "dependencies": {

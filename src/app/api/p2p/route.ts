@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
         companyName: identity.companyName,
         regionalSector: identity.regionalSector,
         fingerprint: identity.fingerprint,
-        message: 'Handshake accepted! Both nodes are now connected in Vigent P2P Mesh.',
+        message: 'Handshake accepted! Both nodes are now connected in CEO Virtual P2P Mesh.',
       });
     }
 
