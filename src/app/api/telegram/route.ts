@@ -8,6 +8,7 @@ import {
   stopCompanyTelegramBot,
   broadcastWarRoomMessageToTelegram,
   getCompanyChatHistory,
+  sendSprintProgressReport,
 } from '@/lib/telegramManager';
 import { TelegramConfig, OfficeGroupChatMessage } from '@/types/office';
 
@@ -102,6 +103,34 @@ export async function POST(req: Request) {
     if (action === 'get_chat_history') {
       const history = getCompanyChatHistory(companyId);
       return NextResponse.json({ success: true, history });
+    }
+
+    // 7. Sprint Progress Report from Leader or Team Member
+    if (action === 'report_sprint_progress') {
+      const {
+        senderAgentId,
+        senderName,
+        senderRoleTitle,
+        senderAvatarColor,
+        reportType = 'member_progress',
+        taskTitle,
+        progressPercent,
+        message: reportMsg,
+      } = body;
+
+      const result = await sendSprintProgressReport({
+        companyId,
+        senderAgentId: senderAgentId || 'agent-lead',
+        senderName: senderName || 'Leader',
+        senderRoleTitle: senderRoleTitle || 'Team Member',
+        senderAvatarColor,
+        reportType,
+        taskTitle: taskTitle || 'Sprint Deliverable',
+        progressPercent: Number(progressPercent || 0),
+        message: reportMsg || 'Update progres sprint tim.',
+      });
+
+      return NextResponse.json({ ...result });
     }
 
     return NextResponse.json(

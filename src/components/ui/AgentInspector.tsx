@@ -47,6 +47,7 @@ interface AgentInspectorProps {
   onReturnDesk: (agentId: string) => void;
   onTriggerHumanDecision: (agentId: string) => void;
   onFireAgent: (agentId: string) => void;
+  onSetLeader?: (agentId: string) => void;
   onUpdateLLMConfig: (
     agentId: string,
     updatedConfig: LLMConfig,
@@ -76,6 +77,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
   onReturnDesk,
   onTriggerHumanDecision,
   onFireAgent,
+  onSetLeader,
   onUpdateLLMConfig,
 }) => {
   const [selectedColleagueId, setSelectedColleagueId] = useState<string>(
@@ -83,6 +85,34 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
   );
   const [activeTab, setActiveTab] = useState<'screen' | 'chat' | 'llm' | 'bio'>('chat');
   const [confirmFire, setConfirmFire] = useState(false);
+
+  // Check if this agent is the leader of the company
+  const isCurrentLeader = (() => {
+    if (company?.leaderAgentId) {
+      return company.leaderAgentId === agent.id;
+    }
+    const explicitLeader = allAgents.find((a) => a.isLeader);
+    if (explicitLeader) {
+      return explicitLeader.id === agent.id;
+    }
+    // Auto-detected default leader
+    const defaultLeader =
+      allAgents.find((a) => a.role === 'ceo') ||
+      allAgents.find((a) => {
+        const title = (a.roleTitle || '').toLowerCase();
+        return (
+          title.includes('founder') ||
+          title.includes('lead') ||
+          title.includes('architect') ||
+          title.includes('director') ||
+          title.includes('head') ||
+          title.includes('project_manager') ||
+          title.includes('manager')
+        );
+      }) ||
+      allAgents[0];
+    return defaultLeader?.id === agent.id;
+  })();
 
   // Global LLM vs Manual Mode state:
   // Default to 'global' if agent hasn't explicitly configured manual BYOK with an active API Key
@@ -412,6 +442,11 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
           <div>
             <h3 className="font-bold text-sm text-[#2c231c] flex items-center gap-1.5 flex-wrap">
               <span>{agent.name}</span>
+              {isCurrentLeader && (
+                <span className="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-md font-bold flex items-center gap-1 shadow-xs">
+                  👑 Leader
+                </span>
+              )}
               <span
                 className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold ${
                   agent.gender === 'female' || ['Rei', 'Yuki', 'Maya', 'Elena', 'Chloe', 'Sarah', 'Aurora', 'Sofia', 'Aria'].some((fn) => agent.name.includes(fn))
@@ -427,7 +462,19 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                 </span>
               )}
             </h3>
-            <p className="text-xs text-[#c85a2b] font-semibold">{agent.roleTitle}</p>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <p className="text-xs text-[#c85a2b] font-semibold">{agent.roleTitle}</p>
+              {!isCurrentLeader && onSetLeader && (
+                <button
+                  type="button"
+                  onClick={() => onSetLeader(agent.id)}
+                  className="text-[10px] px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 hover:text-amber-950 border border-amber-300 rounded-md font-semibold transition-colors flex items-center gap-1"
+                  title="Jadikan agent ini sebagai Leader Tim utama perusahaan"
+                >
+                  👑 Set Jadi Leader
+                </button>
+              )}
+            </div>
             <div className="text-[10px] text-[#786653] capitalize mt-0.5 font-mono">
               Status: <span className="text-[#2c231c] font-bold">{agent.state.replace('_', ' ')}</span>
             </div>

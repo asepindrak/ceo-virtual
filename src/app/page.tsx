@@ -665,6 +665,57 @@ export default function RealAgent3DPage() {
     setSelectedAgentId(undefined);
   };
 
+  // Set Leader of Company
+  const handleSetLeader = (agentId: string) => {
+    setCurrentCompany((prev) => {
+      const updated = { ...prev, leaderAgentId: agentId };
+      try {
+        localStorage.setItem(`vigent_company_${prev.id}`, JSON.stringify(updated));
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_company', companyId: prev.id, company: updated }),
+        }).catch(console.error);
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+
+    setAgents((prevAgents) => {
+      const updatedAgents = prevAgents.map((ag) => ({
+        ...ag,
+        isLeader: ag.id === agentId,
+      }));
+      try {
+        localStorage.setItem(`vigent_agents_${currentCompany.id}`, JSON.stringify(updatedAgents));
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_agents', companyId: currentCompany.id, agents: updatedAgents }),
+        }).catch(console.error);
+      } catch (e) {
+        console.error(e);
+      }
+      return updatedAgents;
+    });
+
+    const target = agents.find((a) => a.id === agentId);
+    if (target) {
+      setEvents((prev) => [
+        ...prev,
+        {
+          id: `evt-leader-${Date.now()}`,
+          timestamp: Date.now(),
+          type: 'system',
+          agentId: target.id,
+          agentName: target.name,
+          description: `👑 ${target.name} sekarang resmi menjadi Leader Tim ${currentCompany.name}!`,
+        },
+      ]);
+    }
+  };
+
   // Hire an Agent from Marketplace
   const handleHireAgent = (mktAgent: MarketplaceAgent): boolean => {
     // Find available desk slot
@@ -1116,6 +1167,7 @@ export default function RealAgent3DPage() {
           onReturnDesk={handleReturnDesk}
           onTriggerHumanDecision={handleTriggerHumanDecision}
           onFireAgent={handleFireAgent}
+          onSetLeader={handleSetLeader}
           onUpdateLLMConfig={handleUpdateLLMConfig}
         />
       )}

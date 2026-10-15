@@ -172,6 +172,7 @@ export interface Agent {
   llmConfig?: LLMConfig;
   inheritedLLMCategory?: LLMCategory | 'manual';
   creatorId?: string;
+  isLeader?: boolean;
   
   // Real output simulation
   liveCodeOutput: string[];
@@ -237,7 +238,7 @@ export interface OfficeGroupChatMessage {
   message: string;
   mentionedAgentIds?: string[];
   timestamp: number;
-  source?: 'web' | 'telegram';
+  source?: 'web' | 'telegram' | 'report';
 }
 
 export type OfficeLayoutTemplateId =
@@ -260,6 +261,7 @@ export interface Company {
   telegramConfig?: TelegramConfig;
   globalLLMConfig?: CompanyGlobalLLMConfig;
   officeLayoutTemplate?: OfficeLayoutTemplateId;
+  leaderAgentId?: string;
 }
 
 export interface ActivityEvent {

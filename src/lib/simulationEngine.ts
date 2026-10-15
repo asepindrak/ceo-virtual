@@ -55,9 +55,34 @@ export class OfficeSimulation {
   private lastLlmCollabTime: number = 0;
   private isLlmCollabPending: boolean = false;
   private lastIdleActivityTime: number = Date.now();
+  private lastSprintReportTime: number = Date.now();
   private activeMultiTurnDialog?: MultiTurnDialogState;
   private idleTimers: Map<string, { startTime: number; duration: number; nextSpot?: Position3D; nextState?: AgentArrivalState; nextMessage?: string }> = new Map();
   public currentCompany?: Company;
+
+  private dispatchSprintReport(payload: {
+    senderAgentId: string;
+    senderName: string;
+    senderRoleTitle: string;
+    senderAvatarColor?: string;
+    reportType: 'leader_standup' | 'member_progress' | 'task_completed';
+    taskTitle: string;
+    progressPercent: number;
+    message: string;
+  }) {
+    if (!this.currentCompany?.id || typeof fetch === 'undefined') return;
+    fetch('/api/telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'report_sprint_progress',
+        companyId: this.currentCompany.id,
+        ...payload,
+      }),
+    }).catch((err) => {
+      console.warn('[Simulation] Failed to dispatch sprint report:', err);
+    });
+  }
 
   constructor(speed: number = 1.0, company?: Company) {
     this.speedMultiplier = speed;
@@ -781,8 +806,10 @@ export class OfficeSimulation {
                   description: `🚗 ${currentAgent.name} tiba di Mobil Kantor dan meluncur melalui jalan tol untuk tugas dinas luar kota!`,
                 });
               } else if (pathState.onArrivalState === 'leaving_office') {
+                currentAgent.state = 'leaving_office';
                 currentAgent.stateMessage = 'Has left the office premises.';
               } else if (pathState.onArrivalState === 'coffee_break') {
+                currentAgent.state = 'coffee_break';
                 currentAgent.stateMessage = '☕ Menikmati espresso segar hasil seduhan mesin pantry';
               } else if (pathState.onArrivalState === 'playing_game') {
                 currentAgent.state = 'playing_game';
@@ -793,6 +820,7 @@ export class OfficeSimulation {
                 currentAgent.stateMessage = '📊 Mengamati papan kanban & sticky notes di Sprint Station';
                 currentAgent.facingDirection = 'left';
               } else if (pathState.onArrivalState === 'working') {
+                currentAgent.state = 'working';
                 currentAgent.stateMessage = 'Focused on coding and implementation';
                 currentAgent.activeDialog = undefined;
                 currentAgent.collabPartnerId = undefined;
@@ -879,8 +907,17 @@ export class OfficeSimulation {
       const assigned = updatedAgents.find((a) => a.id === task.assignedAgentId);
 
       if (task.status === 'in_progress' && assigned) {
-        // If assigned agent is not yet working or walking, send them back to desk to work immediately
-        if (assigned.state !== 'working' && assigned.state !== 'walking') {
+        // If assigned agent is already near desk (< 0.8m), start working immediately!
+        const dx = assigned.currentPosition.x - assigned.deskPosition.x;
+        const dz = assigned.currentPosition.z - assigned.deskPosition.z;
+        const distToDesk = Math.sqrt(dx * dx + dz * dz);
+
+        if (distToDesk < 0.8 && assigned.state !== 'working') {
+          assigned.state = 'working';
+          assigned.currentTaskId = task.id;
+          assigned.stateMessage = `⚡ Working on: "${task.title}"`;
+          this.pathStates.delete(assigned.id);
+        } else if (assigned.state !== 'working' && assigned.state !== 'walking') {
           // Cancel any idle timer or multi-turn dialog involving this agent
           this.idleTimers.delete(assigned.id);
           if (
@@ -918,7 +955,42 @@ export class OfficeSimulation {
           }
 
           // Active progress rate: 2.4 * effectiveDelta (~42 seconds for 100% at 1x speed, ~8s at 5x)
+          const prevProg = task.progress;
           const newProgress = Math.min(100, task.progress + (2.4 * effectiveDelta));
+
+          // Milestone 50% Sprint Progress Report from assigned team member
+          if (newProgress >= 50 && prevProg < 50) {
+            const isDesign =
+              task.type === 'design' ||
+              (assigned.roleTitle || '').toLowerCase().includes('design') ||
+              (assigned.roleTitle || '').toLowerCase().includes('creative') ||
+              (assigned.roleTitle || '').toLowerCase().includes('frontend');
+
+            const milestoneMsg = isDesign
+              ? `Update progres sprint untuk Boss & Tim: Struktur layout responsif mobile-first, penataan visual komponen, dan tema cybernetic untuk "${task.title}" sudah rampung 50%! Sekarang saya lanjut menerapkan animasi halus Framer Motion dan micro-interactions.`
+              : `Laporan progres sprint: Fondasi arsitektur kode, routing modular, dan data schema JSON untuk "${task.title}" telah tervalidasi 50%. Komponen terisolasi dengan baik tanpa hydration error!`;
+
+            this.dispatchSprintReport({
+              senderAgentId: assigned.id,
+              senderName: assigned.name,
+              senderRoleTitle: assigned.roleTitle,
+              senderAvatarColor: assigned.avatarColor,
+              reportType: 'member_progress',
+              taskTitle: task.title,
+              progressPercent: 50,
+              message: milestoneMsg,
+            });
+
+            newEvents.push({
+              id: `ev-milestone-${Date.now()}-${assigned.id}`,
+              timestamp: Date.now(),
+              type: 'system',
+              categoryTag: '🚀 Milestone 50%',
+              agentId: assigned.id,
+              agentName: assigned.name,
+              description: `📢 ${assigned.name} mencapai progres 50% pada tiket "${task.title}" dan mengirimkan laporan sprint ke Telegram / War Room!`,
+            });
+          }
 
           // Periodic live code output lines generation reflecting the active task
           if (Math.random() < 0.22 * effectiveDelta) {
@@ -958,6 +1030,19 @@ export class OfficeSimulation {
               task.artifacts = [generatedArtifact];
             }
             task.logs = [...task.logs, `Completed and verified 100% by ${assigned.name}.`];
+
+            // Dispatch 100% completion sprint report to Telegram / War Room
+            const completionMsg = `🎉 SPRINT DELIVERABLE COMPLETED 100%! Tiket sprint "${task.title}" telah tuntas dikerjakan dan diverifikasi oleh ${assigned.name}. Seluruh artifact kode dan berkas deliverables telah tersimpan aman di workspace kantor!`;
+            this.dispatchSprintReport({
+              senderAgentId: assigned.id,
+              senderName: assigned.name,
+              senderRoleTitle: assigned.roleTitle,
+              senderAvatarColor: assigned.avatarColor,
+              reportType: 'task_completed',
+              taskTitle: task.title,
+              progressPercent: 100,
+              message: completionMsg,
+            });
 
             // Check if this agent has another task waiting in the backlog
             const nextBacklogTask = updatedTasks.find(
@@ -1022,8 +1107,9 @@ export class OfficeSimulation {
     // Reconcile all agents to ensure no agent is stuck in 'working' state without an active in_progress task
     updatedAgents = updatedAgents.map((agent) => {
       // Preserve agents currently in transit or interactive states
+      const isWalkingActive = agent.state === 'walking' && this.pathStates.has(agent.id);
       if (
-        agent.state === 'walking' ||
+        isWalkingActive ||
         agent.state === 'talking' ||
         agent.state === 'coffee_break' ||
         agent.state === 'seeking_approval' ||
@@ -1070,6 +1156,84 @@ export class OfficeSimulation {
     });
 
     const now = Date.now();
+
+    // Periodic autonomous sprint standup report (every ~35 seconds during active sprint)
+    const inProgressTasks = updatedTasks.filter((t) => t.status === 'in_progress');
+    const reportInterval = 35000 / this.speedMultiplier;
+
+    if (inProgressTasks.length > 0 && now - this.lastSprintReportTime > reportInterval) {
+      this.lastSprintReportTime = now;
+      const leader =
+        updatedAgents.find((a) => {
+          const title = (a.roleTitle || '').toLowerCase();
+          return (
+            title.includes('founder') ||
+            title.includes('architect') ||
+            title.includes('lead') ||
+            title.includes('ceo')
+          );
+        }) || updatedAgents[0];
+
+      // Alternate between Leader summary and active Member live report
+      const shouldLeaderReport = Math.random() < 0.5 || inProgressTasks.length > 1;
+
+      if (shouldLeaderReport && leader) {
+        const avgProgress = Math.round(
+          inProgressTasks.reduce((sum, t) => sum + (t.progress || 0), 0) / inProgressTasks.length
+        );
+        const taskTitles = inProgressTasks.map((t) => `"${t.title}"`).join(' & ');
+        const standupMsg = `Laporan Standup Sprint Tim: Seluruh divisi saat ini fokus bekerja di meja masing-masing. Progres rata-rata sprint saat ini ${avgProgress}% pada tiket ${taskTitles}. Koordinasi tim solid, performa workspace optimal dan siap mencapai target!`;
+
+        this.dispatchSprintReport({
+          senderAgentId: leader.id,
+          senderName: leader.name,
+          senderRoleTitle: leader.roleTitle,
+          senderAvatarColor: leader.avatarColor,
+          reportType: 'leader_standup',
+          taskTitle: inProgressTasks[0].title,
+          progressPercent: avgProgress,
+          message: standupMsg,
+        });
+
+        newEvents.push({
+          id: `ev-standup-${now}-${leader.id}`,
+          timestamp: now,
+          type: 'system',
+          categoryTag: '📢 Standup Sprint',
+          agentId: leader.id,
+          agentName: leader.name,
+          description: `📢 Leader ${leader.name} memberikan laporan berkala progres sprint tim (${avgProgress}%) ke Telegram / War Room!`,
+        });
+      } else {
+        // Pick one working agent
+        const randomTask = inProgressTasks[Math.floor(Math.random() * inProgressTasks.length)];
+        const worker = updatedAgents.find((a) => a.id === randomTask.assignedAgentId);
+        if (worker) {
+          const liveMsg = `Update live dari meja kerja: Saat ini saya sedang aktif menyusun implementasi komponen dan merapikan styling untuk "${randomTask.title}" (progres: ${Math.round(randomTask.progress)}%). Tidak ada kendala teknis!`;
+
+          this.dispatchSprintReport({
+            senderAgentId: worker.id,
+            senderName: worker.name,
+            senderRoleTitle: worker.roleTitle,
+            senderAvatarColor: worker.avatarColor,
+            reportType: 'member_progress',
+            taskTitle: randomTask.title,
+            progressPercent: randomTask.progress,
+            message: liveMsg,
+          });
+
+          newEvents.push({
+            id: `ev-live-report-${now}-${worker.id}`,
+            timestamp: now,
+            type: 'system',
+            categoryTag: '💬 Laporan Tim',
+            agentId: worker.id,
+            agentName: worker.name,
+            description: `💬 ${worker.name} mengirimkan laporan live progres pengerjaan "${randomTask.title}" (${Math.round(randomTask.progress)}%) ke Telegram / War Room!`,
+          });
+        }
+      }
+    }
 
     // 1. Multi-turn Dialog Step Handling (Back-and-forth LLM conversation)
     if (this.activeMultiTurnDialog) {
