@@ -36,6 +36,7 @@ import {
   Compass,
   MessagesSquare,
   LayoutGrid,
+  Calendar,
 } from 'lucide-react';
 
 interface IsometricOfficeProps {
@@ -644,14 +645,40 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
   // Refs for animation loop
   const agentsRef = useRef<Agent[]>(agents);
-  agentsRef.current = agents;
   const tasksRef = useRef<TaskTicket[]>(tasks);
-  tasksRef.current = tasks;
   const onSimulationUpdateRef = useRef(onSimulationUpdate);
   onSimulationUpdateRef.current = onSimulationUpdate;
   const onSelectAgentRef = useRef(onSelectAgent);
   onSelectAgentRef.current = onSelectAgent;
   const lastSimulationSyncTimeRef = useRef<number>(0);
+
+  // Synchronize incoming agents from parent without snapping back actively moving agents
+  useEffect(() => {
+    const liveMap = new Map(agentsRef.current.map((a) => [a.id, a]));
+    const merged = agents.map((incoming) => {
+      const live = liveMap.get(incoming.id);
+      if (live) {
+        // If agent is walking or actively in pathing state, preserve live simulated coordinates
+        const isWalking = live.state === 'walking' || simulation.getAgentPathState(incoming.id);
+        if (isWalking) {
+          return {
+            ...incoming,
+            currentPosition: live.currentPosition,
+            rotationY: live.rotationY,
+            facingDirection: live.facingDirection,
+            state: live.state,
+            stateMessage: live.stateMessage,
+          };
+        }
+      }
+      return incoming;
+    });
+    agentsRef.current = merged;
+  }, [agents, simulation]);
+
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
 
   // Isometric Projection Math:
   // TILE_W = 60, TILE_H = 32 gives standard 2:1 isometric trimetric projection
@@ -730,6 +757,40 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     panRef.current = { x: 0, y: 15 };
     setZoom(1.0);
     setPan({ x: 0, y: 15 });
+  };
+
+  // Daily Standup in Conference Room State & Handlers
+  const [isStandupLoading, setIsStandupLoading] = useState(false);
+  const [standupSessionInfo, setStandupSessionInfo] = useState<{
+    active: boolean;
+    phase?: string;
+    speakerName?: string;
+    speakerRole?: string;
+    currentIdx?: number;
+    totalCount?: number;
+  }>({ active: false });
+
+  const handleTriggerStandup = async () => {
+    if (simulation.isStandupActive()) {
+      handleFocusZone(11.5, 6.0);
+      return;
+    }
+    setIsStandupLoading(true);
+    try {
+      const { updatedAgents, event } = await simulation.triggerDailyStandup(agentsRef.current, 'web');
+      onSimulationUpdateRef.current?.(updatedAgents, tasksRef.current, [event]);
+      handleFocusZone(11.5, 6.0);
+    } catch (err) {
+      console.error('[Standup] Error starting standup:', err);
+    } finally {
+      setIsStandupLoading(false);
+    }
+  };
+
+  const handleCancelStandup = () => {
+    const { updatedAgents, event } = simulation.cancelStandup(agentsRef.current);
+    onSimulationUpdateRef.current?.(updatedAgents, tasksRef.current, [event]);
+    setStandupSessionInfo({ active: false });
   };
 
   // Pointer interactions
@@ -979,6 +1040,31 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         onSimulationUpdateRef.current?.(updatedAgents, updatedTasks, newEvents);
       }
 
+      // Sync active standup state for HUD UI
+      const activeStandup = simulation.getActiveStandupSession();
+      if (activeStandup && activeStandup.phase !== 'wrapping_up') {
+        const currentSpeech = activeStandup.speeches[activeStandup.currentSpeakerIdx];
+        setStandupSessionInfo((prev) => {
+          if (
+            prev.active &&
+            prev.currentIdx === activeStandup.currentSpeakerIdx &&
+            prev.phase === activeStandup.phase
+          ) {
+            return prev;
+          }
+          return {
+            active: true,
+            phase: activeStandup.phase,
+            speakerName: currentSpeech?.agentName,
+            speakerRole: currentSpeech?.roleTitle,
+            currentIdx: activeStandup.currentSpeakerIdx,
+            totalCount: activeStandup.speeches.length,
+          };
+        });
+      } else {
+        setStandupSessionInfo((prev) => (prev.active ? { active: false } : prev));
+      }
+
       // Step Footprint Trail generation
       updatedAgents.forEach((agent) => {
         if (agent.state === 'walking') {
@@ -1197,7 +1283,12 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         ctx.stroke();
       }
 
+            // =========================================================
+      // REGIONAL BOULEVARD ROADWAY INFRASTRUCTURE (GROUND PLANE LAYER)
+      // Digambar sebelum pohon perimeter & pejalan kaki agar z-index pohon & agent selalu di atas jalan
       // =========================================================
+      
+// =========================================================
       // GRAND SHADY TREES AROUND OFFICE PERIMETER (SEJUK & RINDANG)
       // =========================================================
       const drawBigTree = (tx: number, tz: number, treeScale = 1.35, seed = 0) => {
@@ -1607,16 +1698,31 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.lineWidth = 2 * zoom;
       ctx.stroke();
 
-      // Left glass rail
+      // Left glass rail with entrance doorway opening (z = 2.0 to 3.8)
+      const ssDoorTop = toIso(6.8, 2.0);
+      const ssDoorBottom = toIso(6.8, 3.8);
+
+      // Segment 1 (North of doorway)
       ctx.beginPath();
       ctx.moveTo(ssCorner1.isoX, ssCorner1.isoY);
-      ctx.lineTo(ssCorner3.isoX, ssCorner3.isoY);
-      ctx.lineTo(ssCorner3.isoX, ssCorner3.isoY - 26 * zoom);
+      ctx.lineTo(ssDoorTop.isoX, ssDoorTop.isoY);
+      ctx.lineTo(ssDoorTop.isoX, ssDoorTop.isoY - 26 * zoom);
       ctx.lineTo(ssCorner1.isoX, ssCorner1.isoY - 26 * zoom);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      // Chrome handrail caps
+
+      // Segment 2 (South of doorway)
+      ctx.beginPath();
+      ctx.moveTo(ssDoorBottom.isoX, ssDoorBottom.isoY);
+      ctx.lineTo(ssCorner3.isoX, ssCorner3.isoY);
+      ctx.lineTo(ssCorner3.isoX, ssCorner3.isoY - 26 * zoom);
+      ctx.lineTo(ssDoorBottom.isoX, ssDoorBottom.isoY - 26 * zoom);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Chrome handrail caps & entrance posts
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2.5 * zoom;
       ctx.beginPath();
@@ -1625,8 +1731,23 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(ssCorner1.isoX, ssCorner1.isoY - 26 * zoom);
+      ctx.lineTo(ssDoorTop.isoX, ssDoorTop.isoY - 26 * zoom);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(ssDoorBottom.isoX, ssDoorBottom.isoY - 26 * zoom);
       ctx.lineTo(ssCorner3.isoX, ssCorner3.isoY - 26 * zoom);
       ctx.stroke();
+
+      // Doorway chrome stanchion posts
+      [ssDoorTop, ssDoorBottom].forEach((postIso) => {
+        ctx.fillStyle = '#e2e8f0';
+        ctx.beginPath();
+        ctx.arc(postIso.isoX, postIso.isoY - 26 * zoom, 3 * zoom, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1 * zoom;
+        ctx.stroke();
+      });
 
       // =========================================================
       // 6. ZONE ASSETS & FURNITURE (HIGH-DENSITY ISOMETRIC ART)
@@ -3696,43 +3817,127 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       // DYNAMIC REGIONAL COMMUTERS (AGENT BERJALAN & KENDARAAN KUNJUNGAN)
       // Menampilkan Pergerakan Nyata Agent Melintasi Trotoar, Zebra Cross, & Jalan Raya
       // =========================================================
+            // Helper: Render Commuter Agent Proporsional (Seimbang dengan Agen Kantor Utama)
+      const renderCommuterPedestrian = (
+        wx: number,
+        wz: number,
+        name: string,
+        companyTag: string,
+        shirtColor: string,
+        hairColor = '#0f172a',
+        facingRight = true
+      ) => {
+        const pIso = toIso(wx, wz);
+        const s = zoom;
+        const walkBob = Math.abs(Math.sin(timeSec * 7)) * 3 * s;
+        const walkSway = Math.sin(timeSec * 7) * 0.08;
+
+        // Bayangan Kaki (Sama proporsi dengan agen kantor)
+        ctx.fillStyle = 'rgba(40, 25, 15, 0.22)';
+        ctx.beginPath();
+        ctx.ellipse(pIso.isoX, pIso.isoY, 13 * s, 6.5 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(pIso.isoX, pIso.isoY - walkBob);
+        ctx.rotate(facingRight ? walkSway : -walkSway);
+
+        // Kaki & Celana
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.roundRect(-6 * s, -14 * s, 4.8 * s, 14 * s, 2 * s);
+        ctx.roundRect(1.2 * s, -14 * s, 4.8 * s, 14 * s, 2 * s);
+        ctx.fill();
+
+        // Sepatu
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.ellipse(-3.6 * s, -1.5 * s, 3.5 * s, 2 * s, 0, 0, Math.PI * 2);
+        ctx.ellipse(3.6 * s, -1.5 * s, 3.5 * s, 2 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Badan / Kemeja (Ukuran dewasa proporsional: 19*s x 15*s)
+        ctx.fillStyle = shirtColor;
+        ctx.beginPath();
+        ctx.roundRect(-9.5 * s, -28 * s, 19 * s, 15 * s, 5 * s);
+        ctx.fill();
+
+        // Kerah Putih
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(-3.5 * s, -28 * s);
+        ctx.lineTo(0, -24 * s);
+        ctx.lineTo(3.5 * s, -28 * s);
+        ctx.closePath();
+        ctx.fill();
+
+        // Kepala
+        ctx.fillStyle = '#fcd34d';
+        ctx.beginPath();
+        ctx.arc(0, -36 * s, 9.5 * s, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Rambut
+        ctx.fillStyle = hairColor;
+        ctx.beginPath();
+        ctx.arc(0, -38 * s, 10 * s, Math.PI * 0.95, Math.PI * 2.05);
+        ctx.fill();
+
+        // Pipi & Mata Expresif
+        ctx.fillStyle = 'rgba(255, 120, 140, 0.45)';
+        ctx.beginPath();
+        ctx.ellipse(-5 * s, -33 * s, 2.4 * s, 1.8 * s, 0, 0, Math.PI * 2);
+        ctx.ellipse(5 * s, -33 * s, 2.4 * s, 1.8 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.arc(-3.5 * s, -35.5 * s, 2 * s, 0, Math.PI * 2);
+        ctx.arc(3.5 * s, -35.5 * s, 2 * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-4.1 * s, -36.2 * s, 0.8 * s, 0, Math.PI * 2);
+        ctx.arc(2.9 * s, -36.2 * s, 0.8 * s, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+        // Floating Travel Badge
+        if (zoom >= 0.55) {
+          const tagText = `${name} (${companyTag})`;
+          const tagFont = `bold ${Math.max(8, Math.round(9 * zoom))}px sans-serif`;
+          ctx.font = tagFont;
+          const tw = ctx.measureText(tagText).width;
+          const tagW = tw + 18 * s;
+          const tagH = Math.max(16, Math.round(18 * s));
+          const tagY = pIso.isoY - 50 * s - walkBob;
+
+          // Shadow
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.2)';
+          ctx.beginPath();
+          ctx.roundRect(pIso.isoX - tagW / 2, tagY - tagH / 2 + 1.5, tagW, tagH, 5 * s);
+          ctx.fill();
+
+          // Badge Pill
+          ctx.fillStyle = shirtColor;
+          ctx.beginPath();
+          ctx.roundRect(pIso.isoX - tagW / 2, tagY - tagH / 2, tagW, tagH, 5 * s);
+          ctx.fill();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = tagFont;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(tagText, pIso.isoX, tagY);
+        }
+      };
+
       // 1. Pedestrian 1: Dimas (NusaNova) berjalan mengunjungi lobi ShadowMove
       const walk1Progress = (timeSec * 2.4) % 36.0;
       const walk1X = -36.0 + walk1Progress;
       if (walk1X <= -2.0) {
-        const pIso = toIso(walk1X, 13.5);
-        const walkBob = Math.abs(Math.sin(timeSec * 7)) * 2 * zoom;
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';
-        ctx.beginPath();
-        ctx.ellipse(pIso.isoX, pIso.isoY, 4.5 * zoom, 2.2 * zoom, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#0284c7';
-        ctx.beginPath();
-        ctx.roundRect(pIso.isoX - 3 * zoom, pIso.isoY - 11 * zoom - walkBob, 6 * zoom, 7 * zoom, 1.5 * zoom);
-        ctx.fill();
-        ctx.fillStyle = '#fed7aa';
-        ctx.beginPath();
-        ctx.arc(pIso.isoX, pIso.isoY - 14 * zoom - walkBob, 3 * zoom, 0, Math.PI * 2);
-        ctx.fill();
-        // Travel Tag (Hanya tampil saat zoom cukup & bebas overflow)
-        if (zoom >= 0.65) {
-          const tag1Text = '🚶 Dimas (NusaNova) -> ShadowMove';
-          const tag1Font = `bold ${Math.max(8, Math.round(9 * zoom))}px sans-serif`;
-          ctx.font = tag1Font;
-          const tw1 = ctx.measureText(tag1Text).width;
-          const tag1W = tw1 + 16;
-          const tag1H = Math.max(16, Math.round(18 * zoom));
-          const tagY = pIso.isoY - 24 * zoom - walkBob;
-          ctx.fillStyle = '#0284c7';
-          ctx.beginPath();
-          ctx.roundRect(pIso.isoX - tag1W / 2, tagY - tag1H / 2, tag1W, tag1H, 4);
-          ctx.fill();
-          ctx.fillStyle = '#ffffff';
-          ctx.font = tag1Font;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(tag1Text, pIso.isoX, tagY);
-        }
+        renderCommuterPedestrian(walk1X, 13.5, 'Dimas', 'NusaNova -> ShadowMove', '#0284c7', '#0f172a', true);
       }
 
       // 2. Pedestrian 2: Tim ShadowMove berjalan ke Cyber Pujasera untuk makan siang
@@ -3745,39 +3950,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         w2Z = 22.5;
         w2X = 2.0 + Math.min(16.0, ((walk2Progress - 10) / 20) * 16.0); // menuju pujasera
       }
-      const p2Iso = toIso(w2X, w2Z);
-      const w2Bob = Math.abs(Math.sin(timeSec * 7)) * 2 * zoom;
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';
-      ctx.beginPath();
-      ctx.ellipse(p2Iso.isoX, p2Iso.isoY, 4.5 * zoom, 2.2 * zoom, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#c85a2b';
-      ctx.beginPath();
-      ctx.roundRect(p2Iso.isoX - 3 * zoom, p2Iso.isoY - 11 * zoom - w2Bob, 6 * zoom, 7 * zoom, 1.5 * zoom);
-      ctx.fill();
-      ctx.fillStyle = '#fed7aa';
-      ctx.beginPath();
-      ctx.arc(p2Iso.isoX, p2Iso.isoY - 14 * zoom - w2Bob, 3 * zoom, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (zoom >= 0.65) {
-        const tag2Text = '🚶 Tim ShadowMove -> Pujasera';
-        const tag2Font = `bold ${Math.max(8, Math.round(9 * zoom))}px sans-serif`;
-        ctx.font = tag2Font;
-        const tw2 = ctx.measureText(tag2Text).width;
-        const tag2W = tw2 + 16;
-        const tag2H = Math.max(16, Math.round(18 * zoom));
-        const tag2Y = p2Iso.isoY - 24 * zoom - w2Bob;
-        ctx.fillStyle = '#c85a2b';
-        ctx.beginPath();
-        ctx.roundRect(p2Iso.isoX - tag2W / 2, tag2Y - tag2H / 2, tag2W, tag2H, 4);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.font = tag2Font;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(tag2Text, p2Iso.isoX, tag2Y);
-      }
+      renderCommuterPedestrian(w2X, w2Z, 'Tim ShadowMove', 'Pujasera 24 Jam', '#c85a2b', '#1e293b', true);
 
       // 3. Mobil Delegasi: CyberFin Executive EV Sedan melaju menuju GarudaLogix
       const carDriveX = -50.0 + (((timeSec * 5.5) + 10) % 95.0);
@@ -4989,6 +5162,13 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
                       📊 Sprint
                     </button>
                     <button
+                      onClick={() => handleFocusZone(11.5, 6.0)}
+                      className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#fdeed9] text-[#4f46e5] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
+                      title="Fokus ke Ruang Rapat (Conference Table)"
+                    >
+                      📅 Rapat
+                    </button>
+                    <button
                       onClick={() => handleFocusZone(11, -7)}
                       className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#ede2d1] text-[#4338ca] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
                       title="Fokus ke Lead Suite"
@@ -5015,6 +5195,24 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       {/* ========================================================= */}
       <div className="absolute bottom-5 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto">
         <div className="bg-[#faf5eb]/95 backdrop-blur-xl border-2 border-[#d6c5ad] p-1.5 rounded-2xl shadow-xl flex items-center gap-1.5 text-[#2c231c]">
+          {/* Daily Standup Otomatis Button */}
+          <button
+            onClick={handleTriggerStandup}
+            disabled={isStandupLoading}
+            className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all text-xs font-semibold shadow-md group hover:scale-[1.02] ${
+              standupSessionInfo.active
+                ? 'bg-gradient-to-r from-amber-500 to-indigo-600 text-white border-amber-300 animate-pulse'
+                : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white border-indigo-400/40 shadow-indigo-500/20'
+            }`}
+            title="Adakan Daily Standup di Ruang Rapat: Kumpulkan seluruh agen untuk update progres & kirim ringkasan ke Telegram"
+          >
+            <Calendar className="w-3.5 h-3.5 text-white group-hover:scale-110 transition-transform" />
+            <span>{standupSessionInfo.active ? 'Standup Aktif' : 'Daily Standup'}</span>
+            <span className="px-1.5 py-0.2 bg-white/20 rounded font-mono text-[9px] text-white font-bold hidden sm:inline">
+              Rapat
+            </span>
+          </button>
+
           {onOpenChat && (
             <button
               onClick={onOpenChat}
@@ -5122,6 +5320,54 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           </button>
         </div>
       </div>
+
+      {/* ========================================================= */}
+      {/* FLOATING ACTIVE DAILY STANDUP MEETING BANNER */}
+      {/* ========================================================= */}
+      {standupSessionInfo.active && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto max-w-[94vw]">
+          <div className="bg-[#1e1b4b]/95 backdrop-blur-xl border-2 border-indigo-500/70 text-white rounded-2xl px-4 py-2.5 shadow-2xl flex items-center gap-3 ring-2 ring-indigo-400/20">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/30 border border-indigo-400/50 flex items-center justify-center text-base shrink-0 animate-pulse">
+              📅
+            </div>
+            <div className="flex flex-col min-w-0 pr-2">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-[11px] text-indigo-300 tracking-wider uppercase">
+                  Daily Standup Sedang Berlangsung
+                </span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+              </div>
+              <div className="text-xs text-indigo-100 truncate">
+                {standupSessionInfo.phase === 'gathering' ? (
+                  <span>🚶 Seluruh tim sedang berkumpul di Meja Bundar Ruang Rapat...</span>
+                ) : standupSessionInfo.speakerName ? (
+                  <span>
+                    🗣️ <strong className="text-white font-semibold">{standupSessionInfo.speakerName}</strong> ({standupSessionInfo.speakerRole}) berbicara ({((standupSessionInfo.currentIdx ?? 0) + 1)}/{standupSessionInfo.totalCount})
+                  </span>
+                ) : (
+                  <span>✨ Menyusun notulensi ringkasan & mengirim ke Telegram...</span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-indigo-400/30">
+              <button
+                onClick={() => handleFocusZone(11.5, 6.0)}
+                className="px-2.5 py-1 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white text-[11px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
+                title="Arahkan kamera ke meja rapat"
+              >
+                <span>👀 Lihat</span>
+              </button>
+              <button
+                onClick={handleCancelStandup}
+                className="px-2 py-1 rounded-lg bg-white/10 hover:bg-rose-500/30 text-indigo-200 hover:text-rose-200 text-[11px] font-medium transition-colors"
+                title="Batalkan rapat standup"
+              >
+                Selesai
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top-Center Regional Kavling Quick Navigator */}
       <div className="absolute top-5 left-1/2 -translate-x-1/2 z-20 pointer-events-auto max-w-[94vw] overflow-x-auto scrollbar-none">

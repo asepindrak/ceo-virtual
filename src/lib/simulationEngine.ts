@@ -1,8 +1,9 @@
-import { Agent, AgentState, TaskTicket, Position3D, ActivityEvent, AgentDialog, HumanDecisionRequest, MarketplaceAgent, Company, TravelMission } from '@/types/office';
+import { Agent, AgentState, TaskTicket, Position3D, ActivityEvent, AgentDialog, HumanDecisionRequest, MarketplaceAgent, Company, TravelMission, StandupAgentSpeech } from '@/types/office';
 import { findPath } from '@/lib/pathfinding';
 import {
   PANTRY_CENTER,
   MEETING_ROOM_CENTER,
+  CONFERENCE_SEATS,
   WATER_COOLER_SPOT,
   OWNER_INTERACTION_SPOT,
   EXIT_DOOR_SPOT,
@@ -57,6 +58,14 @@ export class OfficeSimulation {
   private lastIdleActivityTime: number = Date.now();
   private lastSprintReportTime: number = Date.now();
   private activeMultiTurnDialog?: MultiTurnDialogState;
+  private activeStandupSession?: {
+    companyId: string;
+    phase: 'gathering' | 'in_progress' | 'wrapping_up';
+    speeches: StandupAgentSpeech[];
+    currentSpeakerIdx: number;
+    speakerTimer: number;
+    startedAt: number;
+  };
   private idleTimers: Map<string, { startTime: number; duration: number; nextSpot?: Position3D; nextState?: AgentArrivalState; nextMessage?: string }> = new Map();
   public currentCompany?: Company;
 
@@ -574,6 +583,136 @@ export class OfficeSimulation {
     return this.sendAgentTo(agent, agent.deskPosition, targetState);
   }
 
+  // Check if daily standup is currently running
+  public isStandupActive(): boolean {
+    return Boolean(this.activeStandupSession);
+  }
+
+  public getActiveStandupSession() {
+    return this.activeStandupSession;
+  }
+
+  // Trigger daily standup: assemble all agents at conference table and start speaking turns
+  public triggerDailyStandup(
+    agents: Agent[],
+    triggeredBy: string = 'web'
+  ): { updatedAgents: Agent[]; event: ActivityEvent } {
+    const companyId = this.currentCompany?.id || 'company-shadowmove';
+    const companyName = this.currentCompany?.name || 'ShadowMove';
+
+    const speeches: StandupAgentSpeech[] = [];
+    const tasks = this.currentCompany?.tasks || [];
+
+    const updatedAgents = agents.map((agent, idx) => {
+      const seat = CONFERENCE_SEATS[idx % CONFERENCE_SEATS.length];
+      const roleLower = (agent.roleTitle || agent.role || '').toLowerCase();
+      const assignedTask = tasks.find((t) => t.assignedAgentId === agent.id && t.status === 'in_progress');
+      const taskName = assignedTask ? assignedTask.title : 'fitur sistem';
+
+      let yesterday = '';
+      let today = '';
+      let blockers = 'Tidak ada kendala (None)';
+
+      if (roleLower.includes('founder') || roleLower.includes('ceo') || roleLower.includes('lead') || roleLower.includes('manager')) {
+        yesterday = 'Review arsitektur sprint & alokasi tiket task tim.';
+        today = `Supervisi implementasi ${taskName} & sinkronisasi target deliverables.`;
+        blockers = 'None, roadmap berjalan sesuai jadwal.';
+      } else if (roleLower.includes('design') || roleLower.includes('ui') || roleLower.includes('creative')) {
+        yesterday = 'Menyusun wireframe, design token warna, dan tata letak responsif.';
+        today = `Fokus visual polishing komponen ${taskName} & micro-animations.`;
+        blockers = 'None, aset grafis sudah siap diekspor.';
+      } else if (roleLower.includes('backend') || roleLower.includes('engineer') || roleLower.includes('cloud') || roleLower.includes('architect')) {
+        yesterday = 'Menyelesaikan skema data, endpoint API, dan optimasi query database.';
+        today = `Menghubungkan integrasi service ${taskName} & testing throughput.`;
+        blockers = 'None, pipeline API dan database stabil.';
+      } else if (roleLower.includes('qa') || roleLower.includes('test') || roleLower.includes('automation')) {
+        yesterday = 'Menulis skenario automated test dan regression testing.';
+        today = `Validasi end-to-end flows untuk ${taskName} di berbagai resolusi layar.`;
+        blockers = 'None, test suite hijau dan build staging stabil.';
+      } else if (roleLower.includes('devops') || roleLower.includes('infra') || roleLower.includes('reliability')) {
+        yesterday = 'Audit resource memory, konfigurasi container, dan monitoring log.';
+        today = 'Optimasi latency deployment dan setup alert monitoring real-time.';
+        blockers = 'None, server metrics dalam batas hijau.';
+      } else {
+        yesterday = 'Menyelesaikan modul fundamental dan dokumentasi alur kerja.';
+        today = `Melanjutkan pengerjaan ${taskName} dan koordinasi antar divisi.`;
+        blockers = 'None, semua dependensi terpenuhi.';
+      }
+
+      const fullSpeech = `🎯 Kemarin: ${yesterday} | ⚡ Hari ini: ${today} | 🚧 Blocker: ${blockers}`;
+
+      speeches.push({
+        agentId: agent.id,
+        agentName: agent.name,
+        roleTitle: agent.roleTitle || agent.role,
+        avatarColor: agent.avatarColor || '#38bdf8',
+        seatPosition: seat,
+        yesterday,
+        today,
+        blockers,
+        fullSpeech,
+        timestamp: Date.now(),
+      });
+
+      const moved = this.sendAgentTo(agent, seat, 'meeting');
+      moved.stateMessage = '🚶 Menuju Ruang Rapat (Conference Table) untuk Daily Standup...';
+      return moved;
+    });
+
+    this.activeStandupSession = {
+      companyId,
+      phase: 'gathering',
+      speeches,
+      currentSpeakerIdx: -1,
+      speakerTimer: 0,
+      startedAt: Date.now(),
+    };
+
+    if (typeof fetch !== 'undefined') {
+      fetch('/api/office/standup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start', companyId, triggeredBy }),
+      }).catch(() => {});
+    }
+
+    const event: ActivityEvent = {
+      id: `ev-standup-start-${Date.now()}`,
+      timestamp: Date.now(),
+      type: 'meeting',
+      categoryTag: '📅 Daily Standup',
+      agentId: agents[0]?.id || 'lead',
+      agentName: agents[0]?.name || 'Leader',
+      description: `📅 Daily Standup Dimulai! Seluruh anggota tim ${companyName} berkumpul di ruang rapat conference table.`,
+    };
+
+    return { updatedAgents, event };
+  }
+
+  // Cancel or finish daily standup early: dismiss agents back to their desks
+  public cancelStandup(agents: Agent[]): { updatedAgents: Agent[]; event: ActivityEvent } {
+    this.activeStandupSession = undefined;
+    const updatedAgents = agents.map((ag) => {
+      ag.activeDialog = undefined;
+      const targetDesk = ag.deskPosition || { x: 0, z: 0 };
+      const dismissed = this.sendAgentTo(ag, targetDesk, 'working');
+      dismissed.stateMessage = 'Standup selesai. Kembali ke meja kerja.';
+      return dismissed;
+    });
+
+    const event: ActivityEvent = {
+      id: `ev-standup-cancel-${Date.now()}`,
+      timestamp: Date.now(),
+      type: 'meeting',
+      categoryTag: '📅 Standup Selesai',
+      agentId: 'system',
+      agentName: 'Team Standup',
+      description: 'Daily Standup telah diakhiri. Seluruh agent kembali ke meja kerja masing-masing.',
+    };
+
+    return { updatedAgents, event };
+  }
+
   // Dispatch an agent on an out-of-town travel mission (Visits Train Station or Parking first)
   public dispatchAgentOnTravelMission(
     agent: Agent,
@@ -684,162 +823,171 @@ export class OfficeSimulation {
       const pathState = this.pathStates.get(currentAgent.id);
 
       if (pathState && currentAgent.state === 'walking') {
-        const targetWaypoint = pathState.waypoints[pathState.currentWaypointIndex];
-        if (targetWaypoint) {
+        let remainingStep = moveSpeed * effectiveDelta;
+        let arrived = false;
+
+        while (remainingStep > 0 && pathState.currentWaypointIndex < pathState.waypoints.length) {
+          const targetWaypoint = pathState.waypoints[pathState.currentWaypointIndex];
           const dx = targetWaypoint.x - currentAgent.currentPosition.x;
           const dz = targetWaypoint.z - currentAgent.currentPosition.z;
-          const dist = Math.sqrt(dx * dx + dz * dz);
-          const stepDist = moveSpeed * effectiveDelta;
+          const dist = Math.hypot(dx, dz);
 
           // Rotate to face moving direction
           if (dist > 0.05) {
             currentAgent.rotationY = Math.atan2(dx, dz);
+            currentAgent.facingDirection = dx >= 0 ? 'right' : 'left';
           }
 
-          if (dist <= stepDist) {
-            // Reached this waypoint
+          if (dist <= remainingStep) {
+            // Reached this waypoint, carry over remaining distance to next waypoint
             currentAgent.currentPosition = { ...targetWaypoint };
+            remainingStep -= dist;
             pathState.currentWaypointIndex++;
 
-            // Check if reached destination
+            // Check if reached final destination
             if (pathState.currentWaypointIndex >= pathState.waypoints.length) {
-              // Arrived!
-              this.pathStates.delete(currentAgent.id);
-              currentAgent.state = pathState.onArrivalState;
-              currentAgent.currentPosition = { ...pathState.finalTarget };
-
-              if (pathState.onArrivalState === 'talking' && pathState.targetAgentId) {
-                const targetAgent = agents.find((a) => a.id === pathState.targetAgentId);
-                const fallbackBanter = generateProceduralCollabBanter(
-                  currentAgent,
-                  targetAgent || currentAgent,
-                  1,
-                  undefined,
-                  tasks,
-                  this.currentCompany?.name
-                );
-                const dialogMsg = pathState.dialogContext || fallbackBanter.message;
-                const dialogCat = pathState.dialogCategory || fallbackBanter.categoryTag;
-                const dialogColor = pathState.dialogColor || fallbackBanter.tagColor;
-
-                const dialog: AgentDialog = {
-                  id: `dlg-${Date.now()}`,
-                  speakerId: currentAgent.id,
-                  speakerName: currentAgent.name,
-                  targetId: pathState.targetAgentId,
-                  targetName: targetAgent ? targetAgent.name : 'Colleague',
-                  message: dialogMsg,
-                  categoryTag: dialogCat,
-                  tagColor: dialogColor,
-                  timestamp: Date.now(),
-                };
-
-                currentAgent.activeDialog = dialog;
-                currentAgent.stateMessage = `${dialogCat}: "${dialogMsg}"`;
-                currentAgent.stats.collabCount += 1;
-                currentAgent.collabPartnerId = pathState.targetAgentId;
-                if (targetAgent) {
-                  currentAgent.facingDirection = currentAgent.currentPosition.x < targetAgent.currentPosition.x ? 'right' : 'left';
-                }
-                if (this.activeMultiTurnDialog && this.activeMultiTurnDialog.senderId === currentAgent.id) {
-                  this.activeMultiTurnDialog.turn1Timestamp = Date.now();
-                }
-
-                newEvents.push({
-                  id: `ev-${Date.now()}-${Math.random()}`,
-                  timestamp: Date.now(),
-                  type: dialogCat.includes('Sprint') ? 'collaboration' : 'casual_talk',
-                  categoryTag: dialogCat,
-                  agentId: currentAgent.id,
-                  agentName: currentAgent.name,
-                  targetAgentName: targetAgent?.name,
-                  description: `${dialogCat}: ${currentAgent.name} & ${targetAgent?.name}: "${dialogMsg}"`,
-                });
-              } else if (pathState.onArrivalState === 'seeking_approval') {
-                const dialogMsg = pathState.decisionRequest?.question || 'Boss, butuh persetujuan keputusan penting!';
-                currentAgent.activeDialog = {
-                  id: `dlg-${Date.now()}`,
-                  speakerId: currentAgent.id,
-                  speakerName: currentAgent.name,
-                  targetId: 'owner',
-                  targetName: 'Owner (Boss)',
-                  message: dialogMsg,
-                  timestamp: Date.now(),
-                };
-                currentAgent.stateMessage = `Waiting for Owner approval at Executive Desk: "${dialogMsg}"`;
-                currentAgent.facingDirection = 'front';
-              } else if (pathState.onArrivalState === 'at_train_station') {
-                currentAgent.state = 'at_train_station';
-                currentAgent.stateMessage = '🚆 Tiba di peron Stasiun Kereta Sentral. Validasi tiket & boarding ke Express Bullet Train...';
-                currentAgent.activeDialog = {
-                  id: `dlg-${Date.now()}`,
-                  speakerId: currentAgent.id,
-                  speakerName: currentAgent.name,
-                  targetId: 'station_master',
-                  targetName: 'Kepala Stasiun Aerorail',
-                  message: 'Tiket boarding valid! Masuk ke gerbong eksekutif kereta cepat.',
-                  categoryTag: '🚆 Stasiun Kereta',
-                  tagColor: '#4f46e5',
-                  timestamp: Date.now(),
-                };
-                currentAgent.facingDirection = 'front';
-                newEvents.push({
-                  id: `ev-station-${Date.now()}-${currentAgent.id}`,
-                  timestamp: Date.now(),
-                  type: 'movement',
-                  categoryTag: '🚆 Stasiun Kereta',
-                  agentId: currentAgent.id,
-                  agentName: currentAgent.name,
-                  description: `🚆 ${currentAgent.name} telah tiba di peron Stasiun Kereta Sentral dan menaiki gerbong Express Bullet Train untuk perjalanan dinas luar kota!`,
-                });
-              } else if (pathState.onArrivalState === 'business_trip') {
-                currentAgent.state = 'business_trip';
-                currentAgent.stateMessage = '🚗 Tiba di Mobil Kantor. Meluncur melalui jalan tol ke kota tujuan...';
-                currentAgent.facingDirection = 'front';
-                newEvents.push({
-                  id: `ev-car-${Date.now()}-${currentAgent.id}`,
-                  timestamp: Date.now(),
-                  type: 'movement',
-                  categoryTag: '🚗 Mobil Kantor',
-                  agentId: currentAgent.id,
-                  agentName: currentAgent.name,
-                  description: `🚗 ${currentAgent.name} tiba di Mobil Kantor dan meluncur melalui jalan tol untuk tugas dinas luar kota!`,
-                });
-              } else if (pathState.onArrivalState === 'leaving_office') {
-                currentAgent.state = 'leaving_office';
-                currentAgent.stateMessage = 'Has left the office premises.';
-              } else if (pathState.onArrivalState === 'coffee_break') {
-                currentAgent.state = 'coffee_break';
-                currentAgent.stateMessage = '☕ Menikmati espresso segar hasil seduhan mesin pantry';
-              } else if (pathState.onArrivalState === 'playing_game') {
-                currentAgent.state = 'playing_game';
-                currentAgent.stateMessage = '👾 Bermain game retro arcade di Game Corner';
-                currentAgent.facingDirection = 'front';
-              } else if (pathState.onArrivalState === 'meeting') {
-                currentAgent.state = 'meeting';
-                currentAgent.stateMessage = '📊 Mengamati papan kanban & sticky notes di Sprint Station';
-                currentAgent.facingDirection = 'left';
-              } else if (pathState.onArrivalState === 'working') {
-                currentAgent.state = 'working';
-                currentAgent.stateMessage = 'Focused on coding and implementation';
-                currentAgent.activeDialog = undefined;
-                currentAgent.collabPartnerId = undefined;
-                currentAgent.facingDirection = 'front';
-              } else if (pathState.onArrivalState === 'idle') {
-                currentAgent.state = 'idle';
-                currentAgent.stateMessage = 'Standby di meja kerja, siap menerima tugas sprint.';
-                currentAgent.activeDialog = undefined;
-                currentAgent.collabPartnerId = undefined;
-                currentAgent.facingDirection = 'front';
-              }
+              arrived = true;
+              break;
             }
           } else {
-            // Move along segment
-            const ratio = stepDist / dist;
+            // Move along segment with remaining step and finish frame
+            const ratio = remainingStep / dist;
             currentAgent.currentPosition = {
               x: currentAgent.currentPosition.x + dx * ratio,
               z: currentAgent.currentPosition.z + dz * ratio,
             };
+            remainingStep = 0;
+          }
+        }
+
+        if (arrived) {
+          this.pathStates.delete(currentAgent.id);
+          currentAgent.state = pathState.onArrivalState;
+          currentAgent.currentPosition = { ...pathState.finalTarget };
+
+          if (pathState.onArrivalState === 'talking' && pathState.targetAgentId) {
+            const targetAgent = agents.find((a) => a.id === pathState.targetAgentId);
+            const fallbackBanter = generateProceduralCollabBanter(
+              currentAgent,
+              targetAgent || currentAgent,
+              1,
+              undefined,
+              tasks,
+              this.currentCompany?.name
+            );
+            const dialogMsg = pathState.dialogContext || fallbackBanter.message;
+            const dialogCat = pathState.dialogCategory || fallbackBanter.categoryTag;
+            const dialogColor = pathState.dialogColor || fallbackBanter.tagColor;
+
+            const dialog: AgentDialog = {
+              id: `dlg-${Date.now()}`,
+              speakerId: currentAgent.id,
+              speakerName: currentAgent.name,
+              targetId: pathState.targetAgentId,
+              targetName: targetAgent ? targetAgent.name : 'Colleague',
+              message: dialogMsg,
+              categoryTag: dialogCat,
+              tagColor: dialogColor,
+              timestamp: Date.now(),
+            };
+
+            currentAgent.activeDialog = dialog;
+            currentAgent.stateMessage = `${dialogCat}: "${dialogMsg}"`;
+            currentAgent.stats.collabCount += 1;
+            currentAgent.collabPartnerId = pathState.targetAgentId;
+            if (targetAgent) {
+              currentAgent.facingDirection = currentAgent.currentPosition.x < targetAgent.currentPosition.x ? 'right' : 'left';
+            }
+            if (this.activeMultiTurnDialog && this.activeMultiTurnDialog.senderId === currentAgent.id) {
+              this.activeMultiTurnDialog.turn1Timestamp = Date.now();
+            }
+
+            newEvents.push({
+              id: `ev-${Date.now()}-${Math.random()}`,
+              timestamp: Date.now(),
+              type: dialogCat.includes('Sprint') ? 'collaboration' : 'casual_talk',
+              categoryTag: dialogCat,
+              agentId: currentAgent.id,
+              agentName: currentAgent.name,
+              targetAgentName: targetAgent?.name,
+              description: `${dialogCat}: ${currentAgent.name} & ${targetAgent?.name}: "${dialogMsg}"`,
+            });
+          } else if (pathState.onArrivalState === 'seeking_approval') {
+            const dialogMsg = pathState.decisionRequest?.question || 'Boss, butuh persetujuan keputusan penting!';
+            currentAgent.activeDialog = {
+              id: `dlg-${Date.now()}`,
+              speakerId: currentAgent.id,
+              speakerName: currentAgent.name,
+              targetId: 'owner',
+              targetName: 'Owner (Boss)',
+              message: dialogMsg,
+              timestamp: Date.now(),
+            };
+            currentAgent.stateMessage = `Waiting for Owner approval at Executive Desk: "${dialogMsg}"`;
+            currentAgent.facingDirection = 'front';
+          } else if (pathState.onArrivalState === 'at_train_station') {
+            currentAgent.state = 'at_train_station';
+            currentAgent.stateMessage = '🚆 Tiba di peron Stasiun Kereta Sentral. Validasi tiket & boarding ke Express Bullet Train...';
+            currentAgent.activeDialog = {
+              id: `dlg-${Date.now()}`,
+              speakerId: currentAgent.id,
+              speakerName: currentAgent.name,
+              targetId: 'station_master',
+              targetName: 'Kepala Stasiun Aerorail',
+              message: 'Tiket boarding valid! Masuk ke gerbong eksekutif kereta cepat.',
+              categoryTag: '🚆 Stasiun Kereta',
+              tagColor: '#4f46e5',
+              timestamp: Date.now(),
+            };
+            currentAgent.facingDirection = 'front';
+            newEvents.push({
+              id: `ev-station-${Date.now()}-${currentAgent.id}`,
+              timestamp: Date.now(),
+              type: 'movement',
+              categoryTag: '🚆 Stasiun Kereta',
+              agentId: currentAgent.id,
+              agentName: currentAgent.name,
+              description: `🚆 ${currentAgent.name} telah tiba di peron Stasiun Kereta Sentral dan menaiki gerbong Express Bullet Train untuk perjalanan dinas luar kota!`,
+            });
+          } else if (pathState.onArrivalState === 'business_trip') {
+            currentAgent.state = 'business_trip';
+            currentAgent.stateMessage = '🚗 Tiba di Mobil Kantor. Meluncur melalui jalan tol ke kota tujuan...';
+            currentAgent.facingDirection = 'front';
+            newEvents.push({
+              id: `ev-car-${Date.now()}-${currentAgent.id}`,
+              timestamp: Date.now(),
+              type: 'movement',
+              categoryTag: '🚗 Mobil Kantor',
+              agentId: currentAgent.id,
+              agentName: currentAgent.name,
+              description: `🚗 ${currentAgent.name} tiba di Mobil Kantor dan meluncur melalui jalan tol untuk tugas dinas luar kota!`,
+            });
+          } else if (pathState.onArrivalState === 'leaving_office') {
+            currentAgent.state = 'leaving_office';
+            currentAgent.stateMessage = 'Has left the office premises.';
+          } else if (pathState.onArrivalState === 'coffee_break') {
+            currentAgent.state = 'coffee_break';
+            currentAgent.stateMessage = '☕ Menikmati espresso segar hasil seduhan mesin pantry';
+          } else if (pathState.onArrivalState === 'playing_game') {
+            currentAgent.state = 'playing_game';
+            currentAgent.stateMessage = '👾 Bermain game retro arcade di Game Corner';
+            currentAgent.facingDirection = 'front';
+          } else if (pathState.onArrivalState === 'meeting') {
+            currentAgent.state = 'meeting';
+            currentAgent.stateMessage = '📊 Mengamati papan kanban & sticky notes di Sprint Station';
+            currentAgent.facingDirection = 'left';
+          } else if (pathState.onArrivalState === 'working') {
+            currentAgent.state = 'working';
+            currentAgent.stateMessage = 'Focused on coding and implementation';
+            currentAgent.activeDialog = undefined;
+            currentAgent.collabPartnerId = undefined;
+            currentAgent.facingDirection = 'front';
+          } else if (pathState.onArrivalState === 'idle') {
+            currentAgent.state = 'idle';
+            currentAgent.stateMessage = 'Standby di meja kerja, siap menerima tugas sprint.';
+            currentAgent.activeDialog = undefined;
+            currentAgent.collabPartnerId = undefined;
+            currentAgent.facingDirection = 'front';
           }
         }
       }
@@ -863,6 +1011,153 @@ export class OfficeSimulation {
 
     // Remove agents who have left the office completely
     updatedAgents = updatedAgents.filter((a) => a.stateMessage !== 'Has left the office premises.');
+
+    // -------------------------------------------------------------
+    // DAILY STANDUP MEETING TICK ORCHESTRATION
+    // -------------------------------------------------------------
+    if (this.activeStandupSession) {
+      const session = this.activeStandupSession;
+      session.speakerTimer += effectiveDelta;
+
+      if (session.phase === 'gathering') {
+        // Wait 4 seconds for agents to walk and gather around conference table
+        if (session.speakerTimer >= 4.0) {
+          session.phase = 'in_progress';
+          session.currentSpeakerIdx = 0;
+          session.speakerTimer = 0;
+
+          const firstSpeaker = session.speeches[0];
+          if (firstSpeaker) {
+            const agIdx = updatedAgents.findIndex((a) => a.id === firstSpeaker.agentId);
+            if (agIdx !== -1) {
+              updatedAgents[agIdx] = {
+                ...updatedAgents[agIdx],
+                activeDialog: {
+                  id: `standup-${Date.now()}`,
+                  speakerId: firstSpeaker.agentId,
+                  speakerName: firstSpeaker.agentName,
+                  targetId: 'team',
+                  targetName: 'Tim Rapat',
+                  message: firstSpeaker.fullSpeech,
+                  categoryTag: '📅 Daily Standup',
+                  tagColor: '#38bdf8',
+                  timestamp: Date.now(),
+                },
+                stateMessage: `📢 Mengikuti Standup: "${firstSpeaker.fullSpeech}"`,
+              };
+            }
+            if (typeof fetch !== 'undefined') {
+              fetch('/api/office/standup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'next_speaker', companyId: session.companyId }),
+              }).catch(() => {});
+            }
+          }
+        }
+      } else if (session.phase === 'in_progress') {
+        // Each agent speaks for 5.0 seconds
+        if (session.speakerTimer >= 5.0) {
+          // Clear current speaker's dialog
+          const prevSpeaker = session.speeches[session.currentSpeakerIdx];
+          if (prevSpeaker) {
+            const prevIdx = updatedAgents.findIndex((a) => a.id === prevSpeaker.agentId);
+            if (prevIdx !== -1) {
+              updatedAgents[prevIdx] = {
+                ...updatedAgents[prevIdx],
+                activeDialog: undefined,
+              };
+            }
+          }
+
+          session.currentSpeakerIdx++;
+          session.speakerTimer = 0;
+
+          if (session.currentSpeakerIdx < session.speeches.length) {
+            // Next speaker speaks!
+            const nextSpeaker = session.speeches[session.currentSpeakerIdx];
+            const nxtIdx = updatedAgents.findIndex((a) => a.id === nextSpeaker.agentId);
+            if (nxtIdx !== -1) {
+              updatedAgents[nxtIdx] = {
+                ...updatedAgents[nxtIdx],
+                activeDialog: {
+                  id: `standup-${Date.now()}`,
+                  speakerId: nextSpeaker.agentId,
+                  speakerName: nextSpeaker.agentName,
+                  targetId: 'team',
+                  targetName: 'Tim Rapat',
+                  message: nextSpeaker.fullSpeech,
+                  categoryTag: '📅 Daily Standup',
+                  tagColor: '#38bdf8',
+                  timestamp: Date.now(),
+                },
+                stateMessage: `📢 Mengikuti Standup: "${nextSpeaker.fullSpeech}"`,
+              };
+            }
+            if (typeof fetch !== 'undefined') {
+              fetch('/api/office/standup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'next_speaker', companyId: session.companyId }),
+              }).catch(() => {});
+            }
+          } else {
+            // All speakers finished! Wrapping up!
+            session.phase = 'wrapping_up';
+            session.speakerTimer = 0;
+
+            const leader = updatedAgents[0];
+            if (leader) {
+              updatedAgents[0] = {
+                ...leader,
+                activeDialog: {
+                  id: `standup-wrap-${Date.now()}`,
+                  speakerId: leader.id,
+                  speakerName: leader.name,
+                  targetId: 'team',
+                  targetName: 'Tim Rapat',
+                  message: 'Rapat selesai! Ringkasan telah dikirim ke Telegram CEO. Mari kita eksekusi target hari ini!',
+                  categoryTag: '✅ Standup Selesai',
+                  tagColor: '#10b981',
+                  timestamp: Date.now(),
+                },
+              };
+            }
+
+            // Finish on backend (sends summary to Telegram!)
+            if (typeof fetch !== 'undefined') {
+              fetch('/api/office/standup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'finish', companyId: session.companyId }),
+              }).catch(() => {});
+            }
+          }
+        }
+      } else if (session.phase === 'wrapping_up') {
+        if (session.speakerTimer >= 4.0) {
+          // Send all agents back to their desks!
+          updatedAgents = updatedAgents.map((ag) => {
+            const returned = this.sendAgentTo(ag, ag.deskPosition, 'working');
+            returned.activeDialog = undefined;
+            returned.stateMessage = 'Kembali ke meja kerja untuk mengeksekusi target harian...';
+            return returned;
+          });
+
+          newEvents.push({
+            id: `ev-standup-end-${Date.now()}`,
+            timestamp: Date.now(),
+            type: 'meeting',
+            categoryTag: '✅ Standup Selesai',
+            agentId: updatedAgents[0]?.id || 'lead',
+            agentName: updatedAgents[0]?.name || 'Leader',
+            description: `✅ Daily Standup Selesai! Seluruh agen telah menerima target dan kembali ke meja masing-masing. Notulensi terkirim ke Telegram.`,
+          });
+
+          this.activeStandupSession = undefined;
+        }
+      }
+    }
 
     // Synchronize mutual talking partners so both face each other and participate
     updatedAgents.forEach((agent) => {
@@ -1115,7 +1410,8 @@ export class OfficeSimulation {
         agent.state === 'seeking_approval' ||
         agent.state === 'leaving_office' ||
         agent.state === 'at_train_station' ||
-        agent.state === 'business_trip'
+        agent.state === 'business_trip' ||
+        agent.state === 'meeting'
       ) {
         return agent;
       }
@@ -1231,6 +1527,146 @@ export class OfficeSimulation {
             agentName: worker.name,
             description: `💬 ${worker.name} mengirimkan laporan live progres pengerjaan "${randomTask.title}" (${Math.round(randomTask.progress)}%) ke Telegram / War Room!`,
           });
+        }
+      }
+    }
+
+    // =========================================================
+    // DAILY STANDUP MEETING ORCHESTRATION IN CONFERENCE ROOM
+    // =========================================================
+    if (this.activeStandupSession) {
+      const session = this.activeStandupSession;
+
+      if (session.phase === 'gathering') {
+        // Wait until time to start speeches (agents walking to seats)
+        if (now >= session.speakerTimer) {
+          session.phase = 'in_progress';
+          session.currentSpeakerIdx = 0;
+          session.speakerTimer = now + 6500 / this.speedMultiplier;
+
+          const firstSpeech = session.speeches[0];
+          if (firstSpeech) {
+            const speakerAg = updatedAgents.find((a) => a.id === firstSpeech.agentId);
+            if (speakerAg) {
+              speakerAg.activeDialog = {
+                id: `standup-${now}-${firstSpeech.agentId}`,
+                speakerId: firstSpeech.agentId,
+                speakerName: firstSpeech.agentName,
+                targetId: 'all',
+                targetName: 'Tim Kantor',
+                message: firstSpeech.fullSpeech,
+                categoryTag: '📅 Daily Standup',
+                tagColor: '#6366f1',
+                timestamp: now,
+              };
+              speakerAg.stateMessage = `📅 Menyampaikan update standup harian (${firstSpeech.roleTitle})`;
+            }
+            newEvents.push({
+              id: `ev-spk-${now}-${firstSpeech.agentId}`,
+              timestamp: now,
+              type: 'meeting',
+              categoryTag: '📅 Daily Standup',
+              agentId: firstSpeech.agentId,
+              agentName: firstSpeech.agentName,
+              description: `📅 ${firstSpeech.agentName} (${firstSpeech.roleTitle}): "${firstSpeech.fullSpeech}"`,
+            });
+
+            if (typeof fetch !== 'undefined') {
+              fetch('/api/office/standup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'next_speaker', companyId: session.companyId }),
+              }).catch(() => {});
+            }
+          }
+        }
+      } else if (session.phase === 'in_progress') {
+        if (now >= session.speakerTimer) {
+          // Clear current speaker dialog
+          const prevSpeech = session.speeches[session.currentSpeakerIdx];
+          if (prevSpeech) {
+            const prevAg = updatedAgents.find((a) => a.id === prevSpeech.agentId);
+            if (prevAg) {
+              prevAg.activeDialog = undefined;
+              prevAg.stateMessage = 'Mendengarkan rekan tim di meja rapat...';
+            }
+          }
+
+          session.currentSpeakerIdx += 1;
+
+          if (session.currentSpeakerIdx < session.speeches.length) {
+            // Next speaker speaks
+            const nextSpeech = session.speeches[session.currentSpeakerIdx];
+            session.speakerTimer = now + 6500 / this.speedMultiplier;
+            const speakerAg = updatedAgents.find((a) => a.id === nextSpeech.agentId);
+            if (speakerAg) {
+              speakerAg.activeDialog = {
+                id: `standup-${now}-${nextSpeech.agentId}`,
+                speakerId: nextSpeech.agentId,
+                speakerName: nextSpeech.agentName,
+                targetId: 'all',
+                targetName: 'Tim Kantor',
+                message: nextSpeech.fullSpeech,
+                categoryTag: '📅 Daily Standup',
+                tagColor: '#6366f1',
+                timestamp: now,
+              };
+              speakerAg.stateMessage = `📅 Menyampaikan update standup harian (${nextSpeech.roleTitle})`;
+            }
+            newEvents.push({
+              id: `ev-spk-${now}-${nextSpeech.agentId}`,
+              timestamp: now,
+              type: 'meeting',
+              categoryTag: '📅 Daily Standup',
+              agentId: nextSpeech.agentId,
+              agentName: nextSpeech.agentName,
+              description: `📅 ${nextSpeech.agentName} (${nextSpeech.roleTitle}): "${nextSpeech.fullSpeech}"`,
+            });
+
+            if (typeof fetch !== 'undefined') {
+              fetch('/api/office/standup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'next_speaker', companyId: session.companyId }),
+              }).catch(() => {});
+            }
+          } else {
+            // All speakers finished! Wrapping up
+            session.phase = 'wrapping_up';
+            session.speakerTimer = now + 3500 / this.speedMultiplier;
+
+            // Trigger backend standup finish & telegram report dispatch
+            if (typeof fetch !== 'undefined') {
+              fetch('/api/office/standup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'finish', companyId: session.companyId }),
+              }).catch(() => {});
+            }
+
+            newEvents.push({
+              id: `ev-standup-done-${now}`,
+              timestamp: now,
+              type: 'meeting',
+              categoryTag: '📅 Standup Selesai',
+              agentId: 'system',
+              agentName: 'Team Standup',
+              description: `✅ Daily Standup selesai! Notulensi & ringkasan eksekutif telah dikirim ke Telegram CEO. Seluruh tim kembali ke meja kerja.`,
+            });
+
+            // Dismiss all agents back to their desk
+            updatedAgents = updatedAgents.map((ag) => {
+              ag.activeDialog = undefined;
+              const targetDesk = ag.deskPosition || { x: 0, z: 0 };
+              const dismissed = this.sendAgentTo(ag, targetDesk, 'working');
+              dismissed.stateMessage = 'Selesai standup. Kembali ke meja kerja.';
+              return dismissed;
+            });
+          }
+        }
+      } else if (session.phase === 'wrapping_up') {
+        if (now >= session.speakerTimer) {
+          this.activeStandupSession = undefined;
         }
       }
     }
@@ -1412,7 +1848,7 @@ export class OfficeSimulation {
 
     // 3. Autonomous Idle Wanderer: idle agents periodically choose a casual activity
     const idleWanderInterval = (22000 + Math.random() * 16000) / this.speedMultiplier;
-    if (now - this.lastIdleActivityTime > idleWanderInterval) {
+    if (!this.isStandupActive() && now - this.lastIdleActivityTime > idleWanderInterval) {
       this.lastIdleActivityTime = now;
       const idleAgents = updatedAgents.filter(
         (a) =>
@@ -1451,6 +1887,7 @@ export class OfficeSimulation {
     // 4. Dynamic Personality & LLM Collab banters (~45 - 75 seconds)
     const collabInterval = (45000 + Math.random() * 30000) / this.speedMultiplier;
     if (
+      !this.isStandupActive() &&
       now - this.lastCollabTime > collabInterval &&
       updatedAgents.length >= 2 &&
       !this.activeMultiTurnDialog &&

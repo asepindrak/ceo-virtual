@@ -38,6 +38,9 @@ import {
   RefreshCw,
   Copy,
   Check,
+  Volume2,
+  VolumeX,
+  Mic,
 } from 'lucide-react';
 
 interface OfficeChatModalProps {
@@ -305,6 +308,54 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
   const [tokenTestResult, setTokenTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [savingTelegram, setSavingTelegram] = useState(false);
   const [telegramToast, setTelegramToast] = useState<string | null>(null);
+
+  // Voice Audio Playback State for War Room messages
+  const [playingAudioMsgId, setPlayingAudioMsgId] = useState<string | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  const handlePlayVoice = (msgId: string, text: string) => {
+    if (playingAudioMsgId === msgId) {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current = null;
+      }
+      setPlayingAudioMsgId(null);
+      return;
+    }
+
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current = null;
+    }
+
+    const encoded = encodeURIComponent(text);
+    const audio = new Audio(`/api/voice/tts?text=${encoded}&lang=id`);
+    audioPlayerRef.current = audio;
+    setPlayingAudioMsgId(msgId);
+
+    audio.onended = () => {
+      setPlayingAudioMsgId(null);
+      audioPlayerRef.current = null;
+    };
+    audio.onerror = () => {
+      setPlayingAudioMsgId(null);
+      audioPlayerRef.current = null;
+    };
+
+    audio.play().catch((err) => {
+      console.warn('[Audio Play Error]:', err);
+      setPlayingAudioMsgId(null);
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current = null;
+      }
+    };
+  }, []);
 
   // Fetch Telegram status on mount & company change
   const fetchTelegramStatus = async () => {
@@ -684,6 +735,174 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
       }),
     }).catch(console.error);
 
+    // 🎵 REMOTE MUSIC INTENT DETECTION IN WAR ROOM CHAT
+    const lower = text.toLowerCase().trim();
+    if (
+      lower.startsWith('/play ') ||
+      lower.startsWith('putar lagu ') ||
+      lower.startsWith('play ') ||
+      lower.startsWith('setel lagu ') ||
+      lower === '/play'
+    ) {
+      const q = text.replace(/^(\/play|putar lagu|play|setel lagu)\s*/i, '').trim();
+      if (q) {
+        try {
+          const res = await fetch('/api/music', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'play_single',
+              query: q,
+              companyId: company.id,
+              requestedBy: 'Boss (War Room)',
+              broadcastToChat: true,
+            }),
+          });
+          const data = await res.json();
+          if (data.success && data.track) {
+            const systemMusicReply: OfficeGroupChatMessage = {
+              id: `msg-sys-music-${Date.now()}`,
+              senderType: 'system',
+              senderName: 'Office SoundSystem 🎵',
+              message: `▶️ Sedang memutar: **"${data.track.title}"** oleh **${data.track.artist}** (${data.track.durationText}) di browser kantor! Cek pemutar Winamp di floating deck sebelah kanan.`,
+              timestamp: Date.now(),
+            };
+            setMessages((prev) => [...prev, systemMusicReply]);
+            return;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    } else if (
+      lower.startsWith('/playlist ') ||
+      lower.startsWith('bikin playlist ') ||
+      lower.startsWith('buat playlist ')
+    ) {
+      const q = text.replace(/^(\/playlist|bikin playlist|buat playlist)\s*/i, '').trim();
+      if (q) {
+        try {
+          const res = await fetch('/api/music', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'create_playlist',
+              query: q,
+              companyId: company.id,
+              requestedBy: 'Boss (War Room)',
+              broadcastToChat: true,
+            }),
+          });
+          const data = await res.json();
+          if (data.success && Array.isArray(data.tracks)) {
+            const trackList = data.tracks.map((t: any, i: number) => `${i + 1}. ${t.title} - ${t.artist}`).join('\n');
+            const systemMusicReply: OfficeGroupChatMessage = {
+              id: `msg-sys-music-${Date.now()}`,
+              senderType: 'system',
+              senderName: 'Office SoundSystem 🎵',
+              message: `📻 Playlist **"${q}"** (${data.tracks.length} lagu) siap dan langsung diputar di browser kantor!\n\n${trackList}`,
+              timestamp: Date.now(),
+            };
+            setMessages((prev) => [...prev, systemMusicReply]);
+            return;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    } else if (lower === '/pause' || lower === 'pause musik' || lower === 'pause lagu') {
+      await fetch('/api/music', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'pause', companyId: company.id }),
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-sys-music-${Date.now()}`,
+          senderType: 'system',
+          senderName: 'Office SoundSystem 🎵',
+          message: '⏸️ Musik kantor telah dijeda.',
+          timestamp: Date.now(),
+        },
+      ]);
+      return;
+    } else if (lower === '/resume' || lower === 'resume musik' || lower === 'lanjut lagu') {
+      await fetch('/api/music', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'play', companyId: company.id }),
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-sys-music-${Date.now()}`,
+          senderType: 'system',
+          senderName: 'Office SoundSystem 🎵',
+          message: '▶️ Melanjutkan pemutaran musik kantor.',
+          timestamp: Date.now(),
+        },
+      ]);
+      return;
+    } else if (lower === '/stop' || lower === 'stop musik' || lower === 'stop lagu') {
+      await fetch('/api/music', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'stop', companyId: company.id }),
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-sys-music-${Date.now()}`,
+          senderType: 'system',
+          senderName: 'Office SoundSystem 🎵',
+          message: '⏹️ Musik kantor dihentikan.',
+          timestamp: Date.now(),
+        },
+      ]);
+      return;
+    } else if (lower === '/next' || lower === 'next lagu' || lower === 'skip lagu') {
+      const res = await fetch('/api/music', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'next', companyId: company.id }),
+      });
+      const data = await res.json();
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-sys-music-${Date.now()}`,
+          senderType: 'system',
+          senderName: 'Office SoundSystem 🎵',
+          message: data.state?.currentTrack
+            ? `⏭️ Skip ke lagu berikutnya: **"${data.state.currentTrack.title}"** - ${data.state.currentTrack.artist}`
+            : '⏭️ Playlist kosong.',
+          timestamp: Date.now(),
+        },
+      ]);
+      return;
+    } else if (lower === '/prev' || lower === 'prev lagu' || lower === 'lagu sebelumnya') {
+      const res = await fetch('/api/music', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'prev', companyId: company.id }),
+      });
+      const data = await res.json();
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-sys-music-${Date.now()}`,
+          senderType: 'system',
+          senderName: 'Office SoundSystem 🎵',
+          message: data.state?.currentTrack
+            ? `⏮️ Memutar lagu sebelumnya: **"${data.state.currentTrack.title}"** - ${data.state.currentTrack.artist}`
+            : '⏮️ Playlist kosong.',
+          timestamp: Date.now(),
+        },
+      ]);
+      return;
+    }
+
     // 🚀 Detect GitHub Link and Auto-Clone into Workspaces
     const gitMatch = text.match(/(?:https?:\/\/(?:www\.)?github\.com\/|git@github\.com:)([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)/i);
     let cloneSuccessNote = '';
@@ -785,6 +1004,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             messages: apiPayloadMessages,
             agentName: responder.name,
             agentRole: responder.roleTitle || responder.role,
+            agentTimezone: responder.timezone || 'Asia/Jakarta',
             currentTask: currentTask || null,
             allTasks: tasks || [],
             companyName: company.name,
@@ -1262,6 +1482,11 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                               <span>📱</span> Telegram
                             </span>
                           )}
+                          {msg.isVoiceNote && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded font-bold font-mono bg-purple-100 text-purple-700 border border-purple-300 flex items-center gap-0.5 animate-pulse">
+                              <span>🎙️</span> Voice Note {msg.voiceDuration ? `(${msg.voiceDuration}s)` : ''}
+                            </span>
+                          )}
                         </div>
                         <span
                           className={`text-[9px] font-mono shrink-0 ${
@@ -1279,6 +1504,39 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                       <div className="whitespace-pre-wrap font-sans text-xs">
                         {renderMessageContent(msg.message)}
                       </div>
+
+                      {/* Voice Audio Listen Button (for agent messages or voice notes) */}
+                      {(!isUser || msg.isVoiceNote) && (
+                        <div className="mt-2.5 pt-2 border-t border-black/5 flex items-center justify-between">
+                          <button
+                            onClick={() => handlePlayVoice(msg.id, msg.message)}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-semibold flex items-center gap-1.5 transition-all shadow-2xs ${
+                              playingAudioMsgId === msg.id
+                                ? 'bg-purple-600 text-white animate-pulse'
+                                : 'bg-[#f4ebe1] hover:bg-[#ede2d1] text-[#78350f] border border-[#d6c5ad]'
+                            }`}
+                            title="Dengarkan suara audio ini (Text-to-Speech)"
+                          >
+                            {playingAudioMsgId === msg.id ? (
+                              <>
+                                <VolumeX className="w-3 h-3 text-white" />
+                                <span>Hentikan Suara</span>
+                              </>
+                            ) : (
+                              <>
+                                <Volume2 className="w-3 h-3 text-[#c85a2b]" />
+                                <span>Dengarkan Suara</span>
+                              </>
+                            )}
+                          </button>
+                          {playingAudioMsgId === msg.id && (
+                            <span className="text-[10px] font-mono font-medium text-purple-600 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping" />
+                              Sedang diputar...
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

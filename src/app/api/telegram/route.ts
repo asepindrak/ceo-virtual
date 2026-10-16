@@ -66,10 +66,36 @@ export async function POST(req: Request) {
 
     // 3. Start Bot
     if (action === 'start_bot') {
-      const result = await startCompanyTelegramBot(companyId, config);
+      const result = await startCompanyTelegramBot(companyId, config, true);
       const status = getCompanyTelegramStatus(companyId);
       return NextResponse.json({
         ...result,
+        ...status,
+      });
+    }
+
+    // 3b. Auto-Start Bot on System Ready
+    if (action === 'auto_start') {
+      const status = getCompanyTelegramStatus(companyId);
+      if (status.isRunning) {
+        return NextResponse.json({
+          success: true,
+          message: 'Bot Telegram sudah dalam keadaan aktif.',
+          ...status,
+        });
+      }
+      const existingConfig = getCompanyTelegramConfig(companyId);
+      if (existingConfig && existingConfig.botToken && existingConfig.isEnabled !== false) {
+        const result = await startCompanyTelegramBot(companyId, existingConfig, true);
+        const updatedStatus = getCompanyTelegramStatus(companyId);
+        return NextResponse.json({
+          ...result,
+          ...updatedStatus,
+        });
+      }
+      return NextResponse.json({
+        success: false,
+        message: 'Belum ada Bot Token yang terkonfigurasi untuk auto-connect.',
         ...status,
       });
     }

@@ -20,6 +20,7 @@ import { OfficeChatModal } from '@/components/ui/OfficeChatModal';
 import { DevServersModal } from '@/components/ui/DevServersModal';
 import { WorldMapModal } from '@/components/ui/WorldMapModal';
 import { IsometricOffice } from '@/components/office2d/IsometricOffice';
+import { WinampMusicPlayer } from '@/components/ui/WinampMusicPlayer';
 import { MessagesSquare } from 'lucide-react';
 
 
@@ -73,10 +74,16 @@ export default function RealAgent3DPage() {
   // Simulation Engine Instance (Ref persisted across renders)
   const simulationRef = useRef<OfficeSimulation>(new OfficeSimulation(1.0, currentCompany));
 
-  // Auto-initialize P2P Node, LAN UDP broadcast, and Global Community Swarm on first launch
+  // Auto-initialize P2P Node and Telegram bot auto-connect on system ready
   useEffect(() => {
     fetch('/api/p2p').catch(() => {});
-  }, []);
+    // Auto-connect Telegram bot on system ready and send notification
+    fetch('/api/telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'auto_start', companyId: currentCompany.id }),
+    }).catch(() => {});
+  }, [currentCompany.id]);
 
   // Keep simulation aware of active company for LLM configurations & banter
   useEffect(() => {
@@ -1306,6 +1313,11 @@ export default function RealAgent3DPage() {
         />
       )}
 
+      {/* 🎵 Floating Winamp YouTube Music Player & Remote SoundSystem */}
+      <WinampMusicPlayer
+        companyId={currentCompany.id}
+        companyName={currentCompany.name}
+      />
 
     </main>
   );

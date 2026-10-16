@@ -10,6 +10,7 @@ import { LLMConfig, AgentRole } from '@/types/office';
 import { getSkillsForRole } from '@/lib/skillManager';
 import { getMcpToolsForRole, executeMcpToolCall } from '@/lib/mcpClient';
 import { searchCompanyMemories, formatMemoriesForPrompt } from '@/lib/memoryManager';
+import { getAgentCurrentTime } from '@/lib/timezoneHelper';
 
 export async function POST(req: Request) {
   try {
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
       messages,
       agentName,
       agentRole = 'fullstack_dev',
+      agentTimezone = 'Asia/Jakarta',
       enableTools = true,
       autoExecuteTools = true,
       isTestConnection = false,
@@ -33,6 +35,7 @@ export async function POST(req: Request) {
       messages: LLMMessage[];
       agentName?: string;
       agentRole?: AgentRole;
+      agentTimezone?: string;
       enableTools?: boolean;
       autoExecuteTools?: boolean;
       isTestConnection?: boolean;
@@ -138,7 +141,17 @@ Catatan Penting: Kamu adalah entitas hidup dengan kepribadian unik di atas. Sela
       }
     }
 
-    // Build persona system prompt with injected skills, task context, personality, and company memory
+    // 4. Calculate live time & timezone details for this agent
+    const timeDetail = getAgentCurrentTime(agentTimezone);
+    const timezonePromptText = `\n\n### YOUR CURRENT REAL-TIME CLOCK & ASSIGNED TIMEZONE:
+- Timezone: ${timeDetail.timezone}
+- Waktu Lokal Sekarang: ${timeDetail.timeString} (${timeDetail.dayPeriod})
+- Hari & Tanggal: ${timeDetail.dateString}
+- Format Lengkap: ${timeDetail.fullFormatted}
+CRITICAL TIME AWARENESS:
+Kamu memiliki kesadaran penuh terhadap waktu nyata (real-time clock) saat ini di zona waktumu (${timeDetail.timezone}). Saat Boss atau rekan bertanya sekarang jam berapa ("jam berapa sekarang?", "lagi jam berapa di situ?", "selamat pagi/siang/malam", deadline/jadwal), kamu WAJIB menjawab secara presisi sesuai waktu lokalmu saat ini (${timeDetail.timeString}, ${timeDetail.dateString})!`;
+
+    // Build persona system prompt with injected skills, task context, personality, timezone, and company memory
     const systemPrompt: LLMMessage = {
       role: 'system',
       content: `You are ${agentName || 'an autonomous agent'}, working as ${agentRole} at ${companyName || 'ShadowMove'} in a virtual office simulation.
@@ -156,7 +169,7 @@ CRITICAL INSTRUCTIONS FOR ACCURACY:
    - NEVER confuse with other unrelated tasks or make up imaginary task names!
 2. Answer in the same language as the user (Bahasa Indonesia or English).
 3. If asked to write code, provide real, high-quality, production-ready code.
-4. If code needs to be saved to disk, use the 'write_project_file' tool.${personalityPromptText}${taskContextText}${skillsPromptText}${memoryPromptText}`,
+4. If code needs to be saved to disk, use the 'write_project_file' tool.${timezonePromptText}${personalityPromptText}${taskContextText}${skillsPromptText}${memoryPromptText}`,
     };
 
     const finalMessages: LLMMessage[] = [systemPrompt, ...(messages || [])];

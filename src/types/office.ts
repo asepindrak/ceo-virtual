@@ -112,6 +112,7 @@ export interface MarketplaceAgent {
   shirtColor: string;
   hairColor: string;
   skinColor: string;
+  timezone?: string;
   llmConfig: LLMConfig;
   rating: number;
   hiresCount: number;
@@ -167,6 +168,7 @@ export interface Agent {
   skills: string[];
   bio: string;
   personality?: PersonalityProfile;
+  timezone?: string;
   
   // LLM Config per agent
   llmConfig?: LLMConfig;
@@ -239,6 +241,8 @@ export interface OfficeGroupChatMessage {
   mentionedAgentIds?: string[];
   timestamp: number;
   source?: 'web' | 'telegram' | 'report';
+  isVoiceNote?: boolean;
+  voiceDuration?: number;
 }
 
 export type OfficeLayoutTemplateId =
@@ -416,4 +420,60 @@ export interface TravelMission {
     tradeContract?: string;
   };
 }
+
+export interface MusicTrack {
+  id: string;
+  videoId: string;
+  title: string;
+  artist: string;
+  duration?: number;
+  durationText?: string;
+  thumbnailUrl?: string;
+  addedBy?: string;
+  addedAt?: number;
+}
+
+export interface OfficeMusicState {
+  currentTrack: MusicTrack | null;
+  playlist: MusicTrack[];
+  currentIndex: number;
+  isPlaying: boolean;
+  volume: number;
+  playbackCommand?: {
+    action: 'play' | 'pause' | 'stop' | 'next' | 'prev' | 'seek';
+    timestamp: number;
+    videoId?: string;
+  };
+  lastUpdated: number;
+}
+
+// -----------------------------------------------------------------------------
+// DAILY STANDUP MEETING TYPES
+// -----------------------------------------------------------------------------
+
+export interface StandupAgentSpeech {
+  agentId: string;
+  agentName: string;
+  roleTitle: string;
+  avatarColor?: string;
+  seatPosition: Position3D;
+  yesterday: string;
+  today: string;
+  blockers: string;
+  fullSpeech: string;
+  timestamp?: number;
+}
+
+export interface StandupMeetingState {
+  companyId: string;
+  status: 'idle' | 'gathering' | 'in_progress' | 'completed';
+  startedAt: number;
+  currentSpeakerIndex: number;
+  speeches: StandupAgentSpeech[];
+  summary?: string;
+  sentToTelegram: boolean;
+  triggeredBy: string;
+  lastUpdated: number;
+}
+
 

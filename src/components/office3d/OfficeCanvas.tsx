@@ -42,9 +42,34 @@ export const OfficeCanvas: React.FC<OfficeCanvasProps> = ({
 
   // Store latest agents and tasks in refs for animation loop
   const agentsRef = useRef<Agent[]>(agents);
-  agentsRef.current = agents;
   const tasksRef = useRef<TaskTicket[]>(tasks);
-  tasksRef.current = tasks;
+
+  // Synchronize incoming agents from parent without snapping back actively moving agents
+  useEffect(() => {
+    const liveMap = new Map(agentsRef.current.map((a) => [a.id, a]));
+    const merged = agents.map((incoming) => {
+      const live = liveMap.get(incoming.id);
+      if (live) {
+        const isWalking = live.state === 'walking' || simulation.getAgentPathState(incoming.id);
+        if (isWalking) {
+          return {
+            ...incoming,
+            currentPosition: live.currentPosition,
+            rotationY: live.rotationY,
+            facingDirection: live.facingDirection,
+            state: live.state,
+            stateMessage: live.stateMessage,
+          };
+        }
+      }
+      return incoming;
+    });
+    agentsRef.current = merged;
+  }, [agents, simulation]);
+
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
 
   const [hoveredAgent, setHoveredAgent] = useState<Agent | null>(null);
   const [cameraMode, setCameraMode] = useState<'free' | 'follow'>('free');

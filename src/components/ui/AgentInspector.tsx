@@ -31,7 +31,11 @@ import {
   Eye,
   Mic,
   Users,
+  Maximize2,
+  Minimize2,
+  Clock,
 } from 'lucide-react';
+import { getAgentCurrentTime, COMMON_TIMEZONES } from '@/lib/timezoneHelper';
 
 interface AgentInspectorProps {
   agent: Agent;
@@ -85,6 +89,20 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
   );
   const [activeTab, setActiveTab] = useState<'screen' | 'chat' | 'llm' | 'bio'>('chat');
   const [confirmFire, setConfirmFire] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [agentTimezone, setAgentTimezone] = useState(agent.timezone || 'Asia/Jakarta');
+  const [liveTime, setLiveTime] = useState(() => getAgentCurrentTime(agent.timezone || 'Asia/Jakarta'));
+
+  useEffect(() => {
+    setAgentTimezone(agent.timezone || 'Asia/Jakarta');
+  }, [agent.id, agent.timezone]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveTime(getAgentCurrentTime(agentTimezone));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [agentTimezone]);
 
   // Check if this agent is the leader of the company
   const isCurrentLeader = (() => {
@@ -372,6 +390,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
           messages: apiPayloadMessages,
           agentName: agent.name,
           agentRole: agent.roleTitle,
+          agentTimezone: agentTimezone || agent.timezone || 'Asia/Jakarta',
           currentTask,
           allTasks,
           companyName,
@@ -416,12 +435,18 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
   };
 
   return (
-    <div className="fixed top-20 right-6 w-[420px] max-w-[calc(100vw-2rem)] h-[85vh] bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden text-[#2c231c] animate-in fade-in slide-in-from-right duration-200">
-      {/* Header with Avatar & Status */}
+    <div
+      className={`fixed ${
+        isExpanded
+          ? 'top-14 right-4 sm:right-6 w-[860px] max-w-[calc(100vw-2rem)] h-[90vh]'
+          : 'top-20 right-6 w-[450px] max-w-[calc(100vw-2rem)] h-[85vh]'
+      } bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden text-[#2c231c] transition-all duration-200 animate-in fade-in slide-in-from-right`}
+    >
+      {/* Header with Avatar, Timezone & Status */}
       <div className="p-4 border-b border-[#d6c5ad] bg-[#f4ebe1] flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white shadow-md text-base relative"
+            className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white shadow-md text-base relative flex-shrink-0"
             style={{ backgroundColor: agent.avatarColor }}
           >
             {agent.name.charAt(0)}
@@ -475,18 +500,38 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                 </button>
               )}
             </div>
-            <div className="text-[10px] text-[#786653] capitalize mt-0.5 font-mono">
-              Status: <span className="text-[#2c231c] font-bold">{agent.state.replace('_', ' ')}</span>
+
+            {/* Live Clock & Timezone Display */}
+            <div className="flex items-center gap-2 text-[10px] text-[#786653] font-mono mt-1 flex-wrap">
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#fffdf9] border border-[#d6c5ad] text-[#c85a2b] font-bold shadow-xs">
+                <Clock className="w-3 h-3" />
+                <span>{liveTime.timeString}</span>
+                <span className="text-[#a89582]">•</span>
+                <span>{liveTime.dayPeriod}</span>
+              </div>
+              <span className="text-[10px] text-[#786653] font-semibold">({liveTime.timezone})</span>
+              <span className="text-[#a89582]">•</span>
+              <span className="capitalize text-[#2c231c] font-bold">{agent.state.replace('_', ' ')}</span>
             </div>
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="p-1 text-[#786653] hover:text-[#2c231c] hover:bg-[#ede2d1] rounded-lg transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="p-1.5 text-[#786653] hover:text-[#2c231c] hover:bg-[#ede2d1] rounded-lg transition-colors"
+            title={isExpanded ? 'Kecilkan Tampilan' : 'Perbesar / Expand Chat Container'}
+          >
+            {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-[#786653] hover:text-[#2c231c] hover:bg-[#ede2d1] rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* State Message / Speech quote */}
@@ -759,7 +804,11 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
               </div>
             )}
 
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[300px]">
+            <div
+              className={`flex-1 overflow-y-auto space-y-2.5 pr-1 ${
+                isExpanded ? 'min-h-[460px]' : 'min-h-[320px]'
+              }`}
+            >
               {chatMessages.map((msg, index) => (
                 <div
                   key={index}
@@ -1276,6 +1325,43 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
         {/* TAB 4: PROFILE & BIO */}
         {activeTab === 'bio' && (
           <div className="space-y-3">
+            {/* Timezone & Real-Time Clock Settings */}
+            <div className="p-3 bg-[#eef2ff]/80 border-2 border-[#c7d2fe] rounded-xl text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-bold text-[#4338ca]">
+                  <Clock className="w-4 h-4 text-[#6366f1]" />
+                  <span>Zona Waktu & Jam Kerja Real-Time</span>
+                </div>
+                <span className="text-[10px] text-[#4338ca] font-mono font-bold bg-[#e0e7ff] px-2 py-0.5 rounded-md">
+                  {liveTime.timeString} ({liveTime.dayPeriod})
+                </span>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-[#4338ca] tracking-wider block mb-1">
+                  Pilih Zona Waktu Agent:
+                </label>
+                <select
+                  value={agentTimezone}
+                  onChange={(e) => {
+                    const newTz = e.target.value;
+                    setAgentTimezone(newTz);
+                    agent.timezone = newTz;
+                  }}
+                  className="w-full bg-[#fffdf9] border border-[#c7d2fe] text-[#2c231c] text-xs rounded-lg p-2 font-medium focus:outline-none focus:border-[#6366f1]"
+                >
+                  {COMMON_TIMEZONES.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label} - {tz.city} ({tz.utcOffset})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-[#4f46e5] mt-1.5 leading-relaxed font-sans">
+                  💡 <strong>Kesadaran Waktu Otomatis:</strong> Agen selalu mengetahui jam dan tanggal lokalnya saat ini (<span className="font-semibold text-[#1e1b4b]">{liveTime.fullFormatted}</span>). Saat ditanya jam berapa sekarang di obrolan atau Telegram, agen akan menjawab sesuai waktu ini.
+                </p>
+              </div>
+            </div>
+
             {/* Personality MBTI & Enneagram Profile */}
             {agent.personality && (
               <div className="p-3 bg-[#fdf2f8]/80 border-2 border-[#fbcfe8] rounded-xl text-xs space-y-2">

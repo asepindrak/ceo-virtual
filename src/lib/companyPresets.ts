@@ -14,6 +14,16 @@ export const DESK_SLOTS = [
 ];
 
 export const MEETING_ROOM_CENTER = { x: 11.0, z: 5.5 };
+export const CONFERENCE_SEATS = [
+  { x: 13.5, z: 6.0 }, // Kursi 0 (Kanan)
+  { x: 13.0, z: 7.5 }, // Kursi 1 (Kanan-Bawah)
+  { x: 11.5, z: 8.2 }, // Kursi 2 (Bawah)
+  { x: 10.0, z: 7.5 }, // Kursi 3 (Kiri-Bawah)
+  { x: 9.5, z: 6.0 },  // Kursi 4 (Kiri)
+  { x: 10.0, z: 4.5 }, // Kursi 5 (Kiri-Atas)
+  { x: 11.5, z: 3.8 }, // Kursi 6 (Atas)
+  { x: 13.0, z: 4.5 }, // Kursi 7 (Kanan-Atas)
+];
 export const PANTRY_CENTER = { x: -11.5, z: 5.5 };
 export const COFFEE_MACHINE_SPOT = { x: -11.8, z: 6.8 };
 export const PANTRY_TABLE_SPOT = { x: -9.5, z: 8.8 };
@@ -230,6 +240,7 @@ export const PRESET_COMPANIES: Company[] = [
         },
         skills: ['System Architecture', 'Sprint Orchestration', 'Tech Stack Selection', 'AI Integrations'],
         bio: 'Founder of ShadowMove (Male, INTJ 5w6), orchestrating next-gen software systems with extreme performance standards.',
+        timezone: 'Asia/Tokyo',
         llmConfig: SHADOWMOVE_LLM_CONFIG,
         liveCodeOutput: [
           '// ShadowMove Architecture Spec 1.0',
@@ -272,6 +283,7 @@ export const PRESET_COMPANIES: Company[] = [
         },
         skills: ['Next.js 15', 'Tailwind CSS', 'Framer Motion', 'Cybernetic UI/UX', 'Three.js'],
         bio: 'Creative frontend artisan (Female, ENFP 7w8) crafting sub-second load times and immersive landing pages.',
+        timezone: 'Asia/Jakarta',
         llmConfig: SHADOWMOVE_LLM_CONFIG,
         liveCodeOutput: [
           '// HeroSection.tsx - ShadowMove Interactive Visuals',
@@ -316,6 +328,7 @@ export const PRESET_COMPANIES: Company[] = [
         },
         skills: ['FastAPI', 'Node.js', 'PostgreSQL', 'Docker', 'OpenAI API Protocol'],
         bio: 'Senior backend architect (Male, ISTP 9w8) handling high-throughput APIs and LLM inference pipelines.',
+        timezone: 'America/New_York',
         llmConfig: SHADOWMOVE_LLM_CONFIG,
         liveCodeOutput: [
           '// api/inquiry.ts - High-Throughput Lead Capture',
@@ -356,6 +369,7 @@ export const PRESET_COMPANIES: Company[] = [
         },
         skills: ['Playwright E2E', 'Lighthouse 100/100', 'Security Auditing', 'Load Testing'],
         bio: 'Ensuring ShadowMove projects (Female, ISTJ 1w9) pass zero-defect benchmarks with perfect responsiveness.',
+        timezone: 'Asia/Tokyo',
         llmConfig: SHADOWMOVE_LLM_CONFIG,
         liveCodeOutput: [
           '// e2e/landing-page.spec.ts',

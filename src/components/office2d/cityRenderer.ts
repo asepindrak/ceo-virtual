@@ -347,7 +347,7 @@ export const drawEmployeeTag = (
 ) => {
   if (c.zoom < 0.6) return;
   const { ctx } = c;
-  const p = P(c, x, z, seated ? 27 : 31);
+  const p = P(c, x, z, seated ? 40 : 46);
   const firstName = (name || 'Agent').split(' ')[0];
   const isFemale = ['siti', 'maya', 'dewi', 'putri', 'anisa', 'nadia', 'rachel', 'clarissa', 'salsa', 'elena'].some(
     (fn) => (name || '').toLowerCase().includes(fn)

@@ -13,6 +13,9 @@ import { Company, Agent, OfficeGroupChatMessage, TelegramConfig, TaskTicket, Tas
 import { PRESET_COMPANIES, getEffectiveAgentLLMConfig } from './companyPresets';
 import { callLLMProvider } from './llmService';
 import { cloneGitRepository, extractGitHubUrl, createProjectDirectory, writeProjectFile, writeArtifactFile, VIGENT_HOME } from './workspaceManager';
+import { getAgentCurrentTime } from './timezoneHelper';
+import { playSingleTrack, createPlaylist, sendPlaybackCommand, getOfficeMusicState } from './musicManager';
+import { synthesizeAgentVoice, transcribeTelegramVoice } from './voiceManager';
 
 export interface BotRunnerInstance {
   companyId: string;
@@ -664,14 +667,18 @@ async function generateAgentAnswer(
         }
       } catch {}
 
+      const timeDetail = getAgentCurrentTime(agent.timezone || 'Asia/Jakarta');
+
       const prompt = `Anda adalah ${agent.name}, memegang posisi "${agent.roleTitle}" di perusahaan ${freshCompany.name}.
 Karakteristik MBTI: ${agent.personality?.mbti || 'INTJ'}, gaya bicara: ${agent.personality?.speakingStyle || 'Profesional, ramah, to the point'}.
+Zona Waktu Anda: ${timeDetail.timezone} (Waktu Lokal Saat Ini: ${timeDetail.timeString} WIB/Lokal, ${timeDetail.dateString}, ${timeDetail.dayPeriod}).
 Project aktif: ${activeProject}.
 Tugas Anda saat ini: "${currentTask?.title || 'Pengembangan fitur utama'}" (Status: ${currentTask?.status || 'in_progress'}).${memorySnippet}
 Pesan dari Boss di Telegram: "${userMessage}".
 
 Instruksi:
 - Jawablah secara natural, ramah, dan profesional sesuai peran Anda.
+- Kesadaran Waktu: Anda sadar penuh jam berapa sekarang di zona waktu Anda (${timeDetail.timeString} - ${timeDetail.dayPeriod}). Jika Boss bertanya jam berapa sekarang atau menyapa waktu, sebutkan waktu lokal Anda secara presisi.
 - Jika Boss menyapa atau bertanya sedang apa (misal: "lagi pada ngapain", "halo", "apa kabar"), jawab secara santai tapi profesional mengenai apa yang sedang Anda kerjakan di kantor ${freshCompany.name}.
 - Jika Boss memanggil nama Anda, jawab bahwa Anda hadir dan siap menerima arahan.
 - Gunakan Bahasa Indonesia yang luwes (1-3 kalimat).`;
@@ -698,7 +705,8 @@ Instruksi:
  */
 export async function startCompanyTelegramBot(
   companyId: string,
-  providedConfig?: TelegramConfig
+  providedConfig?: TelegramConfig,
+  sendReadyNotification: boolean = true
 ): Promise<{ success: boolean; message: string; botInfo?: any }> {
   const runners = getGlobalRunners();
 
@@ -818,6 +826,52 @@ Setiap karyawan yang Anda tag akan langsung membalas dengan label identitas mere
       );
     });
 
+    // Command: /standup - Mulai Rapat Daily Standup di Ruang Rapat
+    bot.command('standup', async (ctx) => {
+      try {
+        const { prepareStandupMeeting, advanceStandupSpeaker, finishStandupMeeting, getStandupState } = await import('./standupManager');
+        const currentStandup = getStandupState(companyId);
+
+        if (currentStandup.status === 'in_progress' || currentStandup.status === 'gathering') {
+          await ctx.reply(
+            '⏳ *Daily Standup sedang berjalan di kantor!* Tim sedang berdiskusi di meja bundar, ringkasan akan segera dikirimkan ke sini.',
+            { parse_mode: 'Markdown' }
+          );
+          return;
+        }
+
+        await ctx.reply(
+          `📅 *MEMULAI DAILY STANDUP TIM ${company.name.toUpperCase()}...*\n\n👥 Seluruh tim karyawan sedang berkumpul di Ruang Rapat meja bundar (Conference Table).\nSetiap anggota tim akan menyampaikan update progres harian mereka secara bergiliran.\n\nNotulensi eksekutif akan dikirimkan otomatis ke sini setelah rapat selesai! 🚀`,
+          { parse_mode: 'Markdown' }
+        );
+
+        // Start Standup Session
+        const standupState = await prepareStandupMeeting(companyId, 'telegram');
+
+        // Asynchronously advance speakers and dispatch final summary to Telegram
+        (async () => {
+          try {
+            // Wait 4 seconds for agents to gather at the table
+            await new Promise((r) => setTimeout(r, 4000));
+
+            for (let i = 0; i < standupState.speeches.length; i++) {
+              await advanceStandupSpeaker(companyId);
+              // Brief pause between speaker turns
+              await new Promise((r) => setTimeout(r, 4500));
+            }
+
+            // Finish meeting and dispatch final report to Telegram
+            await finishStandupMeeting(companyId);
+          } catch (sErr) {
+            console.error('[Telegram Standup Execution Error]:', sErr);
+          }
+        })();
+      } catch (err: any) {
+        console.error('[Telegram /standup error]:', err);
+        await ctx.reply(`❌ Gagal memulai standup: ${err.message || 'Unknown error'}`);
+      }
+    });
+
     // Command: /clone
     bot.command('clone', async (ctx) => {
       const parts = ctx.message.text.trim().split(/\s+/);
@@ -868,18 +922,273 @@ Setiap karyawan yang Anda tag akan langsung membalas dengan label identitas mere
       }
     });
 
+    // Command: /standup - Mulai Daily Standup di Ruang Rapat
+    bot.command('standup', async (ctx) => {
+      const { prepareStandupMeeting, advanceStandupSpeaker, finishStandupMeeting, getStandupState } = await import('./standupManager');
+      const currentStandup = getStandupState(companyId);
+
+      if (currentStandup.status === 'in_progress' || currentStandup.status === 'gathering') {
+        await ctx.reply(
+          '⏳ *Daily Standup sedang berjalan di kantor!* Tim sedang berdiskusi di meja bundar, ringkasan akan segera dikirimkan ke sini.',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+
+      await ctx.reply(
+        `📅 *MEMULAI DAILY STANDUP TIM ${company.name.toUpperCase()}...*\n\n👥 Seluruh tim karyawan sedang berkumpul di Ruang Rapat (Meja Bundar).\nSetiap anggota tim akan menyampaikan update progres harian (Yesterday, Today, Blockers) secara bergiliran.\n\nNotulensi eksekutif akan dikirimkan otomatis ke sini setelah rapat selesai! 🚀`,
+        { parse_mode: 'Markdown' }
+      );
+
+      const standupState = await prepareStandupMeeting(companyId, 'telegram');
+
+      (async () => {
+        try {
+          await new Promise((r) => setTimeout(r, 4000));
+          for (let i = 0; i < standupState.speeches.length; i++) {
+            await advanceStandupSpeaker(companyId);
+            await new Promise((r) => setTimeout(r, 4500));
+          }
+          await finishStandupMeeting(companyId);
+        } catch (sErr) {
+          console.error('[Telegram Standup Execution Error]:', sErr);
+        }
+      })();
+    });
+
+    // Command: /time - Waktu live masing-masing agent sesuai timezone
+    bot.command('time', async (ctx) => {
+      const currentAgents = getCompanyAgents(companyId);
+      const timeLines = currentAgents.map((a) => {
+        const timeInfo = getAgentCurrentTime(a.timezone || 'Asia/Jakarta');
+        const emoji = getAgentRoleEmoji(a);
+        return `• ${emoji} *${a.name}* (_${a.roleTitle}_):\n   🕒 \`${timeInfo.timeString}\` • _${timeInfo.dayPeriod}_ (${timeInfo.timezone})`;
+      }).join('\n\n');
+
+      await ctx.reply(
+        `🌍 *WAKTU LOKAL TIM KARYAWAN ${company.name.toUpperCase()}*\n\n${timeLines}\n\n💡 _Semua agent mengetahui jam berapa sekarang di zona waktunya masing-masing saat diajak berbicara!_`,
+        { parse_mode: 'Markdown' }
+      );
+    });
+
+    // 🎵 Music Remote Control Commands
+    bot.command('play', async (ctx) => {
+      const query = ctx.message.text.replace(/^\/play(@\w+)?\s*/i, '').trim();
+      if (!query) {
+        const state = sendPlaybackCommand(companyId, 'play');
+        if (state.currentTrack) {
+          await ctx.reply(`▶️ Memutar kembali musik di kantor: *"${state.currentTrack.title}"* - _${state.currentTrack.artist}_`, { parse_mode: 'Markdown' });
+        } else {
+          await ctx.reply('⚠️ Harap masukkan judul lagu atau nama artis.\nContoh: `/play LANY Malibu Nights` atau `/play lofi hip hop`', { parse_mode: 'Markdown' });
+        }
+        return;
+      }
+
+      await ctx.reply(`🔍 Mencari dan memutar *"${query}"* di sound system kantor via YouTube Music...`, { parse_mode: 'Markdown' });
+      const senderName = ctx.from?.first_name || 'Boss (Telegram)';
+      const res = await playSingleTrack(companyId, query, senderName);
+
+      if (res.track) {
+        await ctx.reply(
+          `🎵 *NOW PLAYING DI KANTOR:*\n\n` +
+          `📻 *${res.track.title}*\n` +
+          `🎤 *Artis:* ${res.track.artist}\n` +
+          `⏱️ *Durasi:* ${res.track.durationText}\n` +
+          `👤 *Request:* ${senderName}\n\n` +
+          `_Lagu langsung diputar di browser kantor pada pemutar Winamp floating player!_ 🚀`,
+          { parse_mode: 'Markdown' }
+        );
+      } else {
+        await ctx.reply(`❌ ${res.error || 'Lagu tidak ditemukan.'}`);
+      }
+    });
+
+    bot.command('playlist', async (ctx) => {
+      const query = ctx.message.text.replace(/^\/playlist(@\w+)?\s*/i, '').trim();
+      if (!query) {
+        await ctx.reply('⚠️ Masukkan tema atau genre playlist.\nContoh: `/playlist synthwave retro` atau `/playlist lofi chill study`', { parse_mode: 'Markdown' });
+        return;
+      }
+
+      await ctx.reply(`📻 Meracik playlist *"${query}"* dari YouTube Music untuk kantor...`, { parse_mode: 'Markdown' });
+      const senderName = ctx.from?.first_name || 'Boss (Telegram)';
+      const res = await createPlaylist(companyId, query, senderName);
+
+      if (res.tracks.length > 0) {
+        const listText = res.tracks.map((t, idx) => `${idx + 1}. *${t.title}* - _${t.artist}_ (${t.durationText})`).join('\n');
+        await ctx.reply(
+          `🎶 *PLAYLIST KANTOR BERHASIL DIBUAT (${res.tracks.length} LAGU):*\n\n${listText}\n\n▶️ _Lagu pertama langsung diputar di browser kantor!_`,
+          { parse_mode: 'Markdown' }
+        );
+      } else {
+        await ctx.reply(`❌ ${res.error || 'Gagal membuat playlist.'}`);
+      }
+    });
+
+    bot.command('pause', async (ctx) => {
+      const state = sendPlaybackCommand(companyId, 'pause');
+      await ctx.reply(`⏸️ Musik kantor dijeda (paused). Lagu saat ini: *"${state.currentTrack?.title || 'None'}"*`, { parse_mode: 'Markdown' });
+    });
+
+    bot.command('resume', async (ctx) => {
+      const state = sendPlaybackCommand(companyId, 'play');
+      await ctx.reply(`▶️ Melanjutkan pemutaran musik kantor: *"${state.currentTrack?.title || 'None'}"*`, { parse_mode: 'Markdown' });
+    });
+
+    bot.command('stop', async (ctx) => {
+      sendPlaybackCommand(companyId, 'stop');
+      await ctx.reply('⏹️ Musik kantor dihentikan.', { parse_mode: 'Markdown' });
+    });
+
+    const handleNextTrack = async (ctx: any) => {
+      const state = sendPlaybackCommand(companyId, 'next');
+      if (state.currentTrack) {
+        await ctx.reply(`⏭️ Skip ke lagu berikutnya: *"${state.currentTrack.title}"* - _${state.currentTrack.artist}_`, { parse_mode: 'Markdown' });
+      } else {
+        await ctx.reply('⏭️ Playlist kosong.');
+      }
+    };
+    bot.command('next', handleNextTrack);
+    bot.command('skip', handleNextTrack);
+
+    bot.command('prev', async (ctx) => {
+      const state = sendPlaybackCommand(companyId, 'prev');
+      if (state.currentTrack) {
+        await ctx.reply(`⏮️ Memutar lagu sebelumnya: *"${state.currentTrack.title}"* - _${state.currentTrack.artist}_`, { parse_mode: 'Markdown' });
+      } else {
+        await ctx.reply('⏮️ Playlist kosong.');
+      }
+    });
+
+    const handleNowPlaying = async (ctx: any) => {
+      const state = getOfficeMusicState(companyId);
+      if (!state.currentTrack) {
+        await ctx.reply('🔇 Belum ada lagu yang diputar di kantor saat ini. Gunakan `/play <judul>` untuk memutar lagu!');
+        return;
+      }
+      const statusIcon = state.isPlaying ? '▶️' : '⏸️';
+      await ctx.reply(
+        `📻 *NOW PLAYING DI KANTOR ${company.name.toUpperCase()}*\n\n` +
+        `${statusIcon} *${state.currentTrack.title}*\n` +
+        `🎤 *Artis:* ${state.currentTrack.artist}\n` +
+        `⏱️ *Durasi:* ${state.currentTrack.durationText}\n` +
+        `👤 *Diminta oleh:* ${state.currentTrack.addedBy || 'SoundSystem'}\n` +
+        `📊 *Status:* ${state.isPlaying ? 'Sedang Berputar' : 'Dijeda (Paused)'} (Lagu ke-${state.currentIndex + 1} dari ${state.playlist.length})\n\n` +
+        `💡 _Ketik \`/next\`, \`/pause\`, \`/prev\`, atau \`/queue\` untuk remote kontrol._`,
+        { parse_mode: 'Markdown' }
+      );
+    };
+    bot.command('nowplaying', handleNowPlaying);
+    bot.command('np', handleNowPlaying);
+
+    bot.command('queue', async (ctx) => {
+      const state = getOfficeMusicState(companyId);
+      if (state.playlist.length === 0) {
+        await ctx.reply('📭 Daftar antrean musik kosong. Gunakan `/play <judul>` atau `/playlist <tema>`.');
+        return;
+      }
+      const list = state.playlist.map((t, idx) => {
+        const isCurrent = idx === state.currentIndex;
+        return `${isCurrent ? '▶️' : `${idx + 1}.`} *${t.title}* - _${t.artist}_ (${t.durationText}) ${isCurrent ? '👈 *[SEDANG BERPUTAR]*' : ''}`;
+      }).join('\n');
+
+      await ctx.reply(
+        `📋 *DAFTAR PLAYLIST KANTOR (${state.playlist.length} LAGU):*\n\n${list}\n\n💡 _Gunakan \`/next\` atau \`/prev\` untuk berpindah lagu._`,
+        { parse_mode: 'Markdown' }
+      );
+    });
+
+    // Command: /voice - Minta agent membalas dengan pesan suara audio (TTS)
+    bot.command('voice', async (ctx) => {
+      const prompt = ctx.message.text.replace(/^\/voice(@\w+)?\s*/i, '').trim();
+      if (!prompt) {
+        await ctx.reply(
+          '🎙️ *Fitur Voice Note CEO Virtual*\n\n' +
+          'Ketik perintah dengan pesan yang ingin ditanyakan, misalnya:\n' +
+          '• `/voice @Kenji bagaimana progres sprint hari ini?`\n' +
+          '• `/voice @Rei rancang ide visual landing page modern`\n\n' +
+          '💡 _Anda juga bisa langsung mengirimkan Voice Note audio dari HP/desktop ke bot ini!_',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+
+      const currentAgents = getCompanyAgents(companyId);
+      const currentCompany = getCompanyData(companyId) || company;
+      const currentTasks = getCompanyTasks(companyId);
+
+      const lowerPrompt = prompt.toLowerCase();
+      const isAll = lowerPrompt.includes('@all') || lowerPrompt.includes('@semua');
+      const tagged = currentAgents.filter((ag) =>
+        isAll || lowerPrompt.includes(`@${ag.name.toLowerCase()}`) || lowerPrompt.includes(`@${ag.name.split(' ')[0].toLowerCase()}`)
+      );
+      const primaryResponder = tagged[0] || getCompanyLeader(currentCompany);
+
+      try {
+        await ctx.sendChatAction('record_voice');
+      } catch {}
+
+      const replyText = await generateAgentAnswer(
+        primaryResponder,
+        prompt,
+        currentCompany,
+        currentTasks
+      );
+
+      const formattedText = formatAgentTelegramReply(primaryResponder, replyText);
+      await ctx.reply(formattedText, { parse_mode: 'Markdown' });
+
+      // Generate TTS Voice Note Audio
+      try {
+        await ctx.sendChatAction('record_voice');
+        const voiceAudio = await synthesizeAgentVoice(replyText, {
+          lang: 'id',
+          agent: primaryResponder,
+        });
+
+        await ctx.replyWithVoice(
+          { source: voiceAudio, filename: 'agent_reply.mp3' },
+          {
+            caption: `🎙️ *Pesan Suara dari ${primaryResponder.name}* (_${primaryResponder.roleTitle}_)`,
+            parse_mode: 'Markdown',
+          }
+        );
+      } catch (vErr) {
+        console.warn('[Telegram Voice] Failed to synthesize voice:', vErr);
+      }
+    });
+
     // Command: /help
     bot.command('help', async (ctx) => {
       await ctx.reply(
         `🤖 *Perintah Bot Telegram CEO Virtual:*\n
-/start - Menampilkan panduan dan Chat ID Anda
-/clone <url> - Clone repository GitHub langsung ke workspaces
+🎙️ *Voice Note & Pesan Suara Agent:*
+• Kirim *Voice Note* langsung dari HP/desktop Anda ke bot ini!
+  Agent akan mentranskrip suara Anda & membalas dengan *Voice Note Audio*!
+• \`/voice <pesan>\` - Minta agent menjawab dalam bentuk pesan suara audio (TTS)
+
+📅 *Rapat Standup & Notulensi Eksekutif:*
+/standup - Kumpulkan seluruh tim di ruang rapat, dengarkan progres tiap agen & terima ringkasan harian
+
+🌍 *Zona Waktu & Karyawan:*
+/time - Cek waktu sekarang di zona waktu masing-masing agen
 /team - Daftar karyawan yang bisa di-tag
 /tasks - Cek progres task di papan Kanban
 /chatid - Mengetahui Chat ID ruang obrolan ini
 
+🎵 *SoundSystem & Remote Music:*
+/play <judul> - Putar lagu langsung di browser via YouTube Music
+/playlist <tema> - Bikin playlist 5 lagu & putar langsung
+/pause - Jeda lagu di kantor
+/resume - Lanjutkan lagu di kantor
+/stop - Hentikan lagu
+/next (atau /skip) - Putar lagu berikutnya
+/prev - Putar lagu sebelumnya
+/np - Cek lagu yang sedang diputar
+/queue - Cek daftar antrean playlist
+
 ⚡ *Clone Repo Otomatis:*
-Cukup kirimkan link GitHub (misal: \`https://github.com/user/repo\`) di chat ini, bot akan otomatis meng-clone proyek langsung ke \`~/.vigent/workspaces\`!
+/clone <url> - Clone repository GitHub langsung ke workspaces
 
 📌 *Cara Tag Karyawan:*
 Ketik nama panggilan setelah tanda @, misalnya:
@@ -916,6 +1225,108 @@ Ketik nama panggilan setelah tanda @, misalnya:
         source: 'telegram',
       };
       appendCompanyChatMessage(companyId, userChatMessage);
+
+      const lower = text.toLowerCase().trim();
+
+      // 📅 NATURAL STANDUP INTENT DETECTION
+      if (
+        ['mulai standup', 'daily standup', 'rapat standup', 'adakan standup', 'mulai rapat standup', 'mulai rapat'].includes(lower)
+      ) {
+        const { prepareStandupMeeting, advanceStandupSpeaker, finishStandupMeeting, getStandupState } = await import('./standupManager');
+        const currentStandup = getStandupState(companyId);
+
+        if (currentStandup.status === 'in_progress' || currentStandup.status === 'gathering') {
+          await ctx.reply(
+            '⏳ *Daily Standup sedang berjalan di kantor!* Tim sedang berdiskusi di meja bundar, ringkasan akan segera dikirimkan ke sini.',
+            { parse_mode: 'Markdown' }
+          );
+          return;
+        }
+
+        await ctx.reply(
+          `📅 *MEMULAI DAILY STANDUP TIM ${company.name.toUpperCase()}...*\n\n👥 Seluruh tim karyawan sedang berkumpul di Ruang Rapat (Conference Table).\nSetiap anggota tim akan menyampaikan update progres harian mereka secara bergiliran.\n\nNotulensi eksekutif akan dikirimkan otomatis ke sini setelah rapat selesai! 🚀`,
+          { parse_mode: 'Markdown' }
+        );
+
+        const standupState = await prepareStandupMeeting(companyId, 'telegram');
+
+        (async () => {
+          try {
+            await new Promise((r) => setTimeout(r, 4000));
+            for (let i = 0; i < standupState.speeches.length; i++) {
+              await advanceStandupSpeaker(companyId);
+              await new Promise((r) => setTimeout(r, 4500));
+            }
+            await finishStandupMeeting(companyId);
+          } catch (sErr) {
+            console.error('[Telegram Standup Execution Error]:', sErr);
+          }
+        })();
+        return;
+      }
+
+      // 🎵 REMOTE MUSIC NATURAL INTENT DETECTION
+      if (
+        lower.startsWith('putar lagu ') ||
+        lower.startsWith('play ') ||
+        lower.startsWith('setel lagu ') ||
+        lower.startsWith('puter lagu ')
+      ) {
+        const query = text.replace(/^(putar lagu|play|setel lagu|puter lagu)\s+/i, '').trim();
+        if (query) {
+          try {
+            await ctx.sendChatAction('typing');
+          } catch {}
+          const res = await playSingleTrack(companyId, query, senderDisplayName);
+          if (res.track) {
+            await ctx.reply(
+              `🎵 *[Office SoundSystem]*\nMemutar: *"${res.track.title}"* - _${res.track.artist}_ (${res.track.durationText}) di browser kantor!\n_Request:_ ${senderDisplayName} 🚀`,
+              { parse_mode: 'Markdown' }
+            );
+            return;
+          }
+        }
+      } else if (lower.startsWith('bikin playlist ') || lower.startsWith('buat playlist ') || lower.startsWith('create playlist ')) {
+        const query = text.replace(/^(bikin playlist|buat playlist|create playlist)\s+/i, '').trim();
+        if (query) {
+          try {
+            await ctx.sendChatAction('typing');
+          } catch {}
+          const res = await createPlaylist(companyId, query, senderDisplayName);
+          if (res.tracks.length > 0) {
+            const listText = res.tracks.map((t, idx) => `${idx + 1}. *${t.title}* - _${t.artist}_`).join('\n');
+            await ctx.reply(
+              `📻 *[Office SoundSystem]*\nPlaylist *"${query}"* (${res.tracks.length} lagu) dibuat & diputar di kantor!\n\n${listText}`,
+              { parse_mode: 'Markdown' }
+            );
+            return;
+          }
+        }
+      } else if (['pause musik', 'pause lagu', 'jeda musik', 'jeda lagu'].includes(lower)) {
+        sendPlaybackCommand(companyId, 'pause');
+        await ctx.reply('⏸️ Musik kantor dijeda.');
+        return;
+      } else if (['resume musik', 'lanjut musik', 'lanjutkan lagu', 'play lagi'].includes(lower)) {
+        const state = sendPlaybackCommand(companyId, 'play');
+        await ctx.reply(`▶️ Melanjutkan: *"${state.currentTrack?.title || 'Musik'}"*`);
+        return;
+      } else if (['stop musik', 'stop lagu', 'matikan musik'].includes(lower)) {
+        sendPlaybackCommand(companyId, 'stop');
+        await ctx.reply('⏹️ Musik kantor dihentikan.');
+        return;
+      } else if (['next lagu', 'skip lagu', 'lagu selanjutnya', 'ganti lagu'].includes(lower)) {
+        const state = sendPlaybackCommand(companyId, 'next');
+        if (state.currentTrack) {
+          await ctx.reply(`⏭️ Skip ke: *"${state.currentTrack.title}"* - _${state.currentTrack.artist}_`);
+        }
+        return;
+      } else if (['prev lagu', 'lagu sebelumnya', 'back lagu'].includes(lower)) {
+        const state = sendPlaybackCommand(companyId, 'prev');
+        if (state.currentTrack) {
+          await ctx.reply(`⏮️ Kembali ke: *"${state.currentTrack.title}"* - _${state.currentTrack.artist}_`);
+        }
+        return;
+      }
 
       // 🚀 DETECT AND AUTO-CLONE GITHUB REPOSITORY IF LINK PRESENT
       const detectedGit = extractGitHubUrl(text);
@@ -1039,6 +1450,167 @@ Ketik nama panggilan setelah tanda @, misalnya:
       }
     });
 
+    // 🎙️ VOICE NOTE & AUDIO MESSAGE HANDLER
+    bot.on(['voice', 'audio'], async (ctx) => {
+      const voice = (ctx.message as any).voice || (ctx.message as any).audio;
+      if (!voice) return;
+
+      const senderFirstName = ctx.from?.first_name || 'Boss';
+      const senderUsername = ctx.from?.username ? `@${ctx.from.username}` : '';
+      const senderDisplayName = senderUsername ? `${senderFirstName} (${senderUsername})` : senderFirstName;
+
+      // Update chatId if missing
+      const currentChatId = String(ctx.chat.id);
+      if (!config.chatId) {
+        config.chatId = currentChatId;
+        saveCompanyTelegramConfig(companyId, config);
+      }
+
+      try {
+        await ctx.sendChatAction('record_voice');
+      } catch {}
+
+      // 1. Get file link from Telegram
+      let fileLinkUrl = '';
+      try {
+        const link = await ctx.telegram.getFileLink(voice.file_id);
+        fileLinkUrl = link.href;
+      } catch (fErr) {
+        console.warn('[Telegram Voice] Failed to get file link:', fErr);
+      }
+
+      // 2. Transcribe voice message
+      const caption = (ctx.message as any).caption || '';
+      const duration = voice.duration || 0;
+      const transcription = await transcribeTelegramVoice(fileLinkUrl, duration, caption, companyId);
+      const transcribedText = transcription.text;
+
+      // Send immediate transcription acknowledgment to CEO
+      const isRealStt = transcription.source === 'google_free' || transcription.source === 'whisper' || transcription.source === 'gemini' || transcription.source === 'caption';
+      const statusIcon = isRealStt ? '⚡' : '🎙️';
+      let engineBadge = '';
+      if (transcription.source === 'google_free') engineBadge = ' _(Google Speech Recognition - Free)_';
+      else if (transcription.source === 'whisper') engineBadge = ' _(Whisper Neural STT)_';
+      else if (transcription.source === 'gemini') engineBadge = ' _(Gemini Multimodal STT)_';
+      else if (transcription.source === 'caption') engineBadge = ' _(CEO Text Caption)_';
+
+      const noteDisclaimer = !isRealStt
+        ? `\n\n⚠️ _(Catatan: Audio belum berhasil ditranskripsikan. Menggunakan interpretasi santai bawaan.)_`
+        : '';
+      await ctx.reply(
+        `${statusIcon} *[Pesan Suara CEO Diterima]* (Durasi: \`${duration} detik\`)\n\n` +
+        `📝 *Transkripsi:* _"${transcribedText}"_${engineBadge}${noteDisclaimer}\n\n` +
+        `⏳ _Tim kantor sedang menyimak dan menyiapkan respons audio suara (Edge Neural TTS)..._`,
+        { parse_mode: 'Markdown' }
+      );
+
+      // Record in War Room chat history
+      appendCompanyChatMessage(companyId, {
+        id: `tg-voice-${Date.now()}`,
+        senderType: 'user',
+        senderName: `${senderDisplayName} [Voice Note]`,
+        message: `🎙️ "${transcribedText}"`,
+        timestamp: Date.now(),
+        source: 'telegram',
+        isVoiceNote: true,
+        voiceDuration: duration,
+      });
+
+      // 3. Process instruction through autonomous multi-agent workflow
+      const currentAgents = getCompanyAgents(companyId);
+      const currentCompany = getCompanyData(companyId) || company;
+      const currentTasks = getCompanyTasks(companyId);
+
+      // Check if this sounds like a task / feature instruction
+      const isTaskInstruction = isTaskOrProjectInstruction(transcribedText);
+      const leader = getCompanyLeader(currentCompany);
+
+      const lowerTrans = transcribedText.toLowerCase();
+      const isAll = lowerTrans.includes('@all') || lowerTrans.includes('@semua');
+      const tagged = currentAgents.filter((ag) =>
+        isAll || lowerTrans.includes(`@${ag.name.toLowerCase()}`) || lowerTrans.includes(`@${ag.name.split(' ')[0].toLowerCase()}`)
+      );
+
+      if (isTaskInstruction) {
+        const workflowResult = await executeAutonomousCompanyWorkflow(
+          currentCompany,
+          transcribedText,
+          tagged[0] || leader
+        );
+
+        // Send rich telegram reply with tasks
+        await ctx.reply(workflowResult.telegramMessage, { parse_mode: 'Markdown' });
+
+        // Synthesize voice reply from Leader
+        try {
+          await ctx.sendChatAction('record_voice');
+          const voiceAudio = await synthesizeAgentVoice(workflowResult.leaderReply, {
+            lang: 'id',
+            agent: leader,
+          });
+
+          await ctx.replyWithVoice(
+            { source: voiceAudio, filename: 'leader_reply.mp3' },
+            {
+              caption: `🎙️ *Balasan Suara dari ${leader.name}* (${leader.roleTitle})`,
+              parse_mode: 'Markdown',
+            }
+          );
+        } catch (vErr) {
+          console.warn('[Telegram Voice] Failed to send voice reply:', vErr);
+        }
+      } else {
+        const primaryResponder = tagged[0] || leader;
+
+        try {
+          await ctx.sendChatAction('typing');
+        } catch {}
+
+        const replyText = await generateAgentAnswer(
+          primaryResponder,
+          transcribedText,
+          currentCompany,
+          currentTasks
+        );
+
+        const formattedText = formatAgentTelegramReply(primaryResponder, replyText);
+        await ctx.reply(formattedText, { parse_mode: 'Markdown' });
+
+        // Record agent reply in War Room chat
+        appendCompanyChatMessage(companyId, {
+          id: `tg-reply-voice-${Date.now()}-${primaryResponder.id}`,
+          senderType: 'agent',
+          agentId: primaryResponder.id,
+          senderName: primaryResponder.name,
+          senderRoleTitle: primaryResponder.roleTitle,
+          senderAvatarColor: primaryResponder.avatarColor,
+          message: replyText,
+          timestamp: Date.now(),
+          source: 'telegram',
+          isVoiceNote: true,
+        });
+
+        // Synthesize agent voice reply and send back to Telegram!
+        try {
+          await ctx.sendChatAction('record_voice');
+          const voiceAudio = await synthesizeAgentVoice(replyText, {
+            lang: 'id',
+            agent: primaryResponder,
+          });
+
+          await ctx.replyWithVoice(
+            { source: voiceAudio, filename: 'agent_reply.mp3' },
+            {
+              caption: `🎙️ *Balasan Suara dari ${primaryResponder.name}* (_${primaryResponder.roleTitle}_)`,
+              parse_mode: 'Markdown',
+            }
+          );
+        } catch (vErr) {
+          console.warn('[Telegram Voice] Failed to send voice reply:', vErr);
+        }
+      }
+    });
+
     // Start bot with error trap
     bot.catch((err, ctx) => {
       console.error(`[Telegram Error for ${companyId} / update ${ctx.update.update_id}]:`, err);
@@ -1071,6 +1643,55 @@ Ketik nama panggilan setelah tanda @, misalnya:
 
     runners.set(companyId, runnerInstance);
 
+    // 📢 Send auto-ready notification to Telegram chat if configured
+    if (sendReadyNotification && config.chatId) {
+      try {
+        const leader = getCompanyLeader(company);
+        const timeDetail = getAgentCurrentTime(leader.timezone || 'Asia/Jakarta');
+
+        const agentRosterLines = agents.map((a) => {
+          const aTime = getAgentCurrentTime(a.timezone || 'Asia/Jakarta');
+          const emoji = getAgentRoleEmoji(a);
+          return `• ${emoji} *${a.name}* (_${a.roleTitle}_)\n  ↳ 🕒 \`${aTime.timeString}\` (${aTime.timezone}) | ${a.state === 'working' ? '⚡ Sedang Bekerja' : '☕ Standby'}`;
+        }).join('\n');
+
+        const readyNotification = `🚀 *[VIGENT / CEO VIRTUAL — SISTEM KANTOR TELAH ONLINE & READY]* 🏢
+
+Halo Boss! Seluruh sistem kantor otonom *${company.name}* telah berhasil diinisialisasi dan siap beroperasi penuh!
+
+🟢 *Status Sistem:* ACTIVE & READY
+⏰ *Waktu Server:* ${timeDetail.fullFormatted}
+🆔 *Connected Chat ID:* \`${config.chatId}\`
+
+👥 *Tim Karyawan Online (${agents.length} Agent):*
+${agentRosterLines}
+
+🎵 *SoundSystem & Winamp:* Online (YouTube Music)
+📋 *Kanban Tasks:* ${tasks.length} task sprint tercatat
+💬 *War Room Sync:* Terhubung langsung dua arah ke dashboard browser
+
+💡 *Cara Berinteraksi:*
+• Tag agen untuk instruksi: \`@${agents[0]?.name.split(' ')[0] || 'Kenji'}\` atau \`@all\`
+• Putar lagu di kantor: \`/play <judul lagu>\`
+• Buat playlist instan: \`/playlist <tema>\`
+• Cek zona waktu seluruh agen: \`/time\`
+• Bantuan lengkap perintah: \`/help\``;
+
+        await bot.telegram.sendMessage(config.chatId, readyNotification, { parse_mode: 'Markdown' });
+
+        appendCompanyChatMessage(companyId, {
+          id: `tg-ready-${Date.now()}`,
+          senderType: 'system',
+          senderName: 'Vigent System Orchestrator',
+          message: `🚀 **Sistem Kantor Ready**: Bot Telegram @${me.username} berhasil auto-connect dan mengirim notifikasi status aktif ke Telegram chat (\`${config.chatId}\`).`,
+          timestamp: Date.now(),
+          source: 'telegram',
+        });
+      } catch (notifyErr: any) {
+        console.warn(`[Telegram Ready Notification Error for ${companyId}]:`, notifyErr?.message || notifyErr);
+      }
+    }
+
     return {
       success: true,
       message: `Bot @${me.username} berhasil diaktifkan untuk ${company.name}!`,
@@ -1082,6 +1703,45 @@ Ketik nama panggilan setelah tanda @, misalnya:
       success: false,
       message: err.message || 'Gagal memulai bot Telegram. Periksa token Anda.',
     };
+  }
+}
+
+/**
+ * Automatically scan and connect all configured Telegram bots on system boot / ready.
+ */
+export async function autoStartAllConfiguredBots(): Promise<void> {
+  try {
+    const vigentDir = getVigentDir();
+    if (!fs.existsSync(vigentDir)) return;
+
+    const files = fs.readdirSync(vigentDir);
+    const telegramConfigFiles = files.filter(
+      (f) => f.startsWith('telegram_') && f.endsWith('.json')
+    );
+
+    console.log(`🤖 [Telegram Daemon]: Scanning ${telegramConfigFiles.length} configured bots...`);
+
+    for (const file of telegramConfigFiles) {
+      try {
+        const companyId = file.replace(/^telegram_/, '').replace(/\.json$/, '');
+        const configPath = path.join(vigentDir, file);
+        const config: TelegramConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+
+        if (config.botToken && config.isEnabled !== false) {
+          console.log(`🤖 [Telegram Daemon]: Auto-connecting bot for company ${companyId}...`);
+          const res = await startCompanyTelegramBot(companyId, config, true);
+          if (res.success) {
+            console.log(`✅ [Telegram Daemon]: Bot connected & ready notification sent for ${companyId}!`);
+          } else {
+            console.warn(`⚠️ [Telegram Daemon]: Could not start bot for ${companyId}:`, res.message);
+          }
+        }
+      } catch (botErr) {
+        console.error(`[Telegram Daemon]: Error processing ${file}:`, botErr);
+      }
+    }
+  } catch (err) {
+    console.error('[Telegram Daemon]: autoStartAllConfiguredBots error:', err);
   }
 }
 
