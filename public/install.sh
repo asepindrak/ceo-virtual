@@ -51,11 +51,15 @@ mkdir -p "$CEO_HOME"
 mkdir -p "$CEO_WORKSPACES"
 mkdir -p "$CEO_HOME/logs"
 
-# Check if current directory is already the project
+# Check if current directory or known locations have the project
 CURRENT_DIR="$(pwd)"
 if [ -f "$CURRENT_DIR/package.json" ] && (grep -q "ceo-virtual" "$CURRENT_DIR/package.json" || grep -q "vigent" "$CURRENT_DIR/package.json"); then
   echo -e "► Linking current project repository to CEO Virtual CLI..."
   TARGET_DIR="$CURRENT_DIR"
+elif [ -f "$HOME/ceo-virtual/package.json" ]; then
+  TARGET_DIR="$HOME/ceo-virtual"
+elif [ -f "$HOME/vigent/package.json" ]; then
+  TARGET_DIR="$HOME/vigent"
 else
   TARGET_DIR="$CEO_APP"
   if [ ! -d "$TARGET_DIR" ]; then

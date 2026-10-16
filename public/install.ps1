@@ -1,20 +1,14 @@
 # ==============================================================================
-# 👑 CEO VIRTUAL - Autonomous Workplace (Windows PowerShell 1-Click Installer)
+# CEO VIRTUAL - Autonomous Workplace (Windows PowerShell 1-Click Installer)
 # Repository: https://github.com/asepindrak/ceo-virtual
 # Usage:
 #   irm https://raw.githubusercontent.com/asepindrak/ceo-virtual/main/install.ps1 | iex
 # ==============================================================================
 
-Write-Host @"
-   ██████╗███████╗ ██████╗     ██╗   ██╗██╗██████╗ ████████╗██╗   ██╗ █████╗ ██╗     
-  ██╔════╝██╔════╝██╔═══██╗    ██║   ██║██║██╔══██╗╚══██╔══╝██║   ██║██╔══██╗██║     
-  ██║     █████╗  ██║   ██║    ██║   ██║██║██████╔╝   ██║   ██║   ██║███████║██║     
-  ██║     ██╔══╝  ██║   ██║    ╚██╗ ██╔╝██║██╔══██╗   ██║   ██║   ██║██╔══██║██║     
-  ╚██████╗███████╗╚██████╔╝     ╚████╔╝ ██║██║  ██║   ██║   ╚██████╔╝██║  ██║███████╗
-   ╚═════╝╚══════╝ ╚═════╝       ╚═══╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝
-"@ -ForegroundColor Cyan
-
-Write-Host "`n★ Installing CEO Virtual (Autonomous Workplace) CLI & Dashboard...`n" -ForegroundColor Green
+Write-Host "========================================================" -ForegroundColor Cyan
+Write-Host "              👑 CEO VIRTUAL AUTONOMOUS WORKPLACE        " -ForegroundColor Cyan
+Write-Host "========================================================" -ForegroundColor Cyan
+Write-Host "`n* Installing CEO Virtual CLI and Dashboard...`n" -ForegroundColor Green
 
 # 1. Check Node.js
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
@@ -28,7 +22,7 @@ $LegacyHome = Join-Path $HOME ".vigent"
 
 # Auto-migrate from ~/.vigent if present
 if ((Test-Path $LegacyHome) -and -not (Test-Path $CeoHome)) {
-    Write-Host "► Migrasi data dari ~/.vigent ke ~/.ceo-virtual..." -ForegroundColor Cyan
+    Write-Host "> Migrasi data dari ~/.vigent ke ~/.ceo-virtual..." -ForegroundColor Cyan
     Copy-Item -Path $LegacyHome -Destination $CeoHome -Recurse -Force
 }
 
@@ -37,33 +31,51 @@ $LogsDir = Join-Path $CeoHome "logs"
 $RepoUrl = "https://github.com/asepindrak/ceo-virtual.git"
 $Port = 28483
 
-Write-Host "► Menyiapkan folder kerja di: $CeoHome" -ForegroundColor Cyan
+Write-Host "> Menyiapkan folder kerja di: $CeoHome" -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $CeoHome | Out-Null
 New-Item -ItemType Directory -Force -Path $WorkspacesDir | Out-Null
 New-Item -ItemType Directory -Force -Path $LogsDir | Out-Null
 
-# 3. Detect project folder or clone
-$CurrentDir = Get-Location
-$ProjectRoot = $CurrentDir
-if (-not (Test-Path (Join-Path $ProjectRoot "package.json"))) {
+# 3. Detect existing project folder or clone
+$PossibleRoots = @(
+    (Get-Location).Path,
+    (Join-Path $HOME "ceo-virtual"),
+    (Join-Path $HOME "vigent"),
+    (Join-Path $CeoHome "app")
+)
+
+$ProjectRoot = $null
+foreach ($cand in $PossibleRoots) {
+    if ((Test-Path (Join-Path $cand "package.json")) -and ((Get-Content (Join-Path $cand "package.json") -Raw) -match 'ceo-virtual|vigent')) {
+        $ProjectRoot = $cand
+        break
+    }
+}
+
+if (-not $ProjectRoot) {
     $TargetApp = Join-Path $CeoHome "app"
     if (-not (Test-Path $TargetApp)) {
-        Write-Host "► Mengunduh CEO Virtual dari GitHub: $RepoUrl..." -ForegroundColor Cyan
+        Write-Host "> Mengunduh CEO Virtual dari GitHub: $RepoUrl..." -ForegroundColor Cyan
         git clone $RepoUrl $TargetApp
     }
     $ProjectRoot = $TargetApp
 }
 
-Write-Host "► Mengaitkan project root: $ProjectRoot" -ForegroundColor Yellow
+Write-Host "> Mengaitkan project root: $ProjectRoot" -ForegroundColor Yellow
 
-# 4. Create Windows CLI Command 'ceo-virtual.cmd' and 'vigent.cmd' in user PATH
+# Ensure node_modules exists
+if (-not (Test-Path (Join-Path $ProjectRoot "node_modules"))) {
+    Write-Host "> Menginstall dependensi proyek (npm install)..." -ForegroundColor Cyan
+    Push-Location $ProjectRoot
+    npm install
+    Pop-Location
+}
+
+# 4. Create Windows CLI Command ceo-virtual.cmd and vigent.cmd in user PATH
 $UserBin = Join-Path $HOME ".local\bin"
 New-Item -ItemType Directory -Force -Path $UserBin | Out-Null
 
-$CmdContent = @"
-@echo off
-node "$ProjectRoot\bin\ceo-virtual.js" %*
-"@
+$CmdContent = "@echo off`r`nnode `"$ProjectRoot\bin\ceo-virtual.js`" %*"
 $CeoCmdFile = Join-Path $UserBin "ceo-virtual.cmd"
 $CmdFile = Join-Path $UserBin "vigent.cmd"
 Set-Content -Path $CeoCmdFile -Value $CmdContent -Force
@@ -74,31 +86,28 @@ $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if ($UserPath -notlike "*$UserBin*") {
     [Environment]::SetEnvironmentVariable("Path", "$UserPath;$UserBin", "User")
     $env:Path = "$env:Path;$UserBin"
-    Write-Host "► Menambahkan $UserBin ke System PATH pengguna." -ForegroundColor Green
+    Write-Host "> Menambahkan $UserBin ke System PATH pengguna." -ForegroundColor Green
 }
 
 # 5. Setup Windows Startup Autorun Shortcut
-$StartupFolder = [System.IO.Path]::Combine($env:APPDATA, 'Microsoft\Windows\Start Menu\Programs\Startup')
+$StartupFolder = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"
 $StartupBat = Join-Path $StartupFolder "CEOVirtual.bat"
-$StartupContent = @"
-@echo off
-cd /d "$ProjectRoot"
-start /b npm run dev -- -p $Port
-"@
+$StartupContent = "@echo off`r`ncd /d `"$ProjectRoot`"`r`nstart /b npm run dev -- -p $Port"
 Set-Content -Path $StartupBat -Value $StartupContent -Force
-Write-Host "► Autorun saat Windows boot AKTIF di: $StartupBat" -ForegroundColor Green
+Write-Host "> Autorun saat Windows boot AKTIF di: $StartupBat" -ForegroundColor Green
 
 # 6. Global npm link
-Set-Location $ProjectRoot
+Push-Location $ProjectRoot
 try {
     npm link --silent
 } catch {}
+Pop-Location
 
 # 7. Initialize Company Memory Engine & Vector DB
-Write-Host "► Inisialisasi Company Memory Engine & Zero-Setup Vector DB..." -ForegroundColor Cyan
+Write-Host "> Inisialisasi Company Memory Engine & Zero-Setup Vector DB..." -ForegroundColor Cyan
 node "$ProjectRoot\bin\ceo-virtual.js" memory init
 
-Write-Host "`n✓ CEO VIRTUAL Berhasil Terinstall!" -ForegroundColor Green
+Write-Host "`n[OK] CEO VIRTUAL Berhasil Terinstall!" -ForegroundColor Green
 Write-Host "========================================================" -ForegroundColor Gray
 Write-Host "  Dedicated Port:   http://localhost:$Port" -ForegroundColor Cyan
 Write-Host "  Workspaces Home:  $WorkspacesDir" -ForegroundColor Cyan
