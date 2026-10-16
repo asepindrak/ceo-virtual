@@ -152,7 +152,7 @@ function setStartupAutorun(enable) {
 
     if (enable) {
       if (!fs.existsSync(startupFolder)) fs.mkdirSync(startupFolder, { recursive: true });
-      const batContent = `@echo off\r\ncd /d "${PROJECT_ROOT}"\r\nstart /b npm run dev -- -p ${DEFAULT_PORT}\r\n`;
+      const batContent = `@echo off\r\ncd /d "${PROJECT_ROOT}"\r\nnode "${PROJECT_ROOT}\\bin\\ceo-virtual.js" start --daemon\r\n`;
       fs.writeFileSync(batPath, batContent, 'utf-8');
       console.log(`${colors.green}✓ Autorun enabled at Windows Startup!${colors.reset}`);
       console.log(`  File shortcut: ${colors.dim}${batPath}${colors.reset}`);
@@ -222,7 +222,8 @@ async function handleCommand() {
 
   ensureHomeDirs();
 
-  if (cmd === 'start') {
+  if (cmd === 'start' || cmd === 'daemon') {
+    const isDaemon = args.includes('--daemon') || args.includes('-d') || cmd === 'daemon';
     printBanner();
     const port = DEFAULT_PORT;
     const url = `http://localhost:${port}`;
@@ -240,6 +241,30 @@ async function handleCommand() {
     console.log(`  Project root:     ${colors.dim}${PROJECT_ROOT}${colors.reset}\n`);
 
     const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+
+    if (isDaemon) {
+      console.log(`${colors.cyan}► Starting CEO Virtual in BACKGROUND (Daemon Mode)...${colors.reset}`);
+      const logFile = path.join(APP_HOME, 'logs', 'server.log');
+      const logDir = path.dirname(logFile);
+      if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+      const out = fs.openSync(logFile, 'a');
+      const child = spawn(npmCmd, ['run', 'dev', '--', '-p', String(port)], {
+        cwd: PROJECT_ROOT,
+        detached: true,
+        stdio: ['ignore', out, out],
+        shell: true,
+        windowsHide: true,
+      });
+      child.unref();
+      fs.writeFileSync(APP_PID_FILE, String(child.pid), 'utf-8');
+      console.log(`${colors.green}✓ CEO Virtual started in background! (PID: ${child.pid})${colors.reset}`);
+      console.log(`  Access URL:  ${colors.cyan}${url}${colors.reset}`);
+      console.log(`  Server Log:  ${colors.dim}${logFile}${colors.reset}`);
+      console.log(`${colors.yellow}Opening browser in 2.5s...${colors.reset}\n`);
+      setTimeout(() => openUrl(url), 2500);
+      return;
+    }
+
     const child = spawn(npmCmd, ['run', 'dev', '--', '-p', String(port)], {
       cwd: PROJECT_ROOT,
       stdio: 'inherit',
@@ -299,6 +324,21 @@ async function handleCommand() {
   } else if (cmd === 'workspace' || cmd === 'open') {
     console.log(`${colors.cyan}Opening workspace folder in File Explorer:${colors.reset} ${APP_WORKSPACES}`);
     openFolder(APP_WORKSPACES);
+
+  } else if (cmd === 'uninstall') {
+    const uninstaller = process.platform === 'win32'
+      ? path.join(PROJECT_ROOT, 'uninstall.ps1')
+      : path.join(PROJECT_ROOT, 'uninstall.sh');
+    if (process.platform === 'win32') {
+      try {
+        execSync(`powershell -ExecutionPolicy Bypass -File "${uninstaller}"`, { stdio: 'inherit' });
+      } catch {}
+    } else {
+      try {
+        execSync(`bash "${uninstaller}"`, { stdio: 'inherit' });
+      } catch {}
+    }
+    return;
 
   } else if (cmd === 'autorun') {
     const subCmd = args[1];
@@ -541,6 +581,7 @@ async function handleCommand() {
   ${colors.cyan}ceo-virtual skill list${colors.reset}         List installed Role Skills & SOPs
   ${colors.cyan}ceo-virtual autorun enable${colors.reset}     Enable auto-start on Windows/macOS/Linux startup
   ${colors.cyan}ceo-virtual autorun disable${colors.reset}    Disable startup autorun
+  ${colors.cyan}ceo-virtual uninstall${colors.reset}          Uninstall CEO Virtual & opsi pembersihan data
   ${colors.cyan}ceo-virtual create <name>${colors.reset}      Scaffold a new project in ~/.ceo-virtual/workspaces/
   ${colors.cyan}ceo-virtual clone <url> [name]${colors.reset} Clone a GitHub repository directly into workspaces
   ${colors.cyan}ceo-virtual help${colors.reset}               Show this help message

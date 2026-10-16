@@ -119,6 +119,6 @@ echo -e "  ${CYAN}ceo-virtual start${RESET}       (Start server and open browser
 echo -e "  ${CYAN}ceo-virtual workspace${RESET}   (Open code folder in File Explorer)"
 echo -e "  ${CYAN}ceo-virtual memory list${RESET} (Check company memories & vector DB)"
 echo -e "  ${CYAN}ceo-virtual status${RESET}      (Check running agent state)"
-echo -e "\nLaunching CEO Virtual now...\n"
+echo -e "\nLaunching CEO Virtual in background (Daemon Mode)...\n"
 
-node "$TARGET_DIR/bin/ceo-virtual.js" start
+node "$TARGET_DIR/bin/ceo-virtual.js" start --daemon

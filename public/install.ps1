@@ -118,5 +118,5 @@ Write-Host "  GitHub Repo:      $RepoUrl" -ForegroundColor Cyan
 Write-Host "========================================================`n" -ForegroundColor Gray
 
 # 8. Start server now
-Write-Host "Menjalankan CEO Virtual sekarang..." -ForegroundColor Yellow
-node "$ProjectRoot\bin\ceo-virtual.js" start
+Write-Host "Menjalankan CEO Virtual di background (Daemon Mode)..." -ForegroundColor Yellow
+node "$ProjectRoot\bin\ceo-virtual.js" start --daemon

@@ -54,6 +54,9 @@ ceo-virtual autorun enable
 # Non-aktifkan autorun
 ceo-virtual autorun disable
 
+# Uninstall CEO Virtual (lengkap dengan pilihan hapus/simpan memori)
+ceo-virtual uninstall
+
 # Buat folder proyek baru langsung via CLI
 ceo-virtual create <nama-proyek>
 
@@ -140,6 +143,35 @@ Buka browser di: **http://localhost:28483**
 ├── telegram_<id>.json   # Pengaturan bot telegram per perusahaan
 └── chat_<id>.json       # Riwayat obrolan War Room
 ```
+
+---
+
+## 🗑️ Cara Uninstall (Uninstallation)
+
+Jika Anda ingin mencopot pemasangan CEO Virtual dari sistem Anda, gunakan script uninstaller 1-klik di bawah ini. Script akan secara otomatis menghentikan server, menghapus konfigurasi autorun saat startup, mencopot executable CLI, dan **memberikan pilihan interaktif apakah ingin menghapus data memori/cache atau tetap menyimpannya**:
+
+### **Windows (PowerShell)**
+```powershell
+irm https://raw.githubusercontent.com/asepindrak/ceo-virtual/main/uninstall.ps1 | iex
+```
+
+### **Linux / macOS / WSL**
+```bash
+curl -fsSL https://raw.githubusercontent.com/asepindrak/ceo-virtual/main/uninstall.sh | bash
+```
+
+### **Via Perintah CLI**
+Jika CLI `ceo-virtual` aktif di komputer Anda:
+```bash
+ceo-virtual uninstall
+```
+
+#### 🛡️ Pilihan Pembersihan Data & Memori:
+Saat proses uninstall dijalankan, Anda akan diminta konfirmasi:
+> `Apakah Anda ingin MENGHAPUS seluruh memori, cache & file workspace? [y/N]:`
+
+* **Pilih `N` (atau langsung tekan Enter):** *(Direkomendasikan)* Menghapus aplikasi dan autorun, namun **tetap menyimpan** data memori AI, riwayat percakapan tim kantor, dan file proyek di `~/.ceo-virtual/workspaces`. Jika Anda menginstall kembali di masa mendatang, seluruh riwayat dan level perusahaan Anda akan langsung terbaca kembali secara utuh.
+* **Pilih `y`:** Menghapus seluruh folder `~/.ceo-virtual` dan cache secara bersih dan permanen dari komputer.
 
 ---
 
