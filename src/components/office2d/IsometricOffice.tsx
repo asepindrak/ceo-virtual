@@ -1213,12 +1213,12 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // Outer lush floating lawn with natural curved contours (Generously Expanded for Roadway)
+      // Outer lush floating lawn with natural curved contours (Expanded for perimeter gardens)
       const lawnPoly = [
-        toIso(-28.0, -18.0),
-        toIso(28.0, -18.0),
-        toIso(28.0, 26.0),
-        toIso(-28.0, 26.0),
+        toIso(-32.0, -22.0),
+        toIso(32.0, -22.0),
+        toIso(32.0, 26.0),
+        toIso(-32.0, 26.0),
       ];
       ctx.beginPath();
       ctx.moveTo(lawnPoly[0].isoX, lawnPoly[0].isoY);
@@ -1283,13 +1283,113 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         ctx.stroke();
       }
 
-            // =========================================================
-      // REGIONAL BOULEVARD ROADWAY INFRASTRUCTURE (GROUND PLANE LAYER)
-      // Digambar sebelum pohon perimeter & pejalan kaki agar z-index pohon & agent selalu di atas jalan
       // =========================================================
-      
-// =========================================================
-      // GRAND SHADY TREES AROUND OFFICE PERIMETER (SEJUK & RINDANG)
+      // REGIONAL BOULEVARD ROADWAY INFRASTRUCTURE (GROUND PLANE LAYER)
+      // Digambar pada ground plane layer sebelum gedung, pohon, mobil, dan agent
+      // agar tidak ada agent, mobil, maupun pohon yang tertutup permukaan jalan!
+      // =========================================================
+      // 1. North Sidewalk & Curb (Promenade membentang penuh dari -95.0 ke +95.0)
+      const swTL = toIso(-95.0, 14.2);
+      const swTR = toIso(95.0, 14.2);
+      const swBR = toIso(95.0, 16.2);
+      const swBL = toIso(-95.0, 16.2);
+
+      ctx.fillStyle = '#e2e8f0';
+      ctx.beginPath();
+      ctx.moveTo(swTL.isoX, swTL.isoY);
+      ctx.lineTo(swTR.isoX, swTR.isoY);
+      ctx.lineTo(swBR.isoX, swBR.isoY);
+      ctx.lineTo(swBL.isoX, swBL.isoY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1 * zoom;
+      ctx.stroke();
+
+      // Granite curb stone edge
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2 * zoom;
+      ctx.beginPath();
+      ctx.moveTo(swBL.isoX, swBL.isoY);
+      ctx.lineTo(swBR.isoX, swBR.isoY);
+      ctx.stroke();
+
+      // 2. Highway Asphalt Surface (Avenue dua jalur membentang penuh: -95.0 s/d +95.0)
+      const roadTL = toIso(-95.0, 16.2);
+      const roadTR = toIso(95.0, 16.2);
+      const roadBR = toIso(95.0, 22.8);
+      const roadBL = toIso(-95.0, 22.8);
+
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.moveTo(roadTL.isoX, roadTL.isoY);
+      ctx.lineTo(roadTR.isoX, roadTR.isoY);
+      ctx.lineTo(roadBR.isoX, roadBR.isoY);
+      ctx.lineTo(roadBL.isoX, roadBL.isoY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Outer road curb
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1.5 * zoom;
+      ctx.beginPath();
+      ctx.moveTo(roadBL.isoX, roadBL.isoY);
+      ctx.lineTo(roadBR.isoX, roadBR.isoY);
+      ctx.stroke();
+
+      // 3. South Sidewalk & Curb (Promenade membentang penuh: -95.0 s/d +95.0)
+      const sswTL = toIso(-95.0, 22.8);
+      const sswTR = toIso(95.0, 22.8);
+      const sswBR = toIso(95.0, 24.8);
+      const sswBL = toIso(-95.0, 24.8);
+
+      ctx.fillStyle = '#e2e8f0';
+      ctx.beginPath();
+      ctx.moveTo(sswTL.isoX, sswTL.isoY);
+      ctx.lineTo(sswTR.isoX, sswTR.isoY);
+      ctx.lineTo(sswBR.isoX, sswBR.isoY);
+      ctx.lineTo(sswBL.isoX, sswBL.isoY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1 * zoom;
+      ctx.stroke();
+
+      // 4. Double Solid/Dashed Yellow Center Divider Line (wz = 19.5, membentang -95.0 s/d +95.0)
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 1.6 * zoom;
+      ctx.setLineDash([8 * zoom, 6 * zoom]);
+      const divL = toIso(-95.0, 19.5);
+      const divR = toIso(95.0, 19.5);
+      ctx.beginPath();
+      ctx.moveTo(divL.isoX, divL.isoY);
+      ctx.lineTo(divR.isoX, divR.isoY);
+      ctx.stroke();
+      ctx.setLineDash([]); // Reset dash
+
+      // 5. Lima Zebra Crosswalks Menyeberang Boulevard (Menghubungkan Semua Kavling)
+      ctx.fillStyle = '#ffffff';
+      const crosswalkCenters = [-80.0, -42.0, 0.0, 42.0, 80.0];
+      crosswalkCenters.forEach((cxw) => {
+        for (let zx = cxw - 1.8; zx <= cxw + 1.8; zx += 0.65) {
+          const zw1 = toIso(zx - 0.2, 16.3);
+          const zw2 = toIso(zx + 0.2, 16.3);
+          const zw3 = toIso(zx + 0.2, 22.7);
+          const zw4 = toIso(zx - 0.2, 22.7);
+          ctx.beginPath();
+          ctx.moveTo(zw1.isoX, zw1.isoY);
+          ctx.lineTo(zw2.isoX, zw2.isoY);
+          ctx.lineTo(zw3.isoX, zw3.isoY);
+          ctx.lineTo(zw4.isoX, zw4.isoY);
+          ctx.closePath();
+          ctx.fill();
+        }
+      });
+
+      // =========================================================
+      // GRAND SHADY TREES FUNCTION & BACK ROW (behind office, z < -16)
+      // Back trees render BEFORE office so they appear behind the building.
+      // Side & front trees render AFTER office floor/furniture.
       // =========================================================
       const drawBigTree = (tx: number, tz: number, treeScale = 1.35, seed = 0) => {
         const tIso = toIso(tx, tz);
@@ -1362,29 +1462,13 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         ctx.fill();
       };
 
-      // 15 Grand Perimeter Shady Trees surrounding the office park
-      // A. Top-Back Panoramic Row (visible through rear panoramic glass windows)
-      drawBigTree(-15.0, -16.0, 1.35, 1);
-      drawBigTree(-8.0, -16.8, 1.45, 2);
-      drawBigTree(0.0, -17.2, 1.55, 3);
-      drawBigTree(8.0, -16.8, 1.45, 4);
-      drawBigTree(15.0, -16.0, 1.35, 5);
-
-      // B. Left Flank Perimeter (surrounding Pantry & Lounge gardens)
-      drawBigTree(-21.5, -12.5, 1.30, 6);
-      drawBigTree(-22.5, -5.0, 1.40, 7);
-      drawBigTree(-22.0, 3.5, 1.35, 8);
-      drawBigTree(-20.5, 11.0, 1.25, 9);
-
-      // C. Right Flank Perimeter (surrounding Lead Suite & Sprint gardens)
-      drawBigTree(21.5, -12.5, 1.30, 10);
-      drawBigTree(22.5, -5.0, 1.40, 11);
-      drawBigTree(22.0, 3.5, 1.35, 12);
-      drawBigTree(20.5, 11.0, 1.25, 13);
-
-      // D. Front Meadow Framing Corners
-      drawBigTree(-15.0, 15.5, 1.25, 14);
-      drawBigTree(15.0, 15.5, 1.25, 15);
+      // BACK TREES ONLY (z < -16, rendered BEFORE office building)
+      // Positioned cleanly behind panoramic windows so no wall clipping occurs
+      drawBigTree(-15.0, -18.5, 1.25, 1);
+      drawBigTree(-8.0, -19.0, 1.35, 2);
+      drawBigTree(0.0, -19.5, 1.40, 3);
+      drawBigTree(8.0, -19.0, 1.35, 4);
+      drawBigTree(15.0, -18.5, 1.25, 5);
 
       // =========================================================
       // 2. MAIN BUILDING FOUNDATION & 3D PLATFORM SLAB (EXPANDED)
@@ -3160,6 +3244,24 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         ctx.fillStyle = stickyCols[sc % stickyCols.length];
         ctx.fillRect(sx, sy, 9 * zoom, 8 * zoom);
       }
+      // =========================================================
+      // SIDE & FRONT PERIMETER TREES (rendered AFTER office building)
+      // These render on top of/beside the office, correct z-layering.
+      // Pushed further out from building walls to avoid foliage covering office.
+      // =========================================================
+      // B. Left Flank Perimeter (outside left wall, generous lawn spacing)
+      drawBigTree(-25.5, -9.0, 1.15, 6);
+      drawBigTree(-26.0, 0.0, 1.20, 7);
+      drawBigTree(-25.5, 9.0, 1.15, 8);
+
+      // C. Right Flank Perimeter (outside right wall, generous lawn spacing)
+      drawBigTree(25.5, -9.0, 1.15, 10);
+      drawBigTree(26.0, 0.0, 1.20, 11);
+      drawBigTree(25.5, 9.0, 1.15, 12);
+
+      // D. Front Meadow Framing Corners (on sidewalk lawn corners)
+      drawBigTree(-18.5, 15.5, 1.10, 14);
+      drawBigTree(18.5, 15.5, 1.10, 15);
 
       // =========================================================
       // 7. WALKING TRACK & FOOTPRINTS
@@ -3814,288 +3916,10 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       renderSentralTrainStation(isoCtx, stCx, stCz, isStHovered);
 
       // =========================================================
-      // DYNAMIC REGIONAL COMMUTERS (AGENT BERJALAN & KENDARAAN KUNJUNGAN)
-      // Menampilkan Pergerakan Nyata Agent Melintasi Trotoar, Zebra Cross, & Jalan Raya
+      // 8. FRONT BOULEVARD: AMENITIES & CARS
+      // Street amenities, streetlights, parked cars and moving traffic
+      // (Roadway surface already rendered on ground plane layer)
       // =========================================================
-            // Helper: Render Commuter Agent Proporsional (Seimbang dengan Agen Kantor Utama)
-      const renderCommuterPedestrian = (
-        wx: number,
-        wz: number,
-        name: string,
-        companyTag: string,
-        shirtColor: string,
-        hairColor = '#0f172a',
-        facingRight = true
-      ) => {
-        const pIso = toIso(wx, wz);
-        const s = zoom;
-        const walkBob = Math.abs(Math.sin(timeSec * 7)) * 3 * s;
-        const walkSway = Math.sin(timeSec * 7) * 0.08;
-
-        // Bayangan Kaki (Sama proporsi dengan agen kantor)
-        ctx.fillStyle = 'rgba(40, 25, 15, 0.22)';
-        ctx.beginPath();
-        ctx.ellipse(pIso.isoX, pIso.isoY, 13 * s, 6.5 * s, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.save();
-        ctx.translate(pIso.isoX, pIso.isoY - walkBob);
-        ctx.rotate(facingRight ? walkSway : -walkSway);
-
-        // Kaki & Celana
-        ctx.fillStyle = '#334155';
-        ctx.beginPath();
-        ctx.roundRect(-6 * s, -14 * s, 4.8 * s, 14 * s, 2 * s);
-        ctx.roundRect(1.2 * s, -14 * s, 4.8 * s, 14 * s, 2 * s);
-        ctx.fill();
-
-        // Sepatu
-        ctx.fillStyle = '#0f172a';
-        ctx.beginPath();
-        ctx.ellipse(-3.6 * s, -1.5 * s, 3.5 * s, 2 * s, 0, 0, Math.PI * 2);
-        ctx.ellipse(3.6 * s, -1.5 * s, 3.5 * s, 2 * s, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Badan / Kemeja (Ukuran dewasa proporsional: 19*s x 15*s)
-        ctx.fillStyle = shirtColor;
-        ctx.beginPath();
-        ctx.roundRect(-9.5 * s, -28 * s, 19 * s, 15 * s, 5 * s);
-        ctx.fill();
-
-        // Kerah Putih
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.moveTo(-3.5 * s, -28 * s);
-        ctx.lineTo(0, -24 * s);
-        ctx.lineTo(3.5 * s, -28 * s);
-        ctx.closePath();
-        ctx.fill();
-
-        // Kepala
-        ctx.fillStyle = '#fcd34d';
-        ctx.beginPath();
-        ctx.arc(0, -36 * s, 9.5 * s, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Rambut
-        ctx.fillStyle = hairColor;
-        ctx.beginPath();
-        ctx.arc(0, -38 * s, 10 * s, Math.PI * 0.95, Math.PI * 2.05);
-        ctx.fill();
-
-        // Pipi & Mata Expresif
-        ctx.fillStyle = 'rgba(255, 120, 140, 0.45)';
-        ctx.beginPath();
-        ctx.ellipse(-5 * s, -33 * s, 2.4 * s, 1.8 * s, 0, 0, Math.PI * 2);
-        ctx.ellipse(5 * s, -33 * s, 2.4 * s, 1.8 * s, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath();
-        ctx.arc(-3.5 * s, -35.5 * s, 2 * s, 0, Math.PI * 2);
-        ctx.arc(3.5 * s, -35.5 * s, 2 * s, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(-4.1 * s, -36.2 * s, 0.8 * s, 0, Math.PI * 2);
-        ctx.arc(2.9 * s, -36.2 * s, 0.8 * s, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-
-        // Floating Travel Badge
-        if (zoom >= 0.55) {
-          const tagText = `${name} (${companyTag})`;
-          const tagFont = `bold ${Math.max(8, Math.round(9 * zoom))}px sans-serif`;
-          ctx.font = tagFont;
-          const tw = ctx.measureText(tagText).width;
-          const tagW = tw + 18 * s;
-          const tagH = Math.max(16, Math.round(18 * s));
-          const tagY = pIso.isoY - 50 * s - walkBob;
-
-          // Shadow
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.2)';
-          ctx.beginPath();
-          ctx.roundRect(pIso.isoX - tagW / 2, tagY - tagH / 2 + 1.5, tagW, tagH, 5 * s);
-          ctx.fill();
-
-          // Badge Pill
-          ctx.fillStyle = shirtColor;
-          ctx.beginPath();
-          ctx.roundRect(pIso.isoX - tagW / 2, tagY - tagH / 2, tagW, tagH, 5 * s);
-          ctx.fill();
-
-          ctx.fillStyle = '#ffffff';
-          ctx.font = tagFont;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(tagText, pIso.isoX, tagY);
-        }
-      };
-
-      // 1. Pedestrian 1: Dimas (NusaNova) berjalan mengunjungi lobi ShadowMove
-      const walk1Progress = (timeSec * 2.4) % 36.0;
-      const walk1X = -36.0 + walk1Progress;
-      if (walk1X <= -2.0) {
-        renderCommuterPedestrian(walk1X, 13.5, 'Dimas', 'NusaNova -> ShadowMove', '#0284c7', '#0f172a', true);
-      }
-
-      // 2. Pedestrian 2: Tim ShadowMove berjalan ke Cyber Pujasera untuk makan siang
-      const walk2Progress = (timeSec * 1.8) % 36.0;
-      let w2X = 2.0;
-      let w2Z = 13.5;
-      if (walk2Progress < 10) {
-        w2Z = 13.5 + (walk2Progress / 10) * 8.5; // menyeberang zebra crosswalk
-      } else {
-        w2Z = 22.5;
-        w2X = 2.0 + Math.min(16.0, ((walk2Progress - 10) / 20) * 16.0); // menuju pujasera
-      }
-      renderCommuterPedestrian(w2X, w2Z, 'Tim ShadowMove', 'Pujasera 24 Jam', '#c85a2b', '#1e293b', true);
-
-      // 3. Mobil Delegasi: CyberFin Executive EV Sedan melaju menuju GarudaLogix
-      const carDriveX = -50.0 + (((timeSec * 5.5) + 10) % 95.0);
-      const carIso = toIso(carDriveX, 19.5);
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
-      ctx.beginPath();
-      ctx.ellipse(carIso.isoX, carIso.isoY, 15 * zoom, 7 * zoom, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.roundRect(carIso.isoX - 14 * zoom, carIso.isoY - 16 * zoom, 28 * zoom, 12 * zoom, 3 * zoom);
-      ctx.fill();
-      ctx.strokeStyle = '#10b981';
-      ctx.lineWidth = 1.2 * zoom;
-      ctx.stroke();
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(carIso.isoX - 7 * zoom, carIso.isoY - 20 * zoom, 14 * zoom, 5 * zoom);
-      ctx.fillStyle = '#34d399';
-      ctx.beginPath();
-      ctx.arc(carIso.isoX + 13 * zoom, carIso.isoY - 11 * zoom, 2 * zoom, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (zoom >= 0.65) {
-        const vText = '🚗 Delegasi CyberFin -> GarudaLogix';
-        const vFont = `bold ${Math.max(8, Math.round(9 * zoom))}px sans-serif`;
-        ctx.font = vFont;
-        const vTw = ctx.measureText(vText).width;
-        const vW = vTw + 16;
-        const vH = Math.max(16, Math.round(18 * zoom));
-        const vTagY = carIso.isoY - 28 * zoom;
-        ctx.fillStyle = '#0f172a';
-        ctx.beginPath();
-        ctx.roundRect(carIso.isoX - vW / 2, vTagY - vH / 2, vW, vH, 4);
-        ctx.fill();
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.fillStyle = '#34d399';
-        ctx.font = vFont;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(vText, carIso.isoX, vTagY);
-      }
-
-      // =========================================================
-      // 8. FRONT BOULEVARD: HIGHWAY, SIDEWALKS, AMENITIES & CARS
-      // Avenue Dua Jalur Membentang Penuh Menghubungkan SuperMart (-80) ke Stasiun (80)
-      // =========================================================
-      // 1. North Sidewalk & Curb (Promenade membentang penuh dari -95.0 ke +95.0)
-      const swTL = toIso(-95.0, 14.2);
-      const swTR = toIso(95.0, 14.2);
-      const swBR = toIso(95.0, 16.2);
-      const swBL = toIso(-95.0, 16.2);
-
-      ctx.fillStyle = '#e2e8f0';
-      ctx.beginPath();
-      ctx.moveTo(swTL.isoX, swTL.isoY);
-      ctx.lineTo(swTR.isoX, swTR.isoY);
-      ctx.lineTo(swBR.isoX, swBR.isoY);
-      ctx.lineTo(swBL.isoX, swBL.isoY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1 * zoom;
-      ctx.stroke();
-
-      // Granite curb stone edge
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 2 * zoom;
-      ctx.beginPath();
-      ctx.moveTo(swBL.isoX, swBL.isoY);
-      ctx.lineTo(swBR.isoX, swBR.isoY);
-      ctx.stroke();
-
-      // 2. Highway Asphalt Surface (Avenue dua jalur membentang penuh: -95.0 s/d +95.0)
-      const roadTL = toIso(-95.0, 16.2);
-      const roadTR = toIso(95.0, 16.2);
-      const roadBR = toIso(95.0, 22.8);
-      const roadBL = toIso(-95.0, 22.8);
-
-      ctx.fillStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.moveTo(roadTL.isoX, roadTL.isoY);
-      ctx.lineTo(roadTR.isoX, roadTR.isoY);
-      ctx.lineTo(roadBR.isoX, roadBR.isoY);
-      ctx.lineTo(roadBL.isoX, roadBL.isoY);
-      ctx.closePath();
-      ctx.fill();
-
-      // Outer road curb
-      ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 1.5 * zoom;
-      ctx.beginPath();
-      ctx.moveTo(roadBL.isoX, roadBL.isoY);
-      ctx.lineTo(roadBR.isoX, roadBR.isoY);
-      ctx.stroke();
-
-      // 3. South Sidewalk & Curb (Promenade membentang penuh: -95.0 s/d +95.0)
-      const sswTL = toIso(-95.0, 22.8);
-      const sswTR = toIso(95.0, 22.8);
-      const sswBR = toIso(95.0, 24.8);
-      const sswBL = toIso(-95.0, 24.8);
-
-      ctx.fillStyle = '#e2e8f0';
-      ctx.beginPath();
-      ctx.moveTo(sswTL.isoX, sswTL.isoY);
-      ctx.lineTo(sswTR.isoX, sswTR.isoY);
-      ctx.lineTo(sswBR.isoX, sswBR.isoY);
-      ctx.lineTo(sswBL.isoX, sswBL.isoY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1 * zoom;
-      ctx.stroke();
-
-      // 4. Double Solid/Dashed Yellow Center Divider Line (wz = 19.5, membentang -95.0 s/d +95.0)
-      ctx.strokeStyle = '#facc15';
-      ctx.lineWidth = 1.6 * zoom;
-      ctx.setLineDash([8 * zoom, 6 * zoom]);
-      const divL = toIso(-95.0, 19.5);
-      const divR = toIso(95.0, 19.5);
-      ctx.beginPath();
-      ctx.moveTo(divL.isoX, divL.isoY);
-      ctx.lineTo(divR.isoX, divR.isoY);
-      ctx.stroke();
-      ctx.setLineDash([]); // Reset dash
-
-      // 5. Lima Zebra Crosswalks Menyeberang Boulevard (Menghubungkan Semua Kavling)
-      ctx.fillStyle = '#ffffff';
-      const crosswalkCenters = [-80.0, -42.0, 0.0, 42.0, 80.0];
-      crosswalkCenters.forEach((cxw) => {
-        for (let zx = cxw - 1.8; zx <= cxw + 1.8; zx += 0.65) {
-          const zw1 = toIso(zx - 0.2, 16.3);
-          const zw2 = toIso(zx + 0.2, 16.3);
-          const zw3 = toIso(zx + 0.2, 22.7);
-          const zw4 = toIso(zx - 0.2, 22.7);
-          ctx.beginPath();
-          ctx.moveTo(zw1.isoX, zw1.isoY);
-          ctx.lineTo(zw2.isoX, zw2.isoY);
-          ctx.lineTo(zw3.isoX, zw3.isoY);
-          ctx.lineTo(zw4.isoX, zw4.isoY);
-          ctx.closePath();
-          ctx.fill();
-        }
-      });
 
       // 6. Fasilitas Kuliner Boulevard: Cyber Pujasera 24 Jam & Street Furniture
       const pjTL = toIso(17.0, 11.0);

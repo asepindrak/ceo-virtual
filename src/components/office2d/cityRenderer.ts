@@ -294,46 +294,84 @@ export const drawPerson = (
   const s = c.zoom;
   const p = P(c, x, z, 0);
   const bob = (o.bob ?? 0) * s;
-  const lift = o.seated ? 5 * s : 0;
+  const lift = o.seated ? 4 * s : 0;
   const skin = o.skin ?? '#f5cfa5';
 
+  // Ground shadow proportional to chibi body
   ctx.fillStyle = 'rgba(15,23,42,0.22)';
   ctx.beginPath();
-  ctx.ellipse(p.x, p.y, 5 * s, 2.4 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(p.x, p.y, 10 * s, 4.8 * s, 0, 0, Math.PI * 2);
   ctx.fill();
 
   if (!o.seated) {
     ctx.fillStyle = '#334155';
-    ctx.fillRect(p.x - 2.6 * s, p.y - 7 * s, 2.1 * s, 7 * s);
-    ctx.fillRect(p.x + 0.5 * s, p.y - 7 * s, 2.1 * s, 7 * s);
+    ctx.fillRect(p.x - 4.5 * s, p.y - 10 * s, 3.6 * s, 10 * s);
+    ctx.fillRect(p.x + 0.9 * s, p.y - 10 * s, 3.6 * s, 10 * s);
+    // Shoes
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.ellipse(p.x - 2.7 * s, p.y - 1 * s, 2.8 * s, 1.6 * s, 0, 0, Math.PI * 2);
+    ctx.ellipse(p.x + 2.7 * s, p.y - 1 * s, 2.8 * s, 1.6 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
-  const by = p.y - 15 * s - lift + bob;
+  const by = p.y - 22 * s - lift + bob;
+  // Torso / Shirt
   ctx.fillStyle = body;
   ctx.beginPath();
-  ctx.roundRect(p.x - 4 * s, by, 8 * s, 9 * s, 2.6 * s);
+  ctx.roundRect(p.x - 7.5 * s, by, 15 * s, 13 * s, 4 * s);
   ctx.fill();
-  ctx.fillStyle = shade(body, 0.8);
-  ctx.fillRect(p.x - 4 * s, by + 6.5 * s, 8 * s, 1.2 * s);
+  ctx.fillStyle = shade(body, 0.82);
+  ctx.fillRect(p.x - 7.5 * s, by + 10 * s, 15 * s, 2 * s);
 
-  const hy = by - 4 * s;
+  // White collar
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(p.x - 2.8 * s, by);
+  ctx.lineTo(p.x, by + 3.2 * s);
+  ctx.lineTo(p.x + 2.8 * s, by);
+  ctx.closePath();
+  ctx.fill();
+
+  // Head
+  const hy = by - 7.5 * s;
   ctx.fillStyle = o.back ? hair : skin;
   ctx.beginPath();
-  ctx.arc(p.x, hy, 4 * s, 0, Math.PI * 2);
+  ctx.arc(p.x, hy, 7.5 * s, 0, Math.PI * 2);
   ctx.fill();
+
+  // Hair
   ctx.fillStyle = hair;
   ctx.beginPath();
-  ctx.arc(p.x, hy - 0.8 * s, 4.1 * s, Math.PI * 1.05, Math.PI * 1.95);
+  ctx.arc(p.x, hy - 1.2 * s, 7.8 * s, Math.PI * 0.9, Math.PI * 2.1);
   ctx.fill();
+
   if (!o.back) {
+    // Cheeks
+    ctx.fillStyle = 'rgba(255, 120, 140, 0.42)';
+    ctx.beginPath();
+    ctx.ellipse(p.x - 4.2 * s, hy + 2.2 * s, 2 * s, 1.4 * s, 0, 0, Math.PI * 2);
+    ctx.ellipse(p.x + 4.2 * s, hy + 2.2 * s, 2 * s, 1.4 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
     ctx.fillStyle = '#1e293b';
-    ctx.fillRect(p.x - 1.8 * s, hy + 0.2 * s, 1 * s, 1.2 * s);
-    ctx.fillRect(p.x + 0.8 * s, hy + 0.2 * s, 1 * s, 1.2 * s);
+    ctx.beginPath();
+    ctx.arc(p.x - 2.8 * s, hy + 0.5 * s, 1.6 * s, 0, Math.PI * 2);
+    ctx.arc(p.x + 2.8 * s, hy + 0.5 * s, 1.6 * s, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sparkle
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(p.x - 3.2 * s, hy + 0.1 * s, 0.6 * s, 0, Math.PI * 2);
+    ctx.arc(p.x + 2.4 * s, hy + 0.1 * s, 0.6 * s, 0, Math.PI * 2);
+    ctx.fill();
   }
   if (o.cup) {
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(p.x + 3.6 * s, by + 2.5 * s, 2.6 * s, 3 * s);
+    ctx.fillRect(p.x + 5.5 * s, by + 3 * s, 3.8 * s, 4.5 * s);
     ctx.fillStyle = '#92400e';
-    ctx.fillRect(p.x + 3.6 * s, by + 2.5 * s, 2.6 * s, 0.9 * s);
+    ctx.fillRect(p.x + 5.5 * s, by + 3 * s, 3.8 * s, 1.3 * s);
   }
 };
 
@@ -1410,13 +1448,9 @@ export const renderCompanyKavling = (c: IsoCtx, k: KavlingLike, hovered: boolean
 
   k.employees.forEach((e, i) => {
     const seat = def.seats[i % def.seats.length];
-    const seated = !!seat.seated && e.state === 'working';
-    let ex = e.wx;
-    let ez = e.wz;
-    if (e.state === 'walking') {
-      ex += Math.sin(c.t * 0.6 + i) * 1.5;
-      ez += Math.cos(c.t * 0.6 + i) * 0.8;
-    }
+    const seated = !!seat.seated;
+    const ex = e.wx;
+    const ez = e.wz;
     q.add(
       ex,
       ez,

@@ -1,16 +1,12 @@
 import { Agent, AgentState, TaskTicket, Position3D, ActivityEvent, AgentDialog, HumanDecisionRequest, MarketplaceAgent, Company, TravelMission, StandupAgentSpeech } from '@/types/office';
 import { findPath } from '@/lib/pathfinding';
 import {
-  PANTRY_CENTER,
-  MEETING_ROOM_CENTER,
   CONFERENCE_SEATS,
-  WATER_COOLER_SPOT,
   OWNER_INTERACTION_SPOT,
   EXIT_DOOR_SPOT,
   COFFEE_MACHINE_SPOT,
   PANTRY_TABLE_SPOT,
   GAME_ROOM_SPOT,
-  SOFA_LOUNGE_SPOT,
   LOBBY_SPOT,
   SPRINT_STATION_SPOT,
   TRAIN_STATION_SPOT,
@@ -1846,8 +1842,9 @@ export class OfficeSimulation {
       }
     }
 
-    // 3. Autonomous Idle Wanderer: idle agents periodically choose a casual activity
-    const idleWanderInterval = (22000 + Math.random() * 16000) / this.speedMultiplier;
+    // 3. Autonomous Idle Wanderer: Real office behavior — employees spend 85-90% of time at desk
+    // Interval tenang: 90-150 detik, dan hanya 15% peluang beranjak (ngambil kopi atau cek papan sprint)
+    const idleWanderInterval = (90000 + Math.random() * 60000) / this.speedMultiplier;
     if (!this.isStandupActive() && now - this.lastIdleActivityTime > idleWanderInterval) {
       this.lastIdleActivityTime = now;
       const idleAgents = updatedAgents.filter(
@@ -1859,21 +1856,17 @@ export class OfficeSimulation {
           !tasks.some((t) => t.assignedAgentId === a.id && t.status === 'in_progress')
       );
 
-      if (idleAgents.length > 0) {
+      // Hanya 15% peluang beranjak — mayoritas waktu tetap tenang di meja kerja seperti kantor sungguhan
+      if (idleAgents.length > 0 && Math.random() < 0.15) {
         const candidate = idleAgents[Math.floor(Math.random() * idleAgents.length)];
-        // Higher affinity for Project Managers / System Architects to visit Sprint Station
         const isLead = candidate.role.includes('manager') || candidate.roleTitle.toLowerCase().includes('architect');
-        const activityRoll = isLead && Math.random() < 0.6 ? 3 : Math.floor(Math.random() * 4);
         let result: { updatedAgent: Agent; event: ActivityEvent } | null = null;
 
-        if (activityRoll === 0) {
-          result = this.triggerCoffeeBreak(candidate);
-        } else if (activityRoll === 1) {
-          result = this.triggerPlayGame(candidate);
-        } else if (activityRoll === 2) {
-          result = this.triggerLobbyStroll(candidate);
-        } else {
+        // 80% kopi di pantry, 20% review sprint board (tidak ada keluyuran acak ke lobi)
+        if (isLead || Math.random() < 0.25) {
           result = this.triggerSprintViewing(candidate);
+        } else {
+          result = this.triggerCoffeeBreak(candidate);
         }
 
         if (result) {
@@ -1884,8 +1877,8 @@ export class OfficeSimulation {
       }
     }
 
-    // 4. Dynamic Personality & LLM Collab banters (~45 - 75 seconds)
-    const collabInterval = (45000 + Math.random() * 30000) / this.speedMultiplier;
+    // 4. Dynamic Personality & Collab banters (~90 - 150 seconds, only idle agents)
+    const collabInterval = (90000 + Math.random() * 60000) / this.speedMultiplier;
     if (
       !this.isStandupActive() &&
       now - this.lastCollabTime > collabInterval &&
@@ -1894,11 +1887,13 @@ export class OfficeSimulation {
       !this.isLlmCollabPending
     ) {
       this.lastCollabTime = now;
+      // Only IDLE agents (not working on tasks) can initiate collab - working agents stay at desk
       const freeAgents = updatedAgents.filter(
         (a) =>
-          (a.state === 'working' || a.state === 'idle') &&
+          a.state === 'idle' &&
           !this.idleTimers.has(a.id) &&
-          !this.pathStates.has(a.id)
+          !this.pathStates.has(a.id) &&
+          !tasks.some((t) => t.assignedAgentId === a.id && t.status === 'in_progress')
       );
 
       if (freeAgents.length >= 2) {
