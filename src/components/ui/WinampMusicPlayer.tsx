@@ -73,31 +73,138 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
   const [activeTab, setActiveTab] = useState<'playlist' | 'search'>('playlist');
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [needUserGesture, setNeedUserGesture] = useState(false);
 
-  // YouTube player references
+  // YouTube player references & command queue
   const playerRef = useRef<any>(null);
   const isPlayerReadyRef = useRef(false);
   const currentLoadedVideoIdRef = useRef<string | null>(null);
   const lastProcessedCmdTimeRef = useRef<number>(0);
+  const pendingCommandRef = useRef<{ action: string; videoId?: string; timestamp: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeContainerId = 'winamp-youtube-iframe-target';
 
-  // Helper to play a track safely without double-triggering loadVideoById
+  // Synchronized refs to avoid stale closures inside onReady
+  const musicStateRef = useRef<OfficeMusicState>(musicState);
+  useEffect(() => {
+    musicStateRef.current = musicState;
+  }, [musicState]);
+
+  const volumeRef = useRef<number>(volume);
+  useEffect(() => {
+    volumeRef.current = volume;
+  }, [volume]);
+
+  // Helper to play a track safely via official YouTube Iframe API loadVideoById
   const safePlayTrack = useCallback((videoId: string) => {
-    if (!isPlayerReadyRef.current || !playerRef.current) return;
+    if (!isPlayerReadyRef.current || !playerRef.current) {
+      pendingCommandRef.current = { action: 'play', videoId, timestamp: Date.now() };
+      return;
+    }
     try {
-      if (currentLoadedVideoIdRef.current === videoId) {
-        // If the video is already loaded, simply play it without restarting from 0:00
+      currentLoadedVideoIdRef.current = videoId;
+      if (typeof playerRef.current.unMute === 'function') {
+        playerRef.current.unMute();
+      }
+      if (typeof playerRef.current.setVolume === 'function') {
+        playerRef.current.setVolume(Math.max(50, volumeRef.current || 70));
+      }
+      if (typeof playerRef.current.loadVideoById === 'function') {
+        try {
+          playerRef.current.loadVideoById(videoId, 0);
+        } catch {
+          playerRef.current.loadVideoById({ videoId });
+        }
+      }
+      if (typeof playerRef.current.playVideo === 'function') {
         playerRef.current.playVideo();
-      } else {
-        currentLoadedVideoIdRef.current = videoId;
-        playerRef.current.loadVideoById(videoId);
-        playerRef.current.playVideo();
+      }
+
+      // Detect if browser blocked unmuted autoplay before any user gesture on this tab
+      if (typeof navigator !== 'undefined' && 'userActivation' in navigator) {
+        if (!(navigator as any).userActivation?.hasBeenActive) {
+          setNeedUserGesture(true);
+        }
       }
     } catch (err) {
       console.warn('[safePlayTrack error]:', err);
+      setNeedUserGesture(true);
     }
   }, []);
+
+  // Centralized command executor that respects player readiness
+  const executePlaybackCommand = useCallback(
+    (
+      cmd: { action: string; videoId?: string; timestamp: number },
+      targetState?: OfficeMusicState
+    ) => {
+      if (!isPlayerReadyRef.current || !playerRef.current) {
+        // Enqueue command until onReady fires
+        pendingCommandRef.current = cmd;
+        return;
+      }
+
+      lastProcessedCmdTimeRef.current = cmd.timestamp;
+      const state = targetState || musicStateRef.current;
+
+      try {
+        if (cmd.action === 'play') {
+          const vid = cmd.videoId || state.currentTrack?.videoId;
+          if (vid) {
+            safePlayTrack(vid);
+          } else {
+            playerRef.current.playVideo();
+          }
+        } else if (cmd.action === 'pause') {
+          playerRef.current.pauseVideo();
+        } else if (cmd.action === 'stop') {
+          playerRef.current.stopVideo();
+        } else if (cmd.action === 'next' || cmd.action === 'prev') {
+          if (state.currentTrack) {
+            safePlayTrack(state.currentTrack.videoId);
+          }
+        }
+      } catch (cmdErr) {
+        console.warn('[executePlaybackCommand error]:', cmdErr);
+      }
+    },
+    [safePlayTrack]
+  );
+
+  // Unlock browser audio upon user interaction
+  const unlockAudioGesture = useCallback(() => {
+    setNeedUserGesture(false);
+    if (isPlayerReadyRef.current && playerRef.current) {
+      try {
+        if (typeof playerRef.current.unMute === 'function') {
+          playerRef.current.unMute();
+        }
+        if (typeof playerRef.current.setVolume === 'function') {
+          playerRef.current.setVolume(volumeRef.current);
+        }
+        if (typeof playerRef.current.playVideo === 'function') {
+          playerRef.current.playVideo();
+        }
+      } catch (e) {
+        console.warn('Unlock audio error:', e);
+      }
+    }
+  }, []);
+
+  // Global listener: first click or keypress unlocks sound if autoplay was restricted
+  useEffect(() => {
+    const handleDocInteraction = () => {
+      if (needUserGesture) {
+        unlockAudioGesture();
+      }
+    };
+    window.addEventListener('click', handleDocInteraction, { passive: true });
+    window.addEventListener('keydown', handleDocInteraction, { passive: true });
+    return () => {
+      window.removeEventListener('click', handleDocInteraction);
+      window.removeEventListener('keydown', handleDocInteraction);
+    };
+  }, [needUserGesture, unlockAudioGesture]);
 
   // 1. Load YouTube IFrame API once
   useEffect(() => {
@@ -115,7 +222,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
       const targetEl = document.getElementById(iframeContainerId);
       if (!targetEl || playerRef.current) return;
 
-      const initVideoId = musicState.currentTrack?.videoId || '1N8hOpMqvYs';
+      const initVideoId = musicStateRef.current.currentTrack?.videoId || '1N8hOpMqvYs';
       currentLoadedVideoIdRef.current = initVideoId;
 
       try {
@@ -134,9 +241,17 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
           events: {
             onReady: (event: any) => {
               isPlayerReadyRef.current = true;
-              event.target.setVolume(volume);
-              if (musicState.isPlaying) {
-                event.target.playVideo();
+              try {
+                event.target.setVolume(volumeRef.current);
+              } catch {}
+
+              // Execute pending queued command if Telegram sent one while loading
+              if (pendingCommandRef.current) {
+                const queued = pendingCommandRef.current;
+                pendingCommandRef.current = null;
+                executePlaybackCommand(queued, musicStateRef.current);
+              } else if (musicStateRef.current.isPlaying && musicStateRef.current.currentTrack) {
+                safePlayTrack(musicStateRef.current.currentTrack.videoId);
               }
             },
             onStateChange: (event: any) => {
@@ -144,6 +259,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
               if (event.data === 0) {
                 handleAutoNext();
               } else if (event.data === 1) {
+                setNeedUserGesture(false);
                 setMusicState((prev) => ({ ...prev, isPlaying: true }));
               } else if (event.data === 2) {
                 setMusicState((prev) => ({ ...prev, isPlaying: false }));
@@ -174,9 +290,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
     } else {
       window.onYouTubeIframeAPIReady = initPlayer;
     }
-
-    // Cleanup not needed as player persists across mini drawer opens
-  }, []);
+  }, [executePlaybackCommand, safePlayTrack]);
 
   // 2. Poll remote music state (/api/music) every 2 seconds for Telegram & War Room remote sync
   useEffect(() => {
@@ -190,34 +304,29 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
 
         const remoteState: OfficeMusicState = data.state;
 
-        // Check if there is a new playback command from Telegram or War Room
-        if (
-          remoteState.playbackCommand &&
-          remoteState.playbackCommand.timestamp > lastProcessedCmdTimeRef.current
-        ) {
-          lastProcessedCmdTimeRef.current = remoteState.playbackCommand.timestamp;
-          const { action, videoId } = remoteState.playbackCommand;
+        // Check if current track changed or if there is a new playback command
+        const isNewTrack =
+          Boolean(remoteState.currentTrack?.videoId) &&
+          remoteState.currentTrack?.videoId !== currentLoadedVideoIdRef.current;
+        const hasNewCommand =
+          Boolean(remoteState.playbackCommand) &&
+          remoteState.playbackCommand!.timestamp > lastProcessedCmdTimeRef.current;
 
-          if (isPlayerReadyRef.current && playerRef.current) {
-            try {
-              if (action === 'play') {
-                if (videoId) {
-                  safePlayTrack(videoId);
-                } else {
-                  playerRef.current.playVideo();
-                }
-              } else if (action === 'pause') {
-                playerRef.current.pauseVideo();
-              } else if (action === 'stop') {
-                playerRef.current.stopVideo();
-              } else if (action === 'next' || action === 'prev') {
-                if (remoteState.currentTrack) {
-                  safePlayTrack(remoteState.currentTrack.videoId);
-                }
-              }
-            } catch (cmdErr) {
-              console.warn('[Playback Command execution error]:', cmdErr);
-            }
+        if (hasNewCommand || (isNewTrack && remoteState.isPlaying)) {
+          if (remoteState.playbackCommand?.timestamp) {
+            lastProcessedCmdTimeRef.current = Math.max(
+              lastProcessedCmdTimeRef.current,
+              remoteState.playbackCommand.timestamp
+            );
+          }
+
+          if (remoteState.isPlaying && remoteState.currentTrack) {
+            setIsOpen(true);
+            setNoticeMessage(`🎵 Now Playing: "${remoteState.currentTrack.title}"`);
+            setTimeout(() => setNoticeMessage(null), 6000);
+            safePlayTrack(remoteState.currentTrack.videoId);
+          } else if (hasNewCommand) {
+            executePlaybackCommand(remoteState.playbackCommand!, remoteState);
           }
         }
 
@@ -233,7 +342,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
       isSubscribed = false;
       clearInterval(interval);
     };
-  }, [companyId]);
+  }, [companyId, executePlaybackCommand]);
 
   // Handle auto next when track finishes
   const handleAutoNext = useCallback(async () => {
@@ -551,6 +660,35 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
 
   return (
     <>
+      {/* 0. PERSISTENT YOUTUBE IFRAME (SELEKSI AKTIF DI VIEWPORT AGAR BROWSER TIDAK MEMBEKUKAN AUDIO) */}
+      <div
+        className={`transition-all duration-300 overflow-hidden ${
+          showVideo && isOpen
+            ? 'fixed top-[138px] right-2 sm:right-4 w-[386px] max-w-[calc(100vw-1.25rem)] h-36 sm:h-40 z-[55] bg-black border-b border-slate-800 rounded-none'
+            : 'fixed bottom-2 right-2 w-[240px] h-[135px] opacity-[0.01] pointer-events-none z-[-1] bg-black'
+        }`}
+      >
+        <div id={iframeContainerId} className="w-full h-full pointer-events-auto" />
+      </div>
+
+      {/* 0.1 BROWSER AUTOPLAY UNLOCK BANNER */}
+      {needUserGesture && (
+        <div
+          onClick={unlockAudioGesture}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white font-bold text-xs shadow-2xl border-2 border-amber-300 flex items-center gap-3 cursor-pointer animate-bounce hover:scale-105 transition-transform"
+        >
+          <Volume2 className="w-5 h-5 text-amber-200 animate-pulse flex-shrink-0" />
+          <div className="flex flex-col text-left">
+            <span className="font-extrabold text-white text-[13px]">
+              🎵 Lagu dari Telegram siap diputar!
+            </span>
+            <span className="text-amber-100 text-[11px] font-normal">
+              Kebijakan browser membatasi audio otomatis: Klik di sini untuk mengaktifkan suara.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* 1. FLOATING MINIMIZED MUSIC BUTTON (RIGHT SIDE OF SCREEN) */}
       {!isOpen && (
         <button
@@ -742,16 +880,15 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
             </div>
           </div>
 
-          {/* YOUTUBE IFRAME EMBED (VISIBLE IN DRAWER OR BACKGROUND AUDIO OFFSCREEN) */}
-          <div
-            className={`transition-all duration-300 bg-black overflow-hidden ${
-              showVideo
-                ? 'h-36 sm:h-40 border-b border-slate-800 relative w-full flex-shrink-0'
-                : 'fixed -top-[9999px] -left-[9999px] w-[240px] h-[140px] opacity-0 pointer-events-none'
-            }`}
-          >
-            <div id={iframeContainerId} className="w-full h-full" />
-          </div>
+          {/* YOUTUBE VIDEO VISUAL SLOT PLACEHOLDER WHEN SHOWVIDEO IS ACTIVE */}
+          {showVideo && (
+            <div className="h-36 sm:h-40 border-b border-slate-800 relative w-full flex-shrink-0 bg-black flex items-center justify-center text-xs text-slate-500 font-mono select-none">
+              <span className="text-[11px] text-cyan-400/80 animate-pulse flex items-center gap-1.5">
+                <Tv className="w-3.5 h-3.5" />
+                <span>Video Layar Winamp Aktif</span>
+              </span>
+            </div>
+          )}
 
           {/* WINAMP HARDWARE CONTROL DECK */}
           <div className="p-2.5 bg-[#111726] border-b border-slate-800 flex flex-col gap-2 flex-shrink-0">

@@ -203,7 +203,7 @@ export async function searchYTMusic(query: string, limit: number = 8): Promise<M
 }
 
 /**
- * Play a single track immediately (adds to playlist if not present, and sets current)
+ * Play a single track immediately (interrupts current song if any, switches to this track immediately)
  */
 export async function playSingleTrack(
   companyId: string,
@@ -225,8 +225,13 @@ export async function playSingleTrack(
     state.currentIndex = existingIdx;
     state.currentTrack = state.playlist[existingIdx];
   } else {
-    state.playlist.push(track);
-    state.currentIndex = state.playlist.length - 1;
+    // Insert immediately after current track (or at beginning if none)
+    const insertIdx =
+      state.currentIndex >= 0 && state.currentIndex < state.playlist.length
+        ? state.currentIndex + 1
+        : state.playlist.length;
+    state.playlist.splice(insertIdx, 0, track);
+    state.currentIndex = insertIdx;
     state.currentTrack = track;
   }
 
@@ -239,6 +244,48 @@ export async function playSingleTrack(
 
   saveOfficeMusicState(companyId, state);
   return { track, state };
+}
+
+/**
+ * Add a track to the end of playlist queue WITHOUT interrupting the currently playing song
+ */
+export async function queueTrack(
+  companyId: string,
+  query: string,
+  requestedBy: string = 'User'
+): Promise<{ track: MusicTrack | null; state: OfficeMusicState; position: number; error?: string }> {
+  const state = getOfficeMusicState(companyId);
+  const results = await searchYTMusic(query, 1);
+
+  if (results.length === 0) {
+    return { track: null, state, position: -1, error: `Tidak ditemukan lagu untuk pencarian "${query}".` };
+  }
+
+  const track = { ...results[0], addedBy: requestedBy };
+  const existingIdx = state.playlist.findIndex((t) => t.videoId === track.videoId);
+
+  let targetPos: number;
+  if (existingIdx !== -1) {
+    targetPos = existingIdx + 1;
+  } else {
+    state.playlist.push(track);
+    targetPos = state.playlist.length;
+  }
+
+  // If nothing is playing, start playing this track immediately
+  if (!state.currentTrack || !state.isPlaying) {
+    state.currentIndex = existingIdx !== -1 ? existingIdx : state.playlist.length - 1;
+    state.currentTrack = state.playlist[state.currentIndex];
+    state.isPlaying = true;
+    state.playbackCommand = {
+      action: 'play',
+      videoId: state.currentTrack.videoId,
+      timestamp: Date.now(),
+    };
+  }
+
+  saveOfficeMusicState(companyId, state);
+  return { track, state, position: targetPos };
 }
 
 /**

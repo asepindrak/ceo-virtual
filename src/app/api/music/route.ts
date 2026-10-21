@@ -3,6 +3,7 @@ import {
   getOfficeMusicState,
   searchYTMusic,
   playSingleTrack,
+  queueTrack,
   createPlaylist,
   sendPlaybackCommand,
   addTrackToPlaylist,
@@ -82,6 +83,36 @@ export async function POST(req: Request) {
       }
 
       return NextResponse.json({ success: true, state: res.state, track: res.track });
+    }
+
+    // 2.5 Queue Track (Add to queue without interrupting current playback)
+    if (action === 'queue_track') {
+      if (!query && !track) {
+        return NextResponse.json({ success: false, error: 'Query or track is required' }, { status: 400 });
+      }
+      if (track) {
+        const state = addTrackToPlaylist(companyId, track, false);
+        return NextResponse.json({ success: true, state, track });
+      }
+
+      const res = await queueTrack(companyId, query, requestedBy);
+      if (res.error) {
+        return NextResponse.json({ success: false, error: res.error, state: res.state }, { status: 404 });
+      }
+
+      if (broadcastToChat && res.track) {
+        const chatMsg: OfficeGroupChatMessage = {
+          id: `music-msg-${Date.now()}`,
+          senderType: 'system',
+          senderName: 'Office SoundSystem 🎵',
+          message: `➕ Menambahkan ke antrean: **"${res.track.title}"** oleh **${res.track.artist}** (Posisi #${res.position}) atas permintaan ${requestedBy}.`,
+          timestamp: Date.now(),
+          source: 'web',
+        };
+        appendCompanyChatMessage(companyId, chatMsg);
+      }
+
+      return NextResponse.json({ success: true, state: res.state, track: res.track, position: res.position });
     }
 
     // 3. Create / Append Playlist

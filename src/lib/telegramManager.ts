@@ -14,7 +14,7 @@ import { PRESET_COMPANIES, getEffectiveAgentLLMConfig } from './companyPresets';
 import { callLLMProvider } from './llmService';
 import { cloneGitRepository, extractGitHubUrl, createProjectDirectory, writeProjectFile, writeArtifactFile, VIGENT_HOME } from './workspaceManager';
 import { getAgentCurrentTime } from './timezoneHelper';
-import { playSingleTrack, createPlaylist, sendPlaybackCommand, getOfficeMusicState } from './musicManager';
+import { playSingleTrack, queueTrack, createPlaylist, sendPlaybackCommand, getOfficeMusicState } from './musicManager';
 import { synthesizeAgentVoice, transcribeTelegramVoice } from './voiceManager';
 
 export interface BotRunnerInstance {
@@ -989,13 +989,24 @@ Setiap karyawan yang Anda tag akan langsung membalas dengan label identitas mere
       const res = await playSingleTrack(companyId, query, senderName);
 
       if (res.track) {
+        const chatMsg: OfficeGroupChatMessage = {
+          id: `music-msg-${Date.now()}`,
+          senderType: 'system',
+          senderName: 'Office SoundSystem 🎵',
+          message: `🎶 *[Telegram Remote]* Memutar lagu: **"${res.track.title}"** oleh **${res.track.artist}** (Durasi: ${res.track.durationText}) atas permintaan ${senderName}.`,
+          timestamp: Date.now(),
+          source: 'telegram',
+        };
+        appendCompanyChatMessage(companyId, chatMsg);
+
         await ctx.reply(
-          `🎵 *NOW PLAYING DI KANTOR:*\n\n` +
+          `▶️ *LANGSUNG DIPUTAR DI KANTOR:*\n\n` +
           `📻 *${res.track.title}*\n` +
           `🎤 *Artis:* ${res.track.artist}\n` +
           `⏱️ *Durasi:* ${res.track.durationText}\n` +
           `👤 *Request:* ${senderName}\n\n` +
-          `_Lagu langsung diputar di browser kantor pada pemutar Winamp floating player!_ 🚀`,
+          `_Lagu langsung diputar di browser kantor pada pemutar Winamp floating player!_ 🚀\n` +
+          `💡 _Gunakan \`/add <judul>\` jika hanya ingin menambahkan ke antrean tanpa memotong lagu yang sedang berputar._`,
           { parse_mode: 'Markdown' }
         );
       } else {
@@ -1081,22 +1092,60 @@ Setiap karyawan yang Anda tag akan langsung membalas dengan label identitas mere
     bot.command('nowplaying', handleNowPlaying);
     bot.command('np', handleNowPlaying);
 
-    bot.command('queue', async (ctx) => {
-      const state = getOfficeMusicState(companyId);
-      if (state.playlist.length === 0) {
-        await ctx.reply('📭 Daftar antrean musik kosong. Gunakan `/play <judul>` atau `/playlist <tema>`.');
+    const handleQueueOrAdd = async (ctx: any) => {
+      const text = ctx.message?.text || '';
+      const query = text.replace(/^\/(add|queue)(@\w+)?\s*/i, '').trim();
+      const senderName = ctx.from?.first_name || 'Boss (Telegram)';
+
+      if (!query) {
+        const state = getOfficeMusicState(companyId);
+        if (state.playlist.length === 0) {
+          await ctx.reply('📭 Daftar antrean musik kosong. Gunakan `/play <judul>` untuk memutar langsung, atau `/add <judul>` untuk memasukkan ke antrean.');
+          return;
+        }
+        const list = state.playlist.map((t, idx) => {
+          const isCurrent = idx === state.currentIndex;
+          return `${isCurrent ? '▶️' : `${idx + 1}.`} *${t.title}* - _${t.artist}_ (${t.durationText}) ${isCurrent ? '👈 *[SEDANG BERPUTAR]*' : ''}`;
+        }).join('\n');
+
+        await ctx.reply(
+          `📋 *DAFTAR PLAYLIST KANTOR (${state.playlist.length} LAGU):*\n\n${list}\n\n💡 _Gunakan \`/play <judul>\` untuk memutar lagu langsung, atau \`/add <judul>\` untuk menambah antrean._`,
+          { parse_mode: 'Markdown' }
+        );
         return;
       }
-      const list = state.playlist.map((t, idx) => {
-        const isCurrent = idx === state.currentIndex;
-        return `${isCurrent ? '▶️' : `${idx + 1}.`} *${t.title}* - _${t.artist}_ (${t.durationText}) ${isCurrent ? '👈 *[SEDANG BERPUTAR]*' : ''}`;
-      }).join('\n');
 
-      await ctx.reply(
-        `📋 *DAFTAR PLAYLIST KANTOR (${state.playlist.length} LAGU):*\n\n${list}\n\n💡 _Gunakan \`/next\` atau \`/prev\` untuk berpindah lagu._`,
-        { parse_mode: 'Markdown' }
-      );
-    });
+      await ctx.reply(`🔍 Menambahkan *"${query}"* ke antrean playlist kantor...`, { parse_mode: 'Markdown' });
+      const res = await queueTrack(companyId, query, senderName);
+
+      if (res.track) {
+        const chatMsg: OfficeGroupChatMessage = {
+          id: `music-msg-${Date.now()}`,
+          senderType: 'system',
+          senderName: 'Office SoundSystem 🎵',
+          message: `➕ *[Telegram Remote]* Menambahkan ke antrean: **"${res.track.title}"** oleh **${res.track.artist}** (Posisi #${res.position}) atas permintaan ${senderName}.`,
+          timestamp: Date.now(),
+          source: 'telegram',
+        };
+        appendCompanyChatMessage(companyId, chatMsg);
+
+        await ctx.reply(
+          `➕ *DITAMBAHKAN KE ANTREAN PLAYLIST (Posisi #${res.position}):*\n\n` +
+          `📻 *${res.track.title}*\n` +
+          `🎤 *Artis:* ${res.track.artist}\n` +
+          `⏱️ *Durasi:* ${res.track.durationText}\n` +
+          `👤 *Request:* ${senderName}\n\n` +
+          `_Lagu ini akan diputar otomatis setelah lagu yang sedang berjalan selesai._ 🎶\n` +
+          `_Ketik \`/play <judul>\` jika ingin langsung memutar sekarang tanpa menunggu._`,
+          { parse_mode: 'Markdown' }
+        );
+      } else {
+        await ctx.reply(`❌ ${res.error || 'Lagu tidak ditemukan.'}`);
+      }
+    };
+
+    bot.command('add', handleQueueOrAdd);
+    bot.command('queue', handleQueueOrAdd);
 
     // Command: /voice - Minta agent membalas dengan pesan suara audio (TTS)
     bot.command('voice', async (ctx) => {
@@ -1177,7 +1226,8 @@ Setiap karyawan yang Anda tag akan langsung membalas dengan label identitas mere
 /chatid - Mengetahui Chat ID ruang obrolan ini
 
 🎵 *SoundSystem & Remote Music:*
-/play <judul> - Putar lagu langsung di browser via YouTube Music
+/play <judul> - Putar lagu sekarang juga (langsung berbunyi di browser)
+/add <judul> (atau /queue <judul>) - Tambahkan lagu ke antrean playlist (tanpa memotong lagu aktif)
 /playlist <tema> - Bikin playlist 5 lagu & putar langsung
 /pause - Jeda lagu di kantor
 /resume - Lanjutkan lagu di kantor
@@ -1185,7 +1235,7 @@ Setiap karyawan yang Anda tag akan langsung membalas dengan label identitas mere
 /next (atau /skip) - Putar lagu berikutnya
 /prev - Putar lagu sebelumnya
 /np - Cek lagu yang sedang diputar
-/queue - Cek daftar antrean playlist
+/queue - Cek daftar antrean playlist kantor
 
 ⚡ *Clone Repo Otomatis:*
 /clone <url> - Clone repository GitHub langsung ke workspaces
@@ -1267,6 +1317,38 @@ Ketik nama panggilan setelah tanda @, misalnya:
 
       // 🎵 REMOTE MUSIC NATURAL INTENT DETECTION
       if (
+        lower.startsWith('tambah lagu ') ||
+        lower.startsWith('antrikan lagu ') ||
+        lower.startsWith('masukin playlist ') ||
+        lower.startsWith('masukkan lagu ') ||
+        lower.startsWith('queue lagu ') ||
+        lower.startsWith('add lagu ')
+      ) {
+        const query = text.replace(/^(tambah lagu|antrikan lagu|masukin playlist|masukkan lagu|queue lagu|add lagu)\s+/i, '').trim();
+        if (query) {
+          try {
+            await ctx.sendChatAction('typing');
+          } catch {}
+          const res = await queueTrack(companyId, query, senderDisplayName);
+          if (res.track) {
+            const chatMsg: OfficeGroupChatMessage = {
+              id: `music-msg-${Date.now()}`,
+              senderType: 'system',
+              senderName: 'Office SoundSystem 🎵',
+              message: `➕ *[Telegram Remote]* Menambahkan ke antrean: **"${res.track.title}"** oleh **${res.track.artist}** (Posisi #${res.position}) atas permintaan ${senderDisplayName}.`,
+              timestamp: Date.now(),
+              source: 'telegram',
+            };
+            appendCompanyChatMessage(companyId, chatMsg);
+
+            await ctx.reply(
+              `➕ *[Office SoundSystem]*\nLagu *"${res.track.title}"* - _${res.track.artist}_ ditambahkan ke antrean (Posisi #${res.position})!\n_Request:_ ${senderDisplayName} 🎶\n_Akan diputar otomatis setelah lagu yang aktif selesai._`,
+              { parse_mode: 'Markdown' }
+            );
+            return;
+          }
+        }
+      } else if (
         lower.startsWith('putar lagu ') ||
         lower.startsWith('play ') ||
         lower.startsWith('setel lagu ') ||
@@ -1279,6 +1361,16 @@ Ketik nama panggilan setelah tanda @, misalnya:
           } catch {}
           const res = await playSingleTrack(companyId, query, senderDisplayName);
           if (res.track) {
+            const chatMsg: OfficeGroupChatMessage = {
+              id: `music-msg-${Date.now()}`,
+              senderType: 'system',
+              senderName: 'Office SoundSystem 🎵',
+              message: `🎶 *[Telegram Remote]* Memutar lagu: **"${res.track.title}"** oleh **${res.track.artist}** (${res.track.durationText}) atas permintaan ${senderDisplayName}.`,
+              timestamp: Date.now(),
+              source: 'telegram',
+            };
+            appendCompanyChatMessage(companyId, chatMsg);
+
             await ctx.reply(
               `🎵 *[Office SoundSystem]*\nMemutar: *"${res.track.title}"* - _${res.track.artist}_ (${res.track.durationText}) di browser kantor!\n_Request:_ ${senderDisplayName} 🚀`,
               { parse_mode: 'Markdown' }
@@ -1294,6 +1386,16 @@ Ketik nama panggilan setelah tanda @, misalnya:
           } catch {}
           const res = await createPlaylist(companyId, query, senderDisplayName);
           if (res.tracks.length > 0) {
+            const chatMsg: OfficeGroupChatMessage = {
+              id: `playlist-msg-${Date.now()}`,
+              senderType: 'system',
+              senderName: 'Office SoundSystem 🎵',
+              message: `📻 *[Telegram Remote]* Membuat & memutar playlist **"${query}"** (${res.tracks.length} lagu) atas permintaan ${senderDisplayName}.`,
+              timestamp: Date.now(),
+              source: 'telegram',
+            };
+            appendCompanyChatMessage(companyId, chatMsg);
+
             const listText = res.tracks.map((t, idx) => `${idx + 1}. *${t.title}* - _${t.artist}_`).join('\n');
             await ctx.reply(
               `📻 *[Office SoundSystem]*\nPlaylist *"${query}"* (${res.tracks.length} lagu) dibuat & diputar di kantor!\n\n${listText}`,
