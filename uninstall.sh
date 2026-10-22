@@ -60,26 +60,31 @@ echo -e "  ${GREEN}[OK] CLI binary di ~/.local/bin/ dihapus.${RESET}"
 
 # 4. Interactive choice: Delete or Keep Memories & Workspace Cache
 echo -e "\n--------------------------------------------------------"
-echo -e "${YELLOW}${BOLD}PILIHAN PEMBERSIHAN DATA & MEMORI${RESET}"
-echo -e "Folder: ${CYAN}$CEO_HOME${RESET}"
-echo -e "Folder ini berisi: memori AI perusahaan, riwayat chat, dan file proyek."
+echo -e "${YELLOW}${BOLD}PILIHAN PEMBERSIHAN DATA & KEBERLANJUTAN:${RESET}"
+echo -e "Folder Data: ${CYAN}$CEO_HOME${RESET}"
+echo -e "--------------------------------------------------------"
+echo -e " ${RED}[1] 🧹 HAPUS SEMUA DATA (Clean Reset / Fresh Install)${RESET}"
+echo -e "     Menghapus identitas wallet, memori AI, region, dan file proyek."
+echo -e "     PILIH INI jika Anda ingin reset total & mencoba FRESH INSTALL dari nol."
+echo -e "\n ${GREEN}[2] 🛡️ SIMPAN DATA (Keep Memories & Workspaces - Default)${RESET}"
+echo -e "     Hanya mencopot executable CLI & autorun. Identitas dan proyek tetap aman."
 echo -e "--------------------------------------------------------\n"
 
 if [ -t 0 ]; then
-  read -p "Apakah Anda ingin MENGHAPUS seluruh memori, cache & file workspace? [y/N]: " deleteData
+  read -p "Pilihan Anda [1 = Hapus Semua / 2 = Simpan Data] (Default: 2): " choice
 else
-  # If piped from curl without tty, check stdin or default to safe No
-  read -r deleteData || deleteData="n"
+  read -r choice || choice="2"
 fi
 
-if [[ "$deleteData" =~ ^([yY]|[yY][eE][sS]|[yY][aA])$ ]]; then
-  echo -e "► ${RED}Menghapus seluruh folder data memori & workspace...${RESET}"
+if [[ "$choice" =~ ^(1|[yY]|[yY][eE][sS]|[yY][aA]|clean|all|hapus)$ ]]; then
+  echo -e "\n► ${RED}[CLEAN UNINSTALL] Menghapus seluruh folder data identitas & workspace...${RESET}"
   rm -rf "$CEO_HOME" "$LEGACY_HOME"
   echo -e "  ${GREEN}[OK] Folder $CEO_HOME berhasil dihapus bersih.${RESET}"
+  echo -e "  ${GREEN}[OK] Semua identitas dan memori dibersihkan. Sistem siap untuk Fresh Install!${RESET}"
 else
-  echo -e "► ${GREEN}[AMBIL OPSI AMAN] Memori & folder workspace TETAP DISIMPAN di:${RESET}"
+  echo -e "\n► ${GREEN}[AMBIL OPSI AMAN] Identitas wallet, memori, & workspace TETAP DISIMPAN di:${RESET}"
   echo -e "  ${CYAN}$CEO_HOME${RESET}"
-  echo -e "  (Jika Anda menginstall kembali, data perusahaan Anda akan langsung terbaca)."
+  echo -e "  (Jika Anda menginstall kembali, identitas dan data kantor Anda akan langsung terbaca)."
 fi
 
 echo -e "\n${GREEN}${BOLD}========================================================"

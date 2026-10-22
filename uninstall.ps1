@@ -60,29 +60,46 @@ if (Test-Path $VigentCmd) {
     Write-Host "  [OK] $VigentCmd dihapus." -ForegroundColor Green
 }
 
+# Unlink npm global package if present
+try {
+    npm unlink -g ceo-virtual vigent --silent 2>$null | Out-Null
+    Write-Host "  [OK] Global npm link dilepas." -ForegroundColor Green
+} catch {}
+
 # 4. Interactive choice: Delete or Keep Memories & Workspace Cache
 Write-Host "`n--------------------------------------------------------" -ForegroundColor Gray
-Write-Host "PILIHAN PEMBERSIHAN DATA & MEMORI" -ForegroundColor Yellow
-Write-Host "Folder: $CeoHome" -ForegroundColor White
-Write-Host "Folder ini berisi: memori AI perusahaan, obrolan chat, dan file proyek di workspaces/." -ForegroundColor Gray
+Write-Host "PILIHAN PEMBERSIHAN DATA & KEBERLANJUTAN:" -ForegroundColor Yellow
+Write-Host "Folder Data: $CeoHome" -ForegroundColor White
+Write-Host "--------------------------------------------------------" -ForegroundColor Gray
+Write-Host " [1] 🧹 HAPUS SEMUA DATA (Clean Reset / Fresh Install)" -ForegroundColor Red
+Write-Host "     Menghapus identitas wallet/keystore, memori AI, region, dan file proyek."
+Write-Host "     PILIH INI jika Anda ingin reset total & mencoba FRESH INSTALL dari nol." -ForegroundColor Gray
+Write-Host "`n [2] 🛡️ SIMPAN DATA (Keep Memories & Workspaces - Default)" -ForegroundColor Green
+Write-Host "     Hanya mencopot executable CLI & autorun. Identitas dan proyek tetap aman." -ForegroundColor Gray
 Write-Host "--------------------------------------------------------`n" -ForegroundColor Gray
 
-$deleteData = Read-Host "Apakah Anda ingin MENGHAPUS seluruh memori, cache & file workspace? [y/N]"
+$choice = $null
+try {
+    $choice = Read-Host "Pilihan Anda [1 = Hapus Semua / 2 = Simpan Data] (Default: 2)"
+} catch {
+    $choice = "2"
+}
 
-if ($deleteData -match '^(y|ya|yes)$') {
-    Write-Host "> Menghapus folder memori & workspace ($CeoHome)..." -ForegroundColor Red
+if ($choice -eq '1' -or $choice -match '^(1|y|ya|yes|clean|all|hapus)$') {
+    Write-Host "`n> [CLEAN UNINSTALL] Menghapus folder identitas, memori & workspace ($CeoHome)..." -ForegroundColor Red
     if (Test-Path $CeoHome) {
         Remove-Item -Path $CeoHome -Recurse -Force -ErrorAction SilentlyContinue
         Write-Host "  [OK] Folder $CeoHome berhasil dihapus bersih." -ForegroundColor Green
     }
     if (Test-Path $LegacyHome) {
         Remove-Item -Path $LegacyHome -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Host "  [OK] Folder $LegacyHome berhasil dihapus." -ForegroundColor Green
+        Write-Host "  [OK] Folder $LegacyHome berhasil dihapus bersih." -ForegroundColor Green
     }
+    Write-Host "  [OK] Semua identitas dan memori dibersihkan. Sistem siap untuk Fresh Install!" -ForegroundColor Green
 } else {
-    Write-Host "> [AMBIL OPSI AMAN] Memori & folder workspace TETAP DISIMPAN di:" -ForegroundColor Green
+    Write-Host "`n> [AMBIL OPSI AMAN] Identitas wallet, memori, & workspace TETAP DISIMPAN di:" -ForegroundColor Green
     Write-Host "  $CeoHome" -ForegroundColor Cyan
-    Write-Host "  (Jika Anda menginstall kembali di kemudian hari, data perusahaan Anda akan langsung terbaca)." -ForegroundColor Gray
+    Write-Host "  (Jika Anda menginstall kembali, identitas dan data kantor Anda akan langsung terbaca)." -ForegroundColor Gray
 }
 
 Write-Host "`n========================================================" -ForegroundColor Green

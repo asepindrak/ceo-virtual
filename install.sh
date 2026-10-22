@@ -103,8 +103,19 @@ echo -e "► Initializing Company Memory Engine & Zero-Setup Vector DB..."
 node "$TARGET_DIR/bin/ceo-virtual.js" memory init || true
 
 # Enable autorun
-echo -e "► Configuring autorun at startup..."
-node "$TARGET_DIR/bin/ceo-virtual.js" autorun enable || true
+if [ -t 0 ]; then
+  read -p "► Jalankan CEO Virtual otomatis saat booting (Autorun at Startup)? [Y/n] (Default: Y): " AUTORUN_CHOICE
+  AUTORUN_CHOICE=${AUTORUN_CHOICE:-Y}
+else
+  AUTORUN_CHOICE="Y"
+fi
+
+if [[ "$AUTORUN_CHOICE" =~ ^[Yy]$ ]]; then
+  echo -e "► Configuring autorun at startup..."
+  node "$TARGET_DIR/bin/ceo-virtual.js" autorun enable || true
+else
+  echo -e "► Autorun disabled (can be enabled anytime via: ceo-virtual autorun enable)"
+fi
 
 echo -e "\n${GREEN}${BOLD}✓ CEO VIRTUAL Successfully Installed!${RESET}"
 echo -e "========================================================"

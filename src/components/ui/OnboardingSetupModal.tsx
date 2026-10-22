@@ -19,10 +19,26 @@ import {
   Key, 
   RefreshCw,
   Layers,
-  Network
+  Network,
+  MapPin,
+  Compass,
+  Navigation,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { NodeRegion, NodeSetupPayload } from '@/types/office';
+
+// Haversine distance formula in kilometers
+function calculateHaversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
 
 interface OnboardingSetupModalProps {
   isOpen: boolean;
@@ -47,14 +63,18 @@ export function OnboardingSetupModal({ isOpen, onComplete }: OnboardingSetupModa
   const [restoreError, setRestoreError] = useState<string>('');
   const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
 
-  // Region State
+  // Region & GPS State
   const [regions, setRegions] = useState<NodeRegion[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string>('apac-jakarta-1');
   const [isLoadingRegions, setIsLoadingRegions] = useState<boolean>(false);
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number; city?: string } | null>(null);
+  const [isDetectingLocation, setIsDetectingLocation] = useState<boolean>(false);
+  const [locationStatus, setLocationStatus] = useState<string>('');
 
   // Company Profile
   const [companyName, setCompanyName] = useState<string>('DevNexus Labs');
   const [industry, setIndustry] = useState<string>('Software Engineering');
+  const [autorun, setAutorun] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string>('');
 
@@ -66,6 +86,78 @@ export function OnboardingSetupModal({ isOpen, onComplete }: OnboardingSetupModa
       generateFreshIdentity();
     }
   }, [isOpen]);
+
+  // Auto-detect GPS when reaching Step 2
+  useEffect(() => {
+    if (step === 2 && !userCoords && !isDetectingLocation) {
+      detectLocation();
+    }
+  }, [step]);
+
+  const detectLocation = async () => {
+    setIsDetectingLocation(true);
+    setLocationStatus('Mendeteksi koordinat GPS perangkat...');
+
+    const applyCoords = (lat: number, lon: number, cityName: string) => {
+      setUserCoords({ latitude: lat, longitude: lon, city: cityName });
+      setLocationStatus(`Lokasi terdeteksi: ${cityName} (${lat.toFixed(2)}, ${lon.toFixed(2)})`);
+
+      setRegions((prev) => {
+        const updated = prev.map((reg) => {
+          if (reg.coordinates) {
+            const dist = calculateHaversineKm(lat, lon, reg.coordinates.latitude, reg.coordinates.longitude);
+            return { ...reg, distanceKm: dist };
+          }
+          return reg;
+        });
+
+        // Auto-select nearest region
+        const sorted = [...updated].sort((a, b) => (a.distanceKm ?? 999999) - (b.distanceKm ?? 999999));
+        if (sorted[0]) {
+          setSelectedRegionId(sorted[0].id);
+        }
+        return updated;
+      });
+      setIsDetectingLocation(false);
+    };
+
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          applyCoords(pos.coords.latitude, pos.coords.longitude, 'GPS Browser');
+        },
+        async () => {
+          // Fallback to IP detection API
+          try {
+            const res = await fetch('/api/node/detect-location');
+            const data = await res.json();
+            if (data.success) {
+              applyCoords(data.latitude, data.longitude, `${data.city}, ${data.countryCode}`);
+            } else {
+              setLocationStatus('Deteksi otomatis tidak aktif, silakan pilih region manual.');
+              setIsDetectingLocation(false);
+            }
+          } catch {
+            setLocationStatus('Deteksi otomatis tidak aktif, silakan pilih region manual.');
+            setIsDetectingLocation(false);
+          }
+        },
+        { timeout: 7000, enableHighAccuracy: true }
+      );
+    } else {
+      try {
+        const res = await fetch('/api/node/detect-location');
+        const data = await res.json();
+        if (data.success) {
+          applyCoords(data.latitude, data.longitude, `${data.city}, ${data.countryCode}`);
+        } else {
+          setIsDetectingLocation(false);
+        }
+      } catch {
+        setIsDetectingLocation(false);
+      }
+    }
+  };
 
   const fetchRegions = async () => {
     setIsLoadingRegions(true);
@@ -203,6 +295,8 @@ PENTING & RAHASIA:
         companyName: companyName.trim(),
         industry,
         regionId: selectedRegionId,
+        autorun,
+        geoCoordinates: userCoords || undefined,
       };
 
       const res = await fetch('/api/node/setup', {
@@ -502,7 +596,7 @@ PENTING & RAHASIA:
           {/* STEP 2: REGION SELECTION & AUTO-SHARDING                      */}
           {/* ============================================================= */}
           {step === 2 && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
                 <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Pilih Klaster Region Node P2P</span>
                 <p className="text-xs text-gray-400 mt-0.5">
@@ -510,13 +604,43 @@ PENTING & RAHASIA:
                 </p>
               </div>
 
+              {/* 📍 GPS & Spatial Location Detection Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-gradient-to-r from-cyan-950/40 via-indigo-950/30 to-purple-950/40 border border-cyan-500/30">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                    <MapPin className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white">Deteksi Lokasi GPS & Nearby Office</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">
+                        Spatial P2P
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-300 mt-0.5">
+                      {locationStatus || 'Deteksi koordinat GPS otomatis untuk merekomendasikan shard terdekat & mengaktifkan fitur Kantor Tetangga.'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={detectLocation}
+                  disabled={isDetectingLocation}
+                  className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold transition-all shrink-0 active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  <Compass className={`w-3.5 h-3.5 ${isDetectingLocation ? 'animate-spin' : ''}`} />
+                  <span>{isDetectingLocation ? 'Mendeteksi...' : '📍 Cek GPS Ulang'}</span>
+                </button>
+              </div>
+
               {/* Dynamic Auto-Shard Info Alert */}
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-800/40 text-xs text-gray-300">
-                <Network className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-950/60 border border-gray-800/80 text-xs text-gray-300">
+                <Network className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
-                  <span className="font-semibold text-cyan-300">Dynamic Auto-Sharding Protocol Aktif:</span>
-                  <p className="text-gray-400 leading-relaxed">
-                    Jika sebuah region mencapai kapasitas $\ge 90\%$, protokol konsensus node akan otomatis men-spawn shard region baru (misal: <span className="font-mono text-cyan-300">APAC Jakarta Shard-2</span>) untuk menjaga kecepatan jaringan.
+                  <span className="font-semibold text-cyan-300 text-[11px]">Dynamic Auto-Sharding Protocol:</span>
+                  <p className="text-gray-400 text-[11px] leading-relaxed">
+                    Jika sebuah region mencapai kapasitas $\ge 90\%$, protokol konsensus node akan otomatis men-spawn shard region baru (misal: <span className="font-mono text-cyan-300">APAC Jakarta Shard-2</span>).
                   </p>
                 </div>
               </div>
@@ -537,26 +661,41 @@ PENTING & RAHASIA:
                           : 'bg-gray-950/60 border-gray-800 hover:border-gray-700'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2.5">
                           <span className="text-2xl">{region.flag}</span>
                           <div>
-                            <h4 className="font-semibold text-white text-sm flex items-center gap-2">
-                              {region.name}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="font-semibold text-white text-sm">
+                                {region.name}
+                              </h4>
                               {region.isAutoSpawned && (
-                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-950 border border-purple-800 text-purple-300 font-mono">
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-950 border border-purple-800 text-purple-300 font-mono">
                                   Auto-Spawned
                                 </span>
                               )}
-                            </h4>
-                            <span className="text-[11px] font-mono text-gray-400">{region.id}</span>
+                              {region.distanceKm !== undefined && region.distanceKm < 200 && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-950/90 border border-emerald-700 text-emerald-300 font-semibold font-mono">
+                                  ★ Terdekat
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] font-mono text-gray-400">{region.city || region.id}</span>
                           </div>
                         </div>
 
-                        {/* Ping Badge */}
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-900 border border-gray-800 text-xs font-mono">
-                          <Zap className="w-3 h-3 text-emerald-400" />
-                          <span className="text-emerald-400 font-semibold">{region.pingMs}ms</span>
+                        {/* Ping & Distance Badges */}
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-900 border border-gray-800 text-[11px] font-mono">
+                            <Zap className="w-3 h-3 text-emerald-400" />
+                            <span className="text-emerald-400 font-semibold">{region.pingMs}ms</span>
+                          </div>
+                          {region.distanceKm !== undefined && (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-950/90 border border-cyan-800 text-[10px] font-mono text-cyan-300">
+                              <MapPin className="w-2.5 h-2.5 text-cyan-400" />
+                              <span>~{region.distanceKm} km</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -628,6 +767,27 @@ PENTING & RAHASIA:
                   </select>
                 </div>
 
+                {/* Autorun at Startup Toggle */}
+                <label className="flex items-start gap-3 p-3.5 rounded-xl bg-gray-950/80 border border-gray-800 hover:border-cyan-500/40 cursor-pointer transition-colors group">
+                  <input
+                    type="checkbox"
+                    checked={autorun}
+                    onChange={(e) => setAutorun(e.target.checked)}
+                    className="mt-0.5 rounded border-gray-700 bg-gray-900 text-cyan-500 focus:ring-cyan-500"
+                  />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                      <span className="text-xs font-semibold text-white group-hover:text-cyan-300 transition-colors">
+                        Jalankan Otomatis Saat Komputer Dinyalakan (Autorun at Startup)
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      Server kantor virtual otomatis aktif di background pada port :28483 saat PC booting.
+                    </p>
+                  </div>
+                </label>
+
                 {/* Summary Card */}
                 <div className="p-4 rounded-xl bg-gray-950/80 border border-gray-800 space-y-2 text-xs">
                   <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
@@ -638,6 +798,14 @@ PENTING & RAHASIA:
                     <span className="text-gray-400">Region Klaster:</span>
                     <span className="font-mono text-cyan-400 font-semibold">{selectedRegionId}</span>
                   </div>
+                  {userCoords && (
+                    <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
+                      <span className="text-gray-400">Koordinat Nearby Office:</span>
+                      <span className="font-mono text-emerald-400 font-semibold">
+                        {userCoords.city || 'GPS'} ({userCoords.latitude.toFixed(2)}, {userCoords.longitude.toFixed(2)})
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
                     <span className="text-gray-400">Proof-of-Ownership:</span>
                     <span className="font-mono text-purple-300">BIP-39 Asymmetric Signature</span>

@@ -73,19 +73,24 @@ Jika pengguna berpindah PC atau baru saja install ulang OS:
 
 ---
 
-### 1.3 Pemilihan Region Jaringan Visual
+### 1.3 Pemilihan Region Jaringan Visual & Deteksi GPS Spasial
 
-Setelah tahap identitas selesai, pengguna memilih klaster region untuk koneksi node:
+Setelah tahap identitas selesai, pengguna memilih klaster region untuk koneksi node. Sistem kini dilengkapi dengan **Deteksi Lokasi GPS Otomatis**:
+1. **Geolocation API Browser (`navigator.geolocation`)**: Mengambil koordinat perangkat pengguna secara langsung dengan fallback cerdas berbasis IP jaringan jika GPS ditolak.
+2. **Kalkulasi Jarak Haversine (km)**: Sistem menghitung jarak fisik antara koordinat pengguna dengan masing-masing regional shard di dunia, lalu otomatis memilih dan merekomendasikan shard terdekat (misal: *Jakarta ~14 km*).
+3. **Fondasi Fitur "Nearby Office" (Kantor Tetangga)**:
+   - Koordinat spasial (dibulatkan/fuzzed setingkat kota/distrik demi privasi) disimpan dalam `keystore.json` dan Genesis payload.
+   - Node-node di kota yang sama dapat saling terdeteksi untuk kolaborasi agen B2B dan koneksi P2P Direct Mesh super cepat (sub-5ms).
 
 ```
 +---------------------------------------------------------------------------------+
-|  🌐 Pilih Region Node Jaringan                                                  |
+|  🌐 Pilih Region Node Jaringan (📍 Lokasi: Jakarta, ID - Auto Selected)         |
 |  Tentukan klaster terdekat untuk komunikasi real-time P2P antar agen & node     |
 +---------------------------------------------------------------------------------+
-|  [✓] 🇮🇩 APAC Jakarta Shard-1      [Latency: 12ms]   ● Optimal  (84/100 Slot)   |
-|  [ ] 🇸🇬 APAC Singapore Shard-1    [Latency: 28ms]   ● Tersedia (91/100 Slot)   |
-|  [ ] 🇯🇵 APAC Tokyo Shard-1        [Latency: 75ms]   ● Lengang  (45/100 Slot)   |
-|  [ ] 🇺🇸 US East Shard-1           [Latency: 185ms]  ● Lengang  (30/100 Slot)   |
+|  [✓] 🇮🇩 APAC Jakarta Shard-1      [~14 km]  [12ms]   ● Optimal  (84/100 Slot)   |
+|  [ ] 🇸🇬 APAC Singapore Shard-1    [~890 km] [28ms]   ● Tersedia (91/100 Slot)   |
+|  [ ] 🇯🇵 APAC Tokyo Shard-1        [~5800 km][75ms]   ● Lengang  (45/100 Slot)   |
+|  [ ] 🇺🇸 US East Shard-1           [~16000km][185ms]  ● Lengang  (30/100 Slot)   |
 +---------------------------------------------------------------------------------+
 |  💡 Auto-Scaling Info: Jika seluruh region penuh (≥90%), protokol konsensus     |
 |     akan otomatis men-spawn shard region baru (misal: APAC Jakarta Shard-2).    |

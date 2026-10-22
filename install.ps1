@@ -90,11 +90,25 @@ if ($UserPath -notlike "*$UserBin*") {
 }
 
 # 5. Setup Windows Startup Autorun Shortcut
-$StartupFolder = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"
-$StartupBat = Join-Path $StartupFolder "CEOVirtual.bat"
-$StartupContent = "@echo off`r`ncd /d `"$ProjectRoot`"`r`nstart /b npm run dev -- -p $Port"
-Set-Content -Path $StartupBat -Value $StartupContent -Force
-Write-Host "> Autorun saat Windows boot AKTIF di: $StartupBat" -ForegroundColor Green
+$EnableAutorun = $true
+try {
+    $Choice = Read-Host "`n> Jalankan CEO Virtual otomatis saat Windows booting (Autorun at Startup)? [Y/n] (Default: Y)"
+    if ($Choice -match "^[nN]") {
+        $EnableAutorun = $false
+    }
+} catch {
+    $EnableAutorun = $true
+}
+
+if ($EnableAutorun) {
+    $StartupFolder = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"
+    $StartupBat = Join-Path $StartupFolder "CEOVirtual.bat"
+    $StartupContent = "@echo off`r`ncd /d `"$ProjectRoot`"`r`nstart /b npm run dev -- -p $Port"
+    Set-Content -Path $StartupBat -Value $StartupContent -Force
+    Write-Host "> Autorun saat Windows boot AKTIF di: $StartupBat" -ForegroundColor Green
+} else {
+    Write-Host "> Autorun dilewati (dapat diaktifkan nanti lewat CLI atau Web Setup)." -ForegroundColor Yellow
+}
 
 # 6. Global npm link
 Push-Location $ProjectRoot

@@ -566,6 +566,23 @@ async function handleCommand() {
       console.log(`Usage: ceo-virtual memory [list | stats | init]`);
     }
 
+  } else if (cmd === 'uninstall') {
+    if (process.platform === 'win32') {
+      const psScript = path.join(PROJECT_ROOT, 'uninstall.ps1');
+      if (fs.existsSync(psScript)) {
+        execSync(`powershell -ExecutionPolicy Bypass -File "${psScript}"`, { stdio: 'inherit' });
+      } else {
+        execSync(`powershell -Command "irm https://raw.githubusercontent.com/asepindrak/ceo-virtual/main/uninstall.ps1 | iex"`, { stdio: 'inherit' });
+      }
+    } else {
+      const shScript = path.join(PROJECT_ROOT, 'uninstall.sh');
+      if (fs.existsSync(shScript)) {
+        execSync(`bash "${shScript}"`, { stdio: 'inherit' });
+      } else {
+        execSync(`curl -fsSL https://raw.githubusercontent.com/asepindrak/ceo-virtual/main/uninstall.sh | bash`, { stdio: 'inherit' });
+      }
+    }
+
   } else {
     printBanner();
     console.log(`${colors.bold}Commands:${colors.reset}

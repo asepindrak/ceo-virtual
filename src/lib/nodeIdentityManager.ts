@@ -227,6 +227,8 @@ export const DEFAULT_REGIONS: NodeRegion[] = [
     currentSlots: 84,
     maxSlots: 100,
     status: 'optimal',
+    city: 'Jakarta, Indonesia',
+    coordinates: { latitude: -6.2088, longitude: 106.8456 },
   },
   {
     id: 'apac-singapore-1',
@@ -238,6 +240,8 @@ export const DEFAULT_REGIONS: NodeRegion[] = [
     currentSlots: 92,
     maxSlots: 100,
     status: 'high_load',
+    city: 'Singapore',
+    coordinates: { latitude: 1.3521, longitude: 103.8198 },
   },
   {
     id: 'apac-tokyo-1',
@@ -249,6 +253,8 @@ export const DEFAULT_REGIONS: NodeRegion[] = [
     currentSlots: 45,
     maxSlots: 100,
     status: 'available',
+    city: 'Tokyo, Japan',
+    coordinates: { latitude: 35.6762, longitude: 139.6503 },
   },
   {
     id: 'eu-frankfurt-1',
@@ -260,6 +266,8 @@ export const DEFAULT_REGIONS: NodeRegion[] = [
     currentSlots: 38,
     maxSlots: 100,
     status: 'available',
+    city: 'Frankfurt, Germany',
+    coordinates: { latitude: 50.1109, longitude: 8.6821 },
   },
   {
     id: 'us-east-1',
@@ -271,8 +279,25 @@ export const DEFAULT_REGIONS: NodeRegion[] = [
     currentSlots: 29,
     maxSlots: 100,
     status: 'available',
+    city: 'Virginia, USA',
+    coordinates: { latitude: 37.4316, longitude: -78.6569 },
   },
 ];
+
+/**
+ * Calculate distance between two coordinates in kilometers using Haversine formula
+ */
+export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
 
 /**
  * Generate 12-word cryptographic seed phrase
@@ -404,6 +429,8 @@ export function getAvailableRegions(): NodeRegion[] {
       maxSlots: 100,
       status: 'optimal',
       isAutoSpawned: true,
+      city: 'Jakarta, Indonesia',
+      coordinates: { latitude: -6.2088, longitude: 106.8456 },
     };
     regions.splice(1, 0, autoShard); // Insert right after Jakarta-1
     try {
@@ -442,6 +469,7 @@ export function setupNodeIdentity(payload: NodeSetupPayload): { success: boolean
       industry: payload.industry || 'Software Engineering',
       regionId: payload.regionId || 'apac-jakarta-1',
       ownerAddress: address,
+      geoCoordinates: payload.geoCoordinates,
       createdAt,
       nonce: 1,
     };
@@ -459,11 +487,17 @@ export function setupNodeIdentity(payload: NodeSetupPayload): { success: boolean
       regionId: payload.regionId || 'apac-jakarta-1',
       genesisHash,
       genesisSignature,
+      geoCoordinates: payload.geoCoordinates,
       lastSyncedAt: Date.now(),
     };
     
     // Persist to ~/.ceo-virtual/keystore.json
     fs.writeFileSync(KEYSTORE_PATH, JSON.stringify(identity, null, 2), 'utf-8');
+    
+    // Toggle system startup autorun if specified
+    if (payload.autorun !== undefined) {
+      setSystemStartupAutorun(payload.autorun);
+    }
     
     // If user selected a region, update its slot count by +1
     try {
@@ -480,4 +514,37 @@ export function setupNodeIdentity(payload: NodeSetupPayload): { success: boolean
   } catch (err: any) {
     return { success: false, identity: null as any, error: err.message || 'Gagal menyimpan keystore' };
   }
+}
+
+/**
+ * Configure OS startup autorun (Windows Startup folder, macOS LaunchAgents, or Linux autostart)
+ */
+export function setSystemStartupAutorun(enable: boolean): boolean {
+  try {
+    const projectRoot = process.cwd();
+    const port = 28483;
+
+    if (process.platform === 'win32') {
+      const startupFolder = path.join(
+        process.env.APPDATA || path.join(require('os').homedir(), 'AppData', 'Roaming'),
+        'Microsoft',
+        'Windows',
+        'Start Menu',
+        'Programs',
+        'Startup'
+      );
+      const batPath = path.join(startupFolder, 'CEOVirtual.bat');
+      if (enable) {
+        if (!fs.existsSync(startupFolder)) fs.mkdirSync(startupFolder, { recursive: true });
+        const batContent = `@echo off\r\ncd /d "${projectRoot}"\r\nstart /b npm run dev -- -p ${port}\r\n`;
+        fs.writeFileSync(batPath, batContent, 'utf-8');
+      } else {
+        if (fs.existsSync(batPath)) fs.unlinkSync(batPath);
+      }
+      return true;
+    }
+  } catch (err) {
+    console.warn('[Autorun] Failed to toggle system startup autorun:', err);
+  }
+  return false;
 }

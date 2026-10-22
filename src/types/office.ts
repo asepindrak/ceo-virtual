@@ -491,6 +491,12 @@ export interface NodeRegion {
   maxSlots: number;
   status: 'optimal' | 'available' | 'high_load' | 'spawning';
   isAutoSpawned?: boolean;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  city?: string;
+  distanceKm?: number;
 }
 
 export interface NodeIdentity {
@@ -505,6 +511,11 @@ export interface NodeIdentity {
   genesisHash: string;
   genesisSignature: string;
   lastSyncedAt?: number;
+  geoCoordinates?: {
+    latitude: number;
+    longitude: number;
+    city?: string;
+  };
 }
 
 export interface NodeStatusResponse {
@@ -520,6 +531,12 @@ export interface NodeSetupPayload {
   companyName: string;
   industry: string;
   regionId: string;
+  autorun?: boolean;
+  geoCoordinates?: {
+    latitude: number;
+    longitude: number;
+    city?: string;
+  };
   password?: string;
 }
 
