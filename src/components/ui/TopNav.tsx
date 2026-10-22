@@ -44,6 +44,7 @@ interface TopNavProps {
   onOpenExtensions: () => void;
   onOpenDevServers: () => void;
   onOpenWorldMap: () => void;
+  onOpenNodeSetup?: () => void;
   onOpenCollabLogs?: () => void;
   onOpenActivityLogs?: () => void;
 }
@@ -68,6 +69,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenExtensions,
   onOpenDevServers,
   onOpenWorldMap,
+  onOpenNodeSetup,
   onOpenCollabLogs,
   onOpenActivityLogs,
 }) => {
@@ -348,6 +350,26 @@ export const TopNav: React.FC<TopNavProps> = ({
                 <Blocks className="w-4 h-4 text-[#7d3b8f]" />
                 <span className="font-medium">Skills & MCP Extensions</span>
               </button>
+
+              {/* P2P Node Identity & Region Setup */}
+              {onOpenNodeSetup && (
+                <button
+                  onClick={() => {
+                    setIsMoreMenuOpen(false);
+                    onOpenNodeSetup();
+                  }}
+                  className="w-full text-left px-2.5 py-2 hover:bg-[#ede2d1] rounded-xl flex items-center justify-between text-[#2c231c] transition-colors"
+                  title="Buka Identitas Kriptografis Node P2P, Region Shard, & Unduh Kode Cadangan"
+                >
+                  <div className="flex items-center gap-2">
+                    <Radio className="w-4 h-4 text-[#06b6d4]" />
+                    <span className="font-medium">Node P2P & Identitas Web3</span>
+                  </div>
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 bg-[#ecfeff] text-[#0891b2] rounded font-bold border border-[#a5f3fc]">
+                    BIP-39
+                  </span>
+                </button>
+              )}
 
               {/* 🗺️ Open World Map Dropdown Item */}
               <button

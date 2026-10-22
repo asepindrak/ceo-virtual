@@ -21,6 +21,7 @@ import { DevServersModal } from '@/components/ui/DevServersModal';
 import { WorldMapModal } from '@/components/ui/WorldMapModal';
 import { IsometricOffice } from '@/components/office2d/IsometricOffice';
 import { WinampMusicPlayer } from '@/components/ui/WinampMusicPlayer';
+import { OnboardingSetupModal } from '@/components/ui/OnboardingSetupModal';
 import { MessagesSquare } from 'lucide-react';
 
 
@@ -63,6 +64,7 @@ export default function RealAgent3DPage() {
   const [officeChatInitialTab, setOfficeChatInitialTab] = useState<'war_room' | 'agent_collabs' | 'activity_logs'>('war_room');
   const [isDevServersModalOpen, setIsDevServersModalOpen] = useState(false);
   const [isWorldMapOpen, setIsWorldMapOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Human-in-the-Loop Decision State
   const [pendingDecisions, setPendingDecisions] = useState<HumanDecisionRequest[]>([]);
@@ -73,6 +75,22 @@ export default function RealAgent3DPage() {
 
   // Simulation Engine Instance (Ref persisted across renders)
   const simulationRef = useRef<OfficeSimulation>(new OfficeSimulation(1.0, currentCompany));
+
+  // Auto-check P2P Node identity setup status on mount
+  useEffect(() => {
+    const checkNodeStatus = async () => {
+      try {
+        const res = await fetch('/api/node/status');
+        const data = await res.json();
+        if (!data.isInitialized) {
+          setIsOnboardingOpen(true);
+        }
+      } catch (err) {
+        console.warn('[NodeStatus] Could not check node identity:', err);
+      }
+    };
+    checkNodeStatus();
+  }, []);
 
   // Auto-initialize P2P Node and Telegram bot auto-connect on system ready
   useEffect(() => {
@@ -1118,6 +1136,7 @@ export default function RealAgent3DPage() {
         onOpenExtensions={() => setIsExtensionsOpen(true)}
         onOpenDevServers={() => setIsDevServersModalOpen(true)}
         onOpenWorldMap={() => setIsWorldMapOpen(true)}
+        onOpenNodeSetup={() => setIsOnboardingOpen(true)}
         onOpenCollabLogs={() => {
           setOfficeChatInitialTab('agent_collabs');
           setIsOfficeChatOpen(true);
@@ -1317,6 +1336,19 @@ export default function RealAgent3DPage() {
       <WinampMusicPlayer
         companyId={currentCompany.id}
         companyName={currentCompany.name}
+      />
+
+      {/* 👑 Interactive P2P Node Onboarding & Genesis Setup Modal */}
+      <OnboardingSetupModal
+        isOpen={isOnboardingOpen}
+        onComplete={(newCompanyName, newIndustry, newRegionId, newAddress) => {
+          setIsOnboardingOpen(false);
+          setCurrentCompany((prev) => ({
+            ...prev,
+            name: newCompanyName,
+            industry: newIndustry,
+          }));
+        }}
       />
 
     </main>

@@ -476,4 +476,51 @@ export interface StandupMeetingState {
   lastUpdated: number;
 }
 
+// -----------------------------------------------------------------------------
+// P2P BLOCKCHAIN NODE IDENTITY & REGION SHARD TYPES
+// -----------------------------------------------------------------------------
+
+export interface NodeRegion {
+  id: string;
+  name: string;
+  countryCode: string;
+  flag: string;
+  pingMs: number;
+  capacityPercentage: number;
+  currentSlots: number;
+  maxSlots: number;
+  status: 'optimal' | 'available' | 'high_load' | 'spawning';
+  isAutoSpawned?: boolean;
+}
+
+export interface NodeIdentity {
+  ownerAddress: string;
+  publicKey: string;
+  mnemonic?: string; // Only stored locally in encrypted keystore, never broadcast
+  createdAt: number;
+  companyId: string;
+  companyName: string;
+  industry: string;
+  regionId: string;
+  genesisHash: string;
+  genesisSignature: string;
+  lastSyncedAt?: number;
+}
+
+export interface NodeStatusResponse {
+  isInitialized: boolean;
+  identity?: Omit<NodeIdentity, 'mnemonic'>;
+  homePath: string;
+  regions: NodeRegion[];
+}
+
+export interface NodeSetupPayload {
+  mode: 'create' | 'restore';
+  mnemonic: string;
+  companyName: string;
+  industry: string;
+  regionId: string;
+  password?: string;
+}
+
 
