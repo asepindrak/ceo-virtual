@@ -216,6 +216,40 @@ Name=CEO Virtual
   }
 }
 
+function waitForServerHealth(port, maxWaitSec = 45) {
+  return new Promise((resolve) => {
+    process.stdout.write(`  ${colors.cyan}► Menunggu server Next.js siap (Health Check)...${colors.reset} `);
+    const startTime = Date.now();
+    const url = `http://localhost:${port}/api/node/status`;
+
+    const interval = setInterval(async () => {
+      const isAlive = await new Promise((r) => {
+        const req = http.get(url, (res) => {
+          r(res.statusCode >= 200 && res.statusCode < 500);
+        });
+        req.on('error', () => r(false));
+        req.setTimeout(800, () => {
+          req.destroy();
+          r(false);
+        });
+      });
+
+      if (isAlive) {
+        clearInterval(interval);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(`\n  ${colors.green}✓ Server SIAP dan merespons dalam ${elapsed}s!${colors.reset}`);
+        resolve(true);
+      } else if (Date.now() - startTime > maxWaitSec * 1000) {
+        clearInterval(interval);
+        console.log(`\n  ${colors.yellow}Server masih compiling di background. Silakan buka http://localhost:${port}${colors.reset}`);
+        resolve(false);
+      } else {
+        process.stdout.write('.');
+      }
+    }, 1000);
+  });
+}
+
 async function handleCommand() {
   const args = process.argv.slice(2);
   const cmd = args[0] || 'start';
@@ -257,11 +291,16 @@ async function handleCommand() {
       });
       child.unref();
       fs.writeFileSync(APP_PID_FILE, String(child.pid), 'utf-8');
-      console.log(`${colors.green}✓ CEO Virtual started in background! (PID: ${child.pid})${colors.reset}`);
+      console.log(`${colors.green}✓ CEO Virtual background process started! (PID: ${child.pid})${colors.reset}`);
       console.log(`  Access URL:  ${colors.cyan}${url}${colors.reset}`);
-      console.log(`  Server Log:  ${colors.dim}${logFile}${colors.reset}`);
-      console.log(`${colors.yellow}Opening browser in 2.5s...${colors.reset}\n`);
-      setTimeout(() => openUrl(url), 2500);
+      console.log(`  Server Log:  ${colors.dim}${logFile}${colors.reset}\n`);
+
+      // Health check polling: wait until server actually returns 200 before opening browser!
+      const ready = await waitForServerHealth(port, 45);
+      if (ready) {
+        console.log(`  ${colors.green}► Membuka browser: ${url}${colors.reset}\n`);
+        openUrl(url);
+      }
       return;
     }
 
@@ -273,10 +312,13 @@ async function handleCommand() {
 
     fs.writeFileSync(APP_PID_FILE, String(child.pid), 'utf-8');
 
-    setTimeout(() => {
-      console.log(`\n${colors.green}✓ CEO Virtual ready! Opening ${url} in your browser...${colors.reset}\n`);
-      openUrl(url);
-    }, 2500);
+    // Health check polling in foreground mode
+    waitForServerHealth(port, 45).then((ready) => {
+      if (ready) {
+        console.log(`\n${colors.green}✓ CEO Virtual ready! Opening ${url} in your browser...${colors.reset}\n`);
+        openUrl(url);
+      }
+    });
 
     child.on('exit', () => {
       if (fs.existsSync(APP_PID_FILE)) {
