@@ -215,7 +215,7 @@ export const BIP39_WORDLIST = [
   'you', 'young', 'youth', 'zebra', 'zero', 'zone', 'zoo'
 ];
 
-// Default Genesis Regional Shards
+// Default Genesis Regional Shards (Real zero-state P2P cluster)
 export const DEFAULT_REGIONS: NodeRegion[] = [
   {
     id: 'apac-jakarta-1',
@@ -223,10 +223,10 @@ export const DEFAULT_REGIONS: NodeRegion[] = [
     countryCode: 'ID',
     flag: '🇮🇩',
     pingMs: 12,
-    capacityPercentage: 84,
-    currentSlots: 84,
+    capacityPercentage: 0,
+    currentSlots: 0,
     maxSlots: 100,
-    status: 'optimal',
+    status: 'available',
     city: 'Jakarta, Indonesia',
     coordinates: { latitude: -6.2088, longitude: 106.8456 },
   },
@@ -236,10 +236,10 @@ export const DEFAULT_REGIONS: NodeRegion[] = [
     countryCode: 'SG',
     flag: '🇸🇬',
     pingMs: 28,
-    capacityPercentage: 92,
-    currentSlots: 92,
+    capacityPercentage: 0,
+    currentSlots: 0,
     maxSlots: 100,
-    status: 'high_load',
+    status: 'available',
     city: 'Singapore',
     coordinates: { latitude: 1.3521, longitude: 103.8198 },
   },
@@ -249,8 +249,8 @@ export const DEFAULT_REGIONS: NodeRegion[] = [
     countryCode: 'JP',
     flag: '🇯🇵',
     pingMs: 74,
-    capacityPercentage: 45,
-    currentSlots: 45,
+    capacityPercentage: 0,
+    currentSlots: 0,
     maxSlots: 100,
     status: 'available',
     city: 'Tokyo, Japan',
@@ -262,8 +262,8 @@ export const DEFAULT_REGIONS: NodeRegion[] = [
     countryCode: 'DE',
     flag: '🇩🇪',
     pingMs: 165,
-    capacityPercentage: 38,
-    currentSlots: 38,
+    capacityPercentage: 0,
+    currentSlots: 0,
     maxSlots: 100,
     status: 'available',
     city: 'Frankfurt, Germany',
@@ -275,8 +275,8 @@ export const DEFAULT_REGIONS: NodeRegion[] = [
     countryCode: 'US',
     flag: '🇺🇸',
     pingMs: 188,
-    capacityPercentage: 29,
-    currentSlots: 29,
+    capacityPercentage: 0,
+    currentSlots: 0,
     maxSlots: 100,
     status: 'available',
     city: 'Virginia, USA',
@@ -397,47 +397,80 @@ export function getNodeIdentity(includeMnemonic: boolean = false): NodeIdentity 
 }
 
 /**
- * Get available regions and handle dynamic auto-sharding
+ * Get available regions and handle real node capacity & dynamic auto-sharding
+ * Counts ONLY real active local and peer nodes (Zero dummy data).
  */
 export function getAvailableRegions(): NodeRegion[] {
-  let regions = [...DEFAULT_REGIONS];
-  
-  if (fs.existsSync(REGIONS_PATH)) {
+  // Start with clean base regions
+  const regions: NodeRegion[] = DEFAULT_REGIONS.map((r) => ({
+    ...r,
+    currentSlots: 0,
+    capacityPercentage: 0,
+    status: 'available' as const,
+  }));
+
+  // 1. Check local node identity from keystore
+  const localNode = getNodeIdentity(false);
+  const localRegionId = localNode?.regionId || null;
+
+  // 2. Check real P2P peer nodes from disk
+  const peersFile = path.join(VIGENT_HOME, 'p2p_peers.json');
+  let peers: any[] = [];
+  if (fs.existsSync(peersFile)) {
     try {
-      const customRegions = JSON.parse(fs.readFileSync(REGIONS_PATH, 'utf-8'));
-      if (Array.isArray(customRegions) && customRegions.length > 0) {
-        regions = customRegions;
+      const parsed = JSON.parse(fs.readFileSync(peersFile, 'utf-8'));
+      if (Array.isArray(parsed)) {
+        peers = parsed.filter((p) => p && p.isOnline !== false);
       }
-    } catch (err) {}
+    } catch {}
   }
-  
-  // Dynamic Auto-Sharding Rule:
-  // If Singapore is >= 90% full and Jakarta is >= 80%, auto-spawn "apac-jakarta-2" shard!
-  const jkt1 = regions.find(r => r.id === 'apac-jakarta-1');
-  const sg1 = regions.find(r => r.id === 'apac-singapore-1');
-  const hasJkt2 = regions.some(r => r.id === 'apac-jakarta-2');
-  
-  if (jkt1 && sg1 && (jkt1.capacityPercentage >= 80 || sg1.capacityPercentage >= 90) && !hasJkt2) {
-    const autoShard: NodeRegion = {
-      id: 'apac-jakarta-2',
-      name: 'APAC Jakarta Shard-2 (Auto-Spawned)',
-      countryCode: 'ID',
-      flag: '🇮🇩',
-      pingMs: 14,
-      capacityPercentage: 4,
-      currentSlots: 4,
-      maxSlots: 100,
-      status: 'optimal',
-      isAutoSpawned: true,
-      city: 'Jakarta, Indonesia',
-      coordinates: { latitude: -6.2088, longitude: 106.8456 },
-    };
-    regions.splice(1, 0, autoShard); // Insert right after Jakarta-1
-    try {
-      fs.writeFileSync(REGIONS_PATH, JSON.stringify(regions, null, 2), 'utf-8');
-    } catch (err) {}
+
+  // 3. Count real active nodes per region (No dummy data)
+  for (const reg of regions) {
+    let count = 0;
+    if (localRegionId === reg.id) {
+      count += 1;
+    }
+    const matchingPeers = peers.filter(
+      (p) => p.regionalSector === reg.id || p.regionId === reg.id
+    );
+    count += matchingPeers.length;
+
+    reg.currentSlots = count;
+    reg.capacityPercentage = Math.round((reg.currentSlots / reg.maxSlots) * 100);
+    reg.status = count === 0 ? 'available' : reg.capacityPercentage >= 90 ? 'high_load' : 'optimal';
   }
-  
+
+  // 4. Dynamic Auto-Sharding Rule (Only spawns if a region genuinely reaches >= 90% real utilization)
+  const highLoadRegion = regions.find((r) => r.capacityPercentage >= 90 && !r.isAutoSpawned);
+  if (highLoadRegion) {
+    const shard2Id = `${highLoadRegion.id.replace(/-1$/, '')}-2`;
+    const alreadySpawned = regions.some((r) => r.id === shard2Id);
+    if (!alreadySpawned) {
+      const autoShard: NodeRegion = {
+        id: shard2Id,
+        name: `${highLoadRegion.name.replace(/Shard-1$/, '')} Shard-2 (Auto-Spawned)`,
+        countryCode: highLoadRegion.countryCode,
+        flag: highLoadRegion.flag,
+        pingMs: highLoadRegion.pingMs + 2,
+        capacityPercentage: 0,
+        currentSlots: 0,
+        maxSlots: highLoadRegion.maxSlots,
+        status: 'available',
+        isAutoSpawned: true,
+        city: highLoadRegion.city,
+        coordinates: highLoadRegion.coordinates,
+      };
+      const idx = regions.findIndex((r) => r.id === highLoadRegion.id);
+      regions.splice(idx + 1, 0, autoShard);
+    }
+  }
+
+  // Always keep cached regions.json synced with real numbers
+  try {
+    fs.writeFileSync(REGIONS_PATH, JSON.stringify(regions, null, 2), 'utf-8');
+  } catch {}
+
   return regions;
 }
 
@@ -499,15 +532,9 @@ export function setupNodeIdentity(payload: NodeSetupPayload): { success: boolean
       setSystemStartupAutorun(payload.autorun);
     }
     
-    // If user selected a region, update its slot count by +1
+    // Sync real region slots immediately
     try {
-      const regions = getAvailableRegions();
-      const targetRegion = regions.find(r => r.id === payload.regionId);
-      if (targetRegion && targetRegion.currentSlots < targetRegion.maxSlots) {
-        targetRegion.currentSlots += 1;
-        targetRegion.capacityPercentage = Math.round((targetRegion.currentSlots / targetRegion.maxSlots) * 100);
-        fs.writeFileSync(REGIONS_PATH, JSON.stringify(regions, null, 2), 'utf-8');
-      }
+      getAvailableRegions();
     } catch (err) {}
     
     return { success: true, identity };

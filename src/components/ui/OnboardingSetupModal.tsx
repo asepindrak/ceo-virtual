@@ -156,7 +156,8 @@ export function OnboardingSetupModal({ isOpen, onComplete }: OnboardingSetupModa
         const updated = prev.map((reg) => {
           if (reg.coordinates) {
             const dist = calculateHaversineKm(lat, lon, reg.coordinates.latitude, reg.coordinates.longitude);
-            return { ...reg, distanceKm: dist };
+            const realPing = Math.max(8, Math.round(dist * 0.035 + 8));
+            return { ...reg, distanceKm: dist, pingMs: realPing };
           }
           return reg;
         });
@@ -859,9 +860,9 @@ PENTING & RAHASIA:
                       {/* Capacity Progress Bar */}
                       <div className="space-y-1.5 mt-3">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-gray-400">Kapasitas Node Shard</span>
+                          <span className="text-gray-400">Node P2P Aktif di Shard</span>
                           <span className={`font-mono font-medium ${isHighLoad ? 'text-amber-400' : 'text-cyan-400'}`}>
-                            {region.currentSlots}/{region.maxSlots} Slot ({region.capacityPercentage}%)
+                            {region.currentSlots} Node Aktif (Kapasitas Maks: {region.maxSlots})
                           </span>
                         </div>
                         <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
