@@ -25,37 +25,6 @@ interface DevServersModalProps {
   initialSelectedServerId?: string;
 }
 
-const DEFAULT_SERVERS: DevServer[] = [
-  {
-    id: 'srv-shadowmove',
-    projectName: 'ShadowMove Landing Page',
-    port: 28483,
-    url: '/preview/shadowmove/index.html',
-    status: 'running',
-    framework: 'HTML5 • Tailwind • Cyberpunk/Neo Dark',
-    description: 'Landing page agensi AI ShadowMove hasil karya kolaborasi tim agent (Kenji, Rei, Damian).',
-  },
-  {
-    id: 'srv-vigent-app',
-    projectName: 'CEO Virtual Office Core',
-    port: 28483,
-    url: '/',
-    status: 'running',
-    framework: 'Next.js 16 • React 19 • Three.js 3D',
-    description: 'Simulasi kantor virtual interaktif dan sistem orkestrasi autonomous agent multi-proyek.',
-  },
-  {
-    id: 'srv-llm-gateway',
-    projectName: 'LLM Inference Server (OpenAI Compatible)',
-    port: 8000,
-    url: 'http://localhost:8000/v1',
-    status: 'stopped',
-    framework: 'FastAPI / vLLM / Ollama',
-    description: 'Endpoint inference model AI lokal / remote untuk eksekusi agen persona.',
-    isExternal: true,
-  },
-];
-
 export const DevServersModal: React.FC<DevServersModalProps> = ({
   onClose,
   initialSelectedServerId,
@@ -68,25 +37,38 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed)) {
+            // Clean out any legacy dummy servers
+            const realServers = parsed.filter(
+              (s: any) =>
+                s &&
+                !['srv-shadowmove', 'srv-vigent-app', 'srv-llm-gateway'].includes(s.id) &&
+                !s.url?.includes('shadowmove')
+            );
+            return realServers;
+          }
         }
       } catch (e) {
         console.error(e);
       }
     }
-    return DEFAULT_SERVERS;
+    return [];
   });
 
-  const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(
-    initialSelectedServerId
-      ? DEFAULT_SERVERS.find((s) => s.id === initialSelectedServerId)?.url || DEFAULT_SERVERS[0].url
-      : null
-  );
-  const [activePreviewTitle, setActivePreviewTitle] = useState<string>(
-    initialSelectedServerId
-      ? DEFAULT_SERVERS.find((s) => s.id === initialSelectedServerId)?.projectName || DEFAULT_SERVERS[0].projectName
-      : ''
-  );
+  const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(() => {
+    if (initialSelectedServerId) {
+      const found = servers.find((s) => s.id === initialSelectedServerId);
+      return found ? found.url : null;
+    }
+    return null;
+  });
+  const [activePreviewTitle, setActivePreviewTitle] = useState<string>(() => {
+    if (initialSelectedServerId) {
+      const found = servers.find((s) => s.id === initialSelectedServerId);
+      return found ? found.projectName : '';
+    }
+    return '';
+  });
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deviceViewport, setDeviceViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
@@ -320,12 +302,25 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
             <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
               <div className="flex items-center justify-between text-xs font-semibold text-[#786653] px-1">
                 <span>{servers.length} SERVERS TERDETEKSI</span>
-                <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  ● ALL SERVICES RUNNING
-                </span>
+                {servers.length > 0 && (
+                  <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    ● ALL SERVICES RUNNING
+                  </span>
+                )}
               </div>
 
-              {servers.map((srv) => {
+              {servers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-8 text-center bg-[#fffdf9] rounded-xl border border-dashed border-[#d6c5ad] my-4">
+                  <div className="w-12 h-12 rounded-full bg-[#f4ebe1] flex items-center justify-center text-[#786653] mb-3">
+                    <Server className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-xs font-bold text-[#2c231c]">Tidak Ada Dev Server yang Aktif</h4>
+                  <p className="text-[11px] text-[#786653] max-w-xs mt-1 leading-relaxed">
+                    Belum ada server development yang aktif. Server akan muncul otomatis saat agen menjalankan dev script atau Anda dapat menambahkan port server secara manual melalui tombol <strong>+ Tambah Port / Server</strong> di atas.
+                  </p>
+                </div>
+              ) : (
+                servers.map((srv) => {
                 const isSelected = activePreviewUrl === (srv.url.startsWith('http') ? srv.url : `${typeof window !== 'undefined' ? window.location.origin : ''}${srv.url}`);
                 const fullDisplayUrl = srv.url.startsWith('http')
                   ? srv.url
@@ -418,7 +413,6 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                           <span className="hidden sm:inline">Buka Web</span>
                         </button>
 
-                        {srv.id.startsWith('srv-') && !['srv-shadowmove', 'srv-vigent-app', 'srv-llm-gateway'].includes(srv.id) && (
                           <button
                             onClick={() => handleDeleteServer(srv.id)}
                             className="p-1 text-[#786653] hover:text-red-600 transition-colors"
@@ -426,12 +420,12 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                        )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -549,13 +543,15 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
               <p className="text-xs max-w-sm text-[#786653] leading-relaxed mb-4">
                 Pilih salah satu port di sebelah kiri atau klik tombol <strong className="text-[#1f6860]">In-App Preview</strong> untuk melihat live web langsung di dalam antarmuka CEO Virtual!
               </p>
-              <button
-                onClick={() => handlePreviewInApp(servers[0])}
-                className="px-3.5 py-2 bg-[#1f6860] hover:bg-[#164e48] text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-colors"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Buka Preview ShadowMove Landing Page</span>
-              </button>
+              {servers.length > 0 && (
+                <button
+                  onClick={() => handlePreviewInApp(servers[0])}
+                  className="px-3.5 py-2 bg-[#1f6860] hover:bg-[#164e48] text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Buka Preview {servers[0].projectName}</span>
+                </button>
+              )}
             </div>
           )}
         </div>

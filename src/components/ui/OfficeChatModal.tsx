@@ -56,122 +56,7 @@ interface OfficeChatModalProps {
   onClearEvents?: () => void;
 }
 
-const DEFAULT_COLLAB_LOGS: AgentCollaborationLog[] = [
-  {
-    id: 'collab-casual-1',
-    timestamp: Date.now() - 1000 * 60 * 55,
-    type: 'casual_talk',
-    categoryTag: '🍿 Anime & Film',
-    senderId: 'rei',
-    senderName: 'Rei Kasumi',
-    senderRoleTitle: 'Creative Director & UI/UX',
-    senderAvatarColor: '#ec4899',
-    targetId: 'damian',
-    targetName: 'Damian Vance',
-    targetRoleTitle: 'Lead Full-Stack & Systems Engineer',
-    targetAvatarColor: '#0ea5e9',
-    topic: 'Inspirasi Visual Estetika Cyberpunk Edgerunners',
-    dialog:
-      'Damian, kamu udah nonton Cyberpunk Edgerunners belum? Efek neon glow distopianya menginspirasi banget buat palet warna & visual UI landing page kita!',
-    outcome: 'Damian menyetujui estetika neon glow dan mengusulkan penggunaan font mono aksen terminal.',
-  },
-  {
-    id: 'collab-1',
-    timestamp: Date.now() - 1000 * 60 * 45,
-    type: 'collaboration',
-    categoryTag: '💻 Arsitektur & Brand',
-    projectName: 'ShadowMove Landing Page',
-    senderId: 'kenji',
-    senderName: 'Kenji Sato',
-    senderRoleTitle: 'Founder & System Architect',
-    senderAvatarColor: '#6366f1',
-    targetId: 'rei',
-    targetName: 'Rei Kasumi',
-    targetRoleTitle: 'Creative Director & UI/UX',
-    targetAvatarColor: '#ec4899',
-    topic: 'Brand Identity, Positioning, & Wireframe Landing Page',
-    dialog:
-      'Rei, untuk landing page ShadowMove kita perlu membedakan diri dari agensi software konvensional. Kita butuh persona Cyberpunk/Neo Dark yang berkelas, typography modern (Outfit & JetBrains Mono), dan interactive budget estimator agar calon klien langsung paham value proposition kita.',
-    outcome:
-      'Disepakati: Desain menggunakan dark palette #0d0f18, aksen neon cyan/purple, glassmorphism cards, dan copywriting berfokus pada "Autonomous AI Team for High-Velocity Software Delivery".',
-  },
-  {
-    id: 'collab-casual-2',
-    timestamp: Date.now() - 1000 * 60 * 35,
-    type: 'casual_talk',
-    categoryTag: '☕ Kopi & Kehidupan',
-    senderId: 'damian',
-    senderName: 'Damian Vance',
-    senderRoleTitle: 'Lead Full-Stack & Systems Engineer',
-    senderAvatarColor: '#0ea5e9',
-    targetId: 'kenji',
-    targetName: 'Kenji Sato',
-    targetRoleTitle: 'Founder & System Architect',
-    targetAvatarColor: '#6366f1',
-    topic: 'Racikan Biji Kopi Espresso Pantry',
-    dialog:
-      'Kenji, biji kopi espresso di pantry ini notes-nya dark chocolate pekat. Sekali seduh langsung melek buat maraton refactor microservice.',
-    outcome: 'Kenji merekomendasikan coba teknik cold brew untuk sprint rilis malam nanti.',
-  },
-  {
-    id: 'collab-2',
-    timestamp: Date.now() - 1000 * 60 * 25,
-    type: 'collaboration',
-    categoryTag: '💻 Integrasi Frontend',
-    projectName: 'ShadowMove Landing Page',
-    senderId: 'rei',
-    senderName: 'Rei Kasumi',
-    senderRoleTitle: 'Creative Director & UI/UX',
-    senderAvatarColor: '#ec4899',
-    targetId: 'damian',
-    targetName: 'Damian Vance',
-    targetRoleTitle: 'Lead Full-Stack & Systems Engineer',
-    targetAvatarColor: '#0ea5e9',
-    topic: 'Integrasi Komponen Interaktif & Responsive Grid',
-    dialog:
-      'Damian, mockup wireframe sudah saya rampungkan di docs/SHADOWMOVE_ARCHITECTURE.md. Bisakah kamu bantu implementasikan kalkulator estimasi biaya project yang dinamis dan terminal code preview di client-side?',
-    outcome:
-      'Disepakati: Menggunakan Vanilla JavaScript modular yang ultra-cepat tanpa dependensi berat, langsung disajikan di file static preview/shadowmove/index.html.',
-  },
-  {
-    id: 'collab-casual-3',
-    timestamp: Date.now() - 1000 * 60 * 18,
-    type: 'casual_talk',
-    categoryTag: '🐱 Kucing & Hal Lucu',
-    senderId: 'yuki',
-    senderName: 'Yuki Tanaka',
-    senderRoleTitle: 'QA Lead & Reliability Engineer',
-    senderAvatarColor: '#10b981',
-    targetId: 'rei',
-    targetName: 'Rei Kasumi',
-    targetRoleTitle: 'Creative Director & UI/UX',
-    targetAvatarColor: '#ec4899',
-    topic: 'Si Kucing Oyen Kantor Tertidur di Printer',
-    dialog:
-      'Rei, Si Oyen kucing kantor tidur nyenyak banget di atas printer thermal lagi haha. Pas mau dipindahin malah mendengkur keenakan.',
-    outcome: 'Rei mengambil foto si Oyen untuk dijadikan easter egg maskot di landing page.',
-  },
-  {
-    id: 'collab-3',
-    timestamp: Date.now() - 1000 * 60 * 10,
-    type: 'collaboration',
-    categoryTag: '🛡️ Quality Assurance',
-    projectName: 'ShadowMove Landing Page',
-    senderId: 'damian',
-    senderName: 'Damian Vance',
-    senderRoleTitle: 'Lead Full-Stack & Systems Engineer',
-    senderAvatarColor: '#0ea5e9',
-    targetId: 'yuki',
-    targetName: 'Yuki Tanaka',
-    targetRoleTitle: 'QA Lead & Reliability Engineer',
-    targetAvatarColor: '#10b981',
-    topic: 'Verifikasi Cross-Browser, Viewport Mobile, & Dev Server Port',
-    dialog:
-      'Yuki, landing page sekarang sudah running aktif di port 28483 (/preview/shadowmove/index.html). Tolong jalankan verifikasi responsiveness di mobile/desktop dan pastikan form submission toast berjalan lancar.',
-    outcome:
-      'Disepakati: Form submit simulasi bekerja 100%, responsive breakpoint handal, link navigasi mulus, dan lighthouse score target tercapai.',
-  },
-];
+const DEFAULT_COLLAB_LOGS: AgentCollaborationLog[] = [];
 
 export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
   company,
@@ -200,43 +85,36 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
         const saved = localStorage.getItem(CHAT_STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Filter out any legacy dummy messages mentioning shadowmove
+            const cleaned = parsed.filter(
+              (m: any) =>
+                m.id !== 'msg-seed-1' &&
+                m.id !== 'msg-seed-2' &&
+                !m.message?.toLowerCase().includes('shadowmove')
+            );
+            if (cleaned.length > 0) return cleaned;
+          }
         }
       } catch (e) {
         console.error(e);
       }
     }
 
-    const initialKenji = agents.find((a) => a.name.includes('Kenji')) || agents[0];
-    const initialRei = agents.find((a) => a.name.includes('Rei')) || agents[1];
+    const firstAgent = agents[0];
+    if (!firstAgent) return [];
 
     return [
       {
-        id: 'msg-seed-1',
+        id: `msg-welcome-${company.id}`,
         senderType: 'agent',
-        agentId: initialKenji?.id,
-        senderName: initialKenji?.name || 'Kenji Sato',
-        senderAvatarColor: initialKenji?.avatarColor || '#6366f1',
-        senderRoleTitle: initialKenji?.roleTitle || 'Founder & System Architect',
-        message:
-          'Halo Boss! Selamat datang di War Room ShadowMove. Seluruh divisi engineering, design, dan QA stand by. Anda bisa ketik "@" kapan saja untuk mention kami spesifik atau bertanya mengenai progres project.',
-        timestamp: Date.now() - 120000,
+        agentId: firstAgent.id,
+        senderName: firstAgent.name,
+        senderAvatarColor: firstAgent.avatarColor || '#6366f1',
+        senderRoleTitle: firstAgent.roleTitle || 'Team Lead',
+        message: `Halo Boss! Selamat datang di War Room ${company.name}. Tim kami siap menerima instruksi dan berkolaborasi. Anda bisa ketik "@" untuk mention agen spesifik atau bertanya mengenai progres tugas.`,
+        timestamp: Date.now(),
       },
-      ...(initialRei
-        ? [
-            {
-              id: 'msg-seed-2',
-              senderType: 'agent' as const,
-              agentId: initialRei.id,
-              senderName: initialRei.name,
-              senderAvatarColor: initialRei.avatarColor || '#ec4899',
-              senderRoleTitle: initialRei.roleTitle,
-              message:
-                'Hero section dan interactive estimator landing page sudah ready di preview! Ada yang perlu kami tambahkan atau diskusikan?',
-              timestamp: Date.now() - 60000,
-            },
-          ]
-        : []),
     ];
   });
 
@@ -248,9 +126,20 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
+            // Filter out legacy dummy seeds
+            const nonDummy = parsed.filter(
+              (item: AgentCollaborationLog) =>
+                !item.id?.startsWith('collab-casual-') &&
+                !item.id?.startsWith('collab-1') &&
+                !item.id?.startsWith('collab-2') &&
+                !item.id?.startsWith('collab-3') &&
+                !item.projectName?.toLowerCase().includes('shadowmove') &&
+                !item.dialog?.toLowerCase().includes('shadowmove')
+            );
+
             // Deduplicate any logs that have matching pairs and identical/truncated dialog within 60s
             const deduped: AgentCollaborationLog[] = [];
-            parsed.forEach((item: AgentCollaborationLog) => {
+            nonDummy.forEach((item: AgentCollaborationLog) => {
               const existingIdx = deduped.findIndex((existing) => {
                 const samePair =
                   existing.senderName === item.senderName && existing.targetName === item.targetName;
@@ -1009,7 +898,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             allTasks: tasks || [],
             companyName: company.name,
             companyId: company.id,
-            activeProject: currentTask?.projectName || 'ShadowMove Platform',
+            activeProject: currentTask?.projectName || `${company.name} Workspace`,
             agentPersonality: responder.personality,
             enableTools: true,
             autoExecuteTools: true,

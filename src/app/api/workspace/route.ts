@@ -132,27 +132,24 @@ export async function POST(req: Request) {
         .replace(/[^a-z0-9_-]/g, '-')
         .slice(0, 32);
 
-      const targetCompany = companyId || 'company-shadowmove';
+      const targetCompany = companyId || 'default-company';
       const baseDir = createProjectDirectory(safeProject);
 
       // 1. Generate task summary artifact in ~/.vigent/artifacts/
       const readmeContent = `# ${taskTitle}\n\n> 🤖 Dikerjakan secara otomatis oleh Agent: **${agentName || 'CEO Virtual Agent'}**\n> 📁 Proyek: \`${projectName || safeProject}\`\n> ⏰ Waktu Eksekusi: ${new Date().toLocaleString()}\n\n## Deskripsi Deliverables\nTask: ${taskTitle}\nTipe: ${taskType}\nStatus: Completed & Artifacts Generated\n`;
       writeArtifactFile(targetCompany, safeProject, 'TASK_SUMMARY.md', readmeContent);
 
-      // If task is about ShadowMove Landing Page or UI/framework, sync and ensure public preview is updated
-      const isLandingRelated =
-        (projectName && projectName.toLowerCase().includes('shadowmove')) ||
-        (taskTitle && /landing|shadowmove|framework|ui|website/i.test(taskTitle));
+      // If task generates or updates an HTML/landing page file, sync it to public preview dynamically
+      const isWebRelated =
+        (taskTitle && /landing|web|frontend|html|ui|site|portal/i.test(taskTitle)) ||
+        (projectName && /web|site|portal|landing|app/i.test(projectName));
 
-      if (isLandingRelated) {
-        const previewDir = path.join(process.cwd(), 'public', 'preview', 'shadowmove');
-        const previewHtml = path.join(previewDir, 'index.html');
-        if (fs.existsSync(previewHtml)) {
-          const wsDir = path.join(VIGENT_PROJECTS, 'shadowmove-landing-page');
-          if (!fs.existsSync(wsDir)) fs.mkdirSync(wsDir, { recursive: true });
-          fs.copyFileSync(previewHtml, path.join(wsDir, 'index.html'));
-          const updateNotice = `\n<!-- Updated by Agent ${agentName || 'Rei Kasumi'} for Task: ${taskTitle} at ${new Date().toISOString()} -->\n`;
-          fs.appendFileSync(path.join(wsDir, 'index.html'), updateNotice, 'utf-8');
+      if (isWebRelated) {
+        const wsHtml = path.join(VIGENT_PROJECTS, safeProject, 'index.html');
+        const previewDir = path.join(process.cwd(), 'public', 'preview', safeProject);
+        if (fs.existsSync(wsHtml)) {
+          if (!fs.existsSync(previewDir)) fs.mkdirSync(previewDir, { recursive: true });
+          fs.copyFileSync(wsHtml, path.join(previewDir, 'index.html'));
         }
       }
 

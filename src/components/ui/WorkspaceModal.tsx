@@ -767,10 +767,9 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                       <p className="text-[10px] text-[#786653] font-mono truncate">{selectedProject.folderPath}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {(selectedProject.files.some((f) => f.relativePath === 'index.html') ||
-                        selectedProject.name === 'shadowmove-landing-page') && (
+                      {selectedProject.files.some((f) => f.relativePath === 'index.html') && (
                         <a
-                          href="/preview/shadowmove/index.html"
+                          href={`/preview/${selectedProject.name}/index.html`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-2.5 py-1 bg-[#1f6860] hover:bg-[#164e48] text-white text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors shadow-xs"
