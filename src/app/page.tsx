@@ -25,31 +25,37 @@ import { OnboardingSetupModal } from '@/components/ui/OnboardingSetupModal';
 import { MessagesSquare } from 'lucide-react';
 
 
+const CLEAN_GENESIS_COMPANY: Company = {
+  id: 'genesis-company',
+  ownerUserId: 'owner-genesis',
+  name: 'Perusahaan Saya',
+  industry: 'Software & Technology',
+  description: 'Node Perusahaan P2P Virtual',
+  officeLayoutTemplate: 'tech_startup',
+  departments: [],
+  agents: [],
+  tasks: [],
+};
+
 export default function RealAgent3DPage() {
   const [userAccount, setUserAccount] = useState<UserAccount>(CURRENT_USER);
   const [marketplaceAgents, setMarketplaceAgents] = useState<MarketplaceAgent[]>(INITIAL_MARKETPLACE_AGENTS);
 
-  const [currentCompany, setCurrentCompany] = useState<Company>(PRESET_COMPANIES[0]);
-  const [agents, setAgents] = useState<Agent[]>(PRESET_COMPANIES[0].agents);
-  const [tasks, setTasks] = useState<TaskTicket[]>(PRESET_COMPANIES[0].tasks);
+  // Clean Real Data State: Zero dummy employees on fresh install
+  const [currentCompany, setCurrentCompany] = useState<Company>(CLEAN_GENESIS_COMPANY);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [tasks, setTasks] = useState<TaskTicket[]>([]);
   const [events, setEvents] = useState<ActivityEvent[]>([
     {
-      id: 'init-1',
-      timestamp: Date.now() - 120000,
-      type: 'movement',
-      agentId: PRESET_COMPANIES[0].agents[0].id,
-      agentName: PRESET_COMPANIES[0].agents[0].name,
-      description: `${PRESET_COMPANIES[0].agents[0].name} reported to desk and initialized sprint backlog.`,
-    },
-    {
-      id: 'init-2',
-      timestamp: Date.now() - 60000,
-      type: 'task_start',
-      agentId: PRESET_COMPANIES[0].agents[1].id,
-      agentName: PRESET_COMPANIES[0].agents[1].name,
-      description: `${PRESET_COMPANIES[0].agents[1].name} started coding on 3D canvas viewport.`,
+      id: 'init-genesis',
+      timestamp: Date.now(),
+      type: 'system',
+      agentId: 'node',
+      agentName: 'Genesis Protocol',
+      description: 'Node P2P aktif. Menunggu inisialisasi perusahaan atau deteksi peer regional...',
     },
   ]);
+  const [peerNodes, setPeerNodes] = useState<any[]>([]);
 
   const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>(undefined);
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
@@ -84,6 +90,28 @@ export default function RealAgent3DPage() {
         const data = await res.json();
         if (!data.isInitialized) {
           setIsOnboardingOpen(true);
+        } else if (data.identity) {
+          const realCompanyId = data.identity.companyId || `comp-${data.identity.ownerAddress?.slice(2, 10).toLowerCase()}`;
+          const realName = data.identity.companyName || 'Perusahaan Saya';
+          const realIndustry = data.identity.industry || 'Software Engineering';
+
+          setCurrentCompany((prev) => ({
+            ...prev,
+            id: realCompanyId,
+            name: realName,
+            industry: realIndustry,
+          }));
+
+          // Broadcast real presence immediately to P2P network
+          fetch('/api/p2p', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'update_presence',
+              companyName: realName,
+              regionalSector: data.identity.regionId,
+            }),
+          }).catch(() => {});
         }
       } catch (err) {
         console.warn('[NodeStatus] Could not check node identity:', err);
@@ -102,6 +130,57 @@ export default function RealAgent3DPage() {
       body: JSON.stringify({ action: 'auto_start', companyId: currentCompany.id }),
     }).catch(() => {});
   }, [currentCompany.id]);
+
+  // Periodic P2P mesh network poll & live agent behavior sync
+  useEffect(() => {
+    let isMounted = true;
+    const syncP2P = async () => {
+      try {
+        // 1. Fetch active peer nodes
+        const res = await fetch('/api/p2p');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.peers) && isMounted) {
+          setPeerNodes(data.peers);
+        }
+
+        // 2. Broadcast local real agents presence & behaviors to P2P swarm
+        if (currentCompany.id) {
+          await fetch('/api/p2p', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'sync_presence',
+              companyId: currentCompany.id,
+              companyName: currentCompany.name,
+              industry: currentCompany.industry,
+              officeLayoutTemplate: currentCompany.officeLayoutTemplate,
+              agents: agents.map((a) => ({
+                id: a.id,
+                name: a.name,
+                role: a.roleTitle || a.role,
+                avatarColor: a.shirtColor || '#3b82f6',
+                hairColor: a.hairColor || '#0f172a',
+                wx: a.currentPosition.x,
+                wz: a.currentPosition.z,
+                state: a.state,
+                publicStatus: a.activeDialog?.message || a.stateMessage || 'Bekerja aktif di node kantor',
+                activeDialog: a.activeDialog,
+              })),
+            }),
+          });
+        }
+      } catch (err) {
+        // Background sync
+      }
+    };
+
+    syncP2P();
+    const interval = setInterval(syncP2P, 4000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [currentCompany.id, currentCompany.name, currentCompany.industry, currentCompany.officeLayoutTemplate, agents]);
 
   // Keep simulation aware of active company for LLM configurations & banter
   useEffect(() => {
@@ -197,26 +276,33 @@ export default function RealAgent3DPage() {
 
         // B. Load Agents (XP, Level, Assigned Roles, Positions)
         const savedAgentsJson = getStorageItem('agents', companyId);
+        let agentsLoaded = false;
         if (savedAgentsJson) {
           try {
             const parsedAgents = JSON.parse(savedAgentsJson);
-            if (Array.isArray(parsedAgents) && parsedAgents.length > 0 && isMounted) {
+            if (Array.isArray(parsedAgents) && isMounted) {
               const synchronizedAgents = applyGlobalLLMToUnconfiguredAgents(parsedAgents);
               setAgents(synchronizedAgents);
+              agentsLoaded = true;
             }
           } catch {}
-        } else {
+        }
+        if (!agentsLoaded) {
           try {
             const agentsRes = await fetch('/api/workspace', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'get_agents', companyId }),
             }).then((r) => r.json());
-            if (agentsRes?.success && Array.isArray(agentsRes.agents) && agentsRes.agents.length > 0 && isMounted) {
+            if (agentsRes?.success && Array.isArray(agentsRes.agents) && isMounted) {
               const synchronizedAgents = applyGlobalLLMToUnconfiguredAgents(agentsRes.agents);
               setAgents(synchronizedAgents);
+              agentsLoaded = true;
             }
           } catch {}
+        }
+        if (!agentsLoaded && isMounted) {
+          setAgents([]);
         }
 
         // C. Load Tasks
@@ -225,7 +311,7 @@ export default function RealAgent3DPage() {
         if (savedTasksJson) {
           try {
             const parsedTasks = JSON.parse(savedTasksJson);
-            if (Array.isArray(parsedTasks) && parsedTasks.length > 0) {
+            if (Array.isArray(parsedTasks)) {
               initialLocalTasks = parsedTasks;
             }
           } catch {}
@@ -242,16 +328,12 @@ export default function RealAgent3DPage() {
             initialLocalTasks.forEach((t) => taskMap.set(t.id, t));
             tasksRes.tasks.forEach((t: TaskTicket) => taskMap.set(t.id, t));
             const merged = Array.from(taskMap.values());
-            if (merged.length > 0) {
-              setTasks(merged);
-            } else if (initialLocalTasks.length > 0) {
-              setTasks(initialLocalTasks);
-            }
-          } else if (initialLocalTasks.length > 0 && isMounted) {
+            setTasks(merged);
+          } else if (isMounted) {
             setTasks(initialLocalTasks);
           }
         } catch {
-          if (initialLocalTasks.length > 0 && isMounted) {
+          if (isMounted) {
             setTasks(initialLocalTasks);
           }
         }
@@ -1154,6 +1236,7 @@ export default function RealAgent3DPage() {
         tasks={tasks}
         simulation={simulationRef.current}
         selectedAgentId={selectedAgentId}
+        peerNodes={peerNodes}
         onSelectAgent={(agentId) => setSelectedAgentId(agentId)}
         onSimulationUpdate={handleSimulationUpdate}
         onOpenChat={() => {
@@ -1341,13 +1424,124 @@ export default function RealAgent3DPage() {
       {/* 👑 Interactive P2P Node Onboarding & Genesis Setup Modal */}
       <OnboardingSetupModal
         isOpen={isOnboardingOpen}
-        onComplete={(newCompanyName, newIndustry, newRegionId, newAddress) => {
+        onComplete={(data) => {
           setIsOnboardingOpen(false);
-          setCurrentCompany((prev) => ({
-            ...prev,
-            name: newCompanyName,
-            industry: newIndustry,
+          const newCompanyId = `comp-${(data.address || 'addr').slice(2, 10).toLowerCase()}`;
+
+          // Formatted Agents with desk slots & global LLM inheritance
+          const finalAgents: Agent[] = (data.agents || []).map((ag, idx) => ({
+            ...ag,
+            companyId: newCompanyId,
+            deskPosition: DESK_SLOTS[idx] || { x: 0, z: 0 },
+            currentPosition: DESK_SLOTS[idx] || { x: 0, z: 0 },
+            inheritedLLMCategory: 'text',
           }));
+
+          const finalTasks: TaskTicket[] = (data.tasks || []).map((t) => ({
+            ...t,
+            projectName: data.companyName,
+          }));
+
+          const newComp: Company = {
+            id: newCompanyId,
+            ownerUserId: data.address || 'owner-node',
+            name: data.companyName,
+            industry: data.industry,
+            description: data.description || `Perusahaan ${data.companyName} di shard regional ${data.regionId}`,
+            officeLayoutTemplate: data.officeLayoutTemplate || 'tech_startup',
+            departments: data.departments || [],
+            agents: finalAgents,
+            tasks: finalTasks,
+            globalLLMConfig: data.globalLLMConfig,
+          };
+
+          setCurrentCompany(newComp);
+          setAgents(finalAgents);
+          setTasks(finalTasks);
+
+          const llmDesc = data.globalLLMConfig?.text
+            ? ` (Global LLM: ${data.globalLLMConfig.text.provider.toUpperCase()} - ${data.globalLLMConfig.text.model})`
+            : '';
+
+          setEvents([
+            {
+              id: 'genesis-block-0',
+              timestamp: Date.now(),
+              type: 'system',
+              agentId: 'genesis',
+              agentName: 'Genesis Protocol',
+              description: `Genesis Block terverifikasi. Perusahaan ${data.companyName} resmi didirikan di jaringan P2P${llmDesc}!`,
+            },
+          ]);
+
+          // Save fresh company, LLM, agents, and tasks to localStorage
+          setStorageItem('company', newCompanyId, JSON.stringify(newComp));
+          setStorageItem('agents', newCompanyId, JSON.stringify(finalAgents));
+          setStorageItem('tasks', newCompanyId, JSON.stringify(finalTasks));
+          if (data.globalLLMConfig) {
+            setStorageItem('company_llm', newCompanyId, JSON.stringify(data.globalLLMConfig));
+            try {
+              localStorage.setItem('ceo_virtual_global_llm', JSON.stringify(data.globalLLMConfig));
+            } catch {}
+          }
+
+          // Persist to backend workspace files
+          fetch('/api/workspace', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'save_company',
+              companyId: newCompanyId,
+              company: newComp,
+            }),
+          }).catch(() => {});
+
+          if (data.globalLLMConfig) {
+            fetch('/api/workspace', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'save_company_llm',
+                companyId: newCompanyId,
+                globalLLMConfig: data.globalLLMConfig,
+              }),
+            }).catch(() => {});
+          }
+
+          if (finalAgents.length > 0) {
+            fetch('/api/workspace', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'save_agents',
+                companyId: newCompanyId,
+                agents: finalAgents,
+              }),
+            }).catch(() => {});
+          }
+
+          if (finalTasks.length > 0) {
+            fetch('/api/workspace', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'save_tasks',
+                companyId: newCompanyId,
+                tasks: finalTasks,
+              }),
+            }).catch(() => {});
+          }
+
+          // Announce to P2P network
+          fetch('/api/p2p', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'update_presence',
+              companyName: data.companyName,
+              regionalSector: data.regionId,
+            }),
+          }).catch(() => {});
         }}
       />
 

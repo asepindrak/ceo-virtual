@@ -65,10 +65,16 @@ Setelah instalasi selesai, server otomatis aktif pada port dedicated **`:28483`*
   * 🇺🇸 `us-east-1` (188ms ping)
 * **Dynamic Auto-Sharding Protocol**: Jika region mencapai utilisasi $\ge 90\%$, protokol konsensus node otomatis men-spawn shard baru (misal: **`APAC Jakarta Shard-2 (Auto-Spawned)`**) untuk menjaga performa jaringan.
 
-### 3. 🏢 Profil Perusahaan, Nearby Office, & Genesis Block
-* Tentukan nama kantor, bidang industri, dan opsi **⚡ Autorun at Startup** (ON/OFF).
-* **📍 Fondasi Fitur "Nearby Office" (Kantor Tetangga)**: Koordinat kota disimpan di `keystore.json` secara aman (dibulatkan untuk melindungi privasi) sehingga kantor-kantor di kota/distrik yang sama dapat saling terhubung di peta spasial P2P.
-* Sistem menandatangani **Genesis Block** dengan kunci privat lokal dan menyimpannya di `~/.ceo-virtual/keystore.json`.
+### 3. 🤖 AI Company Generator, Global LLM Provider & Genesis Block
+* **✨ AI Company Generator (Auto Tim & Backlog Tugas)**:
+  * Masukkan ide atau preferensi bisnis Anda (misal: *SaaS CRM kasir kuliner*). AI akan otomatis merancang profil perusahaan, template layout kantor, divisi, tim karyawan awal (nama, role spesifik, keahlian, dan kepribadian MBTI bervariasi), serta tiket tugas backlog perdana di meja kerja.
+* **🌐 Setup LLM Global Perusahaan (Universal Auto-Inherit)**:
+  * Provider LLM yang diatur saat onboarding awal (**Groq, Google Gemini, DeepSeek, OpenAI, Anthropic, atau Ollama Lokal**) langsung dijadikan sebagai **Global LLM Provider** seluruh kantor. Semua karyawan yang bergabung otomatis mewarisi model ini untuk penalaran tiket, percakapan kantor, dan live coding tanpa perlu konfigurasi berulang.
+* **🛠️ Opsi Mulai dari Nol / Marketplace (Tanpa API Key)**:
+  * Jika belum memiliki API key LLM, pengguna dapat memilih opsi manual. Kantor akan diinisialisasi dalam kondisi bersih tanpa data dummy (**kavling kosong**). Karyawan baru dapat ditambahkan sendiri secara manual atau disewa dari **Marketplace P2P** kapan saja.
+* **⚡ Autorun at Startup & Nearby Office**:
+  * Opsi checkbox untuk mengaktifkan autorun di latar belakang saat komputer dinyalakan. Koordinat GPS disimpan untuk fitur *Nearby Office* (Kantor Tetangga).
+* Sistem menandatangani **Genesis Block** dengan kunci kriptografis lokal dan menyimpannya di `~/.ceo-virtual/keystore.json`.
 
 ---
 

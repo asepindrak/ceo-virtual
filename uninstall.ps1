@@ -45,19 +45,19 @@ if (Test-Path $LegacyBat) {
     Write-Host "  [OK] $LegacyBat dihapus." -ForegroundColor Green
 }
 
-# 3. Remove CLI Executables from ~/.local/bin
-Write-Host "> Menghapus perintah CLI (ceo-virtual & vigent)..." -ForegroundColor Cyan
+# 3. Remove CLI Executables from ~/.local/bin (Delayed background delete so CMD wrapper doesn't report 'The batch file cannot be found')
+Write-Host "> Menjadwalkan pembersihan perintah CLI (ceo-virtual & vigent)..." -ForegroundColor Cyan
 $UserBin = Join-Path $HOME ".local\bin"
 $CeoCmd = Join-Path $UserBin "ceo-virtual.cmd"
 $VigentCmd = Join-Path $UserBin "vigent.cmd"
 
-if (Test-Path $CeoCmd) {
-    Remove-Item -Path $CeoCmd -Force -ErrorAction SilentlyContinue
-    Write-Host "  [OK] $CeoCmd dihapus." -ForegroundColor Green
-}
-if (Test-Path $VigentCmd) {
-    Remove-Item -Path $VigentCmd -Force -ErrorAction SilentlyContinue
-    Write-Host "  [OK] $VigentCmd dihapus." -ForegroundColor Green
+try {
+    Start-Process powershell -WindowStyle Hidden -ArgumentList "-NoProfile -Command Start-Sleep -Seconds 3; if (Test-Path '$CeoCmd') { Remove-Item -Path '$CeoCmd' -Force -ErrorAction SilentlyContinue }; if (Test-Path '$VigentCmd') { Remove-Item -Path '$VigentCmd' -Force -ErrorAction SilentlyContinue }"
+    Write-Host "  [OK] CLI wrapper (.cmd) dijadwalkan untuk dibersihkan setelah eksekusi batch selesai." -ForegroundColor Green
+} catch {
+    Write-Host "  [!] Menghapus file wrapper langsung..." -ForegroundColor Gray
+    if (Test-Path $CeoCmd) { Remove-Item -Path $CeoCmd -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $VigentCmd) { Remove-Item -Path $VigentCmd -Force -ErrorAction SilentlyContinue }
 }
 
 # Unlink npm global package if present

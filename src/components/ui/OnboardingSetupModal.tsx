@@ -23,9 +23,28 @@ import {
   MapPin,
   Compass,
   Navigation,
+  Bot,
+  Eye,
+  EyeOff,
+  Users,
+  CheckCircle2,
+  ChevronRight,
+  Briefcase,
+  Wrench,
+  ShoppingBag,
+  Shield,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { NodeRegion, NodeSetupPayload } from '@/types/office';
+import { 
+  NodeRegion, 
+  NodeSetupPayload, 
+  Company, 
+  Department, 
+  Agent, 
+  TaskTicket, 
+  CompanyGlobalLLMConfig, 
+  OfficeLayoutTemplateId 
+} from '@/types/office';
 
 // Haversine distance formula in kilometers
 function calculateHaversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -40,15 +59,28 @@ function calculateHaversineKm(lat1: number, lon1: number, lat2: number, lon2: nu
   return Math.round(R * c);
 }
 
+export interface OnboardingCompletionData {
+  companyName: string;
+  industry: string;
+  regionId: string;
+  address: string;
+  globalLLMConfig?: CompanyGlobalLLMConfig;
+  officeLayoutTemplate?: OfficeLayoutTemplateId;
+  description?: string;
+  departments?: Department[];
+  agents?: Agent[];
+  tasks?: TaskTicket[];
+}
+
 interface OnboardingSetupModalProps {
   isOpen: boolean;
-  onComplete: (companyName: string, industry: string, regionId: string, address: string) => void;
+  onComplete: (data: OnboardingCompletionData) => void;
 }
 
 export function OnboardingSetupModal({ isOpen, onComplete }: OnboardingSetupModalProps) {
   // Navigation State
   const [mode, setMode] = useState<'create' | 'restore'>('create');
-  const [step, setStep] = useState<number>(1); // 1: Mode/Identity, 2: Region, 3: Company Profile
+  const [step, setStep] = useState<number>(1); // 1: Mode/Identity, 2: Region, 3: Company Profile & LLM
 
   // Generated Identity Data
   const [mnemonic, setMnemonic] = useState<string>('');
@@ -77,6 +109,24 @@ export function OnboardingSetupModal({ isOpen, onComplete }: OnboardingSetupModa
   const [autorun, setAutorun] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string>('');
+
+  // Step 3: Setup Mode (AI Generator + Global LLM vs Manual Genesis/Marketplace)
+  const [creationMethod, setCreationMethod] = useState<'ai' | 'manual'>('ai');
+
+  // LLM Setup State
+  const [llmProvider, setLlmProvider] = useState<'groq' | 'gemini' | 'deepseek' | 'openai' | 'anthropic' | 'custom'>('groq');
+  const [llmModel, setLlmModel] = useState<string>('llama-3.3-70b-versatile');
+  const [llmApiKey, setLlmApiKey] = useState<string>('');
+  const [llmBaseUrl, setLlmBaseUrl] = useState<string>('');
+  const [showApiKey, setShowApiKey] = useState<boolean>(false);
+  const [showAdvancedLLM, setShowAdvancedLLM] = useState<boolean>(false);
+  const [businessPrompt, setBusinessPrompt] = useState<string>('');
+
+  // AI Generation State
+  const [isGeneratingCompany, setIsGeneratingCompany] = useState<boolean>(false);
+  const [generationStatus, setGenerationStatus] = useState<string>('');
+  const [generationError, setGenerationError] = useState<string>('');
+  const [generatedCompany, setGeneratedCompany] = useState<Company | null>(null);
 
   // 1. Fetch Regions & Generate initial candidate mnemonic on mount
   useEffect(() => {
@@ -275,6 +325,85 @@ PENTING & RAHASIA:
     reader.readAsText(file);
   };
 
+  const handleProviderChange = (newProvider: 'groq' | 'gemini' | 'deepseek' | 'openai' | 'anthropic' | 'custom') => {
+    setLlmProvider(newProvider);
+    switch (newProvider) {
+      case 'groq':
+        setLlmModel('llama-3.3-70b-versatile');
+        setLlmBaseUrl('');
+        break;
+      case 'gemini':
+        setLlmModel('gemini-1.5-flash');
+        setLlmBaseUrl('');
+        break;
+      case 'deepseek':
+        setLlmModel('deepseek-chat');
+        setLlmBaseUrl('');
+        break;
+      case 'openai':
+        setLlmModel('gpt-4o-mini');
+        setLlmBaseUrl('');
+        break;
+      case 'anthropic':
+        setLlmModel('claude-3-5-sonnet-20241022');
+        setLlmBaseUrl('');
+        break;
+      case 'custom':
+        setLlmModel('llama3:latest');
+        setLlmBaseUrl('http://localhost:11434/v1');
+        break;
+    }
+  };
+
+  const handleGenerateAICompany = async () => {
+    if (!businessPrompt.trim() && !companyName.trim()) {
+      setGenerationError('Silakan masukkan ide bisnis atau nama perusahaan Anda.');
+      return;
+    }
+
+    setIsGeneratingCompany(true);
+    setGenerationError('');
+    setGenerationStatus('Menghubungi LLM Engine & Merancang Struktur...');
+
+    try {
+      const payload = {
+        name: companyName.trim(),
+        industry,
+        businessPrompt: businessPrompt.trim(),
+        agentCount: 4,
+        config: (llmApiKey.trim() || llmProvider === 'custom') ? {
+          provider: llmProvider,
+          apiKey: llmApiKey.trim(),
+          baseUrl: llmBaseUrl.trim() || undefined,
+          model: llmModel.trim(),
+          isLocked: false,
+        } : undefined,
+      };
+
+      const res = await fetch('/api/company/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        setGenerationError(data.error || 'Gagal menghasilkan struktur perusahaan.');
+        setIsGeneratingCompany(false);
+        return;
+      }
+
+      setGeneratedCompany(data.company);
+      if (data.company.name) setCompanyName(data.company.name);
+      if (data.company.industry) setIndustry(data.company.industry);
+      setGenerationStatus('Struktur perusahaan, tim AI, dan tiket tugas berhasil dirancang!');
+    } catch (err: any) {
+      setGenerationError(err.message || 'Terjadi kesalahan sistem saat memanggil AI generator.');
+    } finally {
+      setIsGeneratingCompany(false);
+    }
+  };
+
   // Final Submit: Launch Company & Anchor Node
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
@@ -319,7 +448,35 @@ PENTING & RAHASIA:
         origin: { y: 0.6 },
       });
 
-      onComplete(companyName, industry, selectedRegionId, data.identity.ownerAddress);
+      // Prepare Global LLM Config
+      let finalGlobalLLM: CompanyGlobalLLMConfig | undefined = undefined;
+      if (creationMethod === 'ai' && (llmApiKey.trim() || llmProvider === 'custom')) {
+        const textSetting = {
+          provider: llmProvider,
+          apiKey: llmApiKey.trim(),
+          baseUrl: llmBaseUrl.trim() || undefined,
+          model: llmModel.trim(),
+          isEnabled: true,
+          description: `Global LLM Provider (${llmProvider} - ${llmModel}) disetup saat onboarding awal.`,
+        };
+        finalGlobalLLM = generatedCompany?.globalLLMConfig || {
+          text: textSetting,
+          fast: textSetting,
+        };
+      }
+
+      onComplete({
+        companyName: companyName.trim(),
+        industry,
+        regionId: selectedRegionId,
+        address: data.identity?.ownerAddress || address || 'owner-node',
+        globalLLMConfig: finalGlobalLLM,
+        officeLayoutTemplate: generatedCompany?.officeLayoutTemplate || 'tech_startup',
+        description: generatedCompany?.description,
+        departments: creationMethod === 'ai' ? (generatedCompany?.departments || []) : [],
+        agents: creationMethod === 'ai' ? (generatedCompany?.agents || []) : [],
+        tasks: creationMethod === 'ai' ? (generatedCompany?.tasks || []) : [],
+      });
     } catch (err: any) {
       setSubmitError(err.message || 'Terjadi kesalahan sistem saat peluncuran node.');
     } finally {
@@ -726,103 +883,412 @@ PENTING & RAHASIA:
           )}
 
           {/* ============================================================= */}
-          {/* STEP 3: COMPANY PROFILE & FINAL LAUNCH                         */}
+          {/* STEP 3: COMPANY PROFILE, GLOBAL LLM & AI GENERATION            */}
           {/* ============================================================= */}
           {step === 3 && (
             <div className="space-y-5">
               <div>
                 <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Profil Kantor & Genesis Block</span>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Tentukan nama kantor Anda. Sistem akan menandatangani Genesis Block dengan kunci kriptografis lokal.
+                  Tentukan profil perusahaan. Anda dapat menggunakan AI Generator untuk merancang tim otomatis dengan LLM Global, atau mulai dari nol.
                 </p>
               </div>
 
-              <div className="space-y-4">
-                {/* Company Name */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-300">Nama Perusahaan / Kantor Virtual:</label>
-                  <input
-                    type="text"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="Contoh: Nusantara AI Dynamics"
-                    className="w-full px-4 py-2.5 rounded-xl bg-gray-950 border border-gray-800 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                  />
-                </div>
+              {/* Setup Mode Tabs */}
+              <div className="grid grid-cols-2 gap-2 p-1 bg-gray-950/80 border border-gray-800 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setCreationMethod('ai')}
+                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                    creationMethod === 'ai'
+                      ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+                      : 'text-gray-400 hover:text-gray-200 border border-transparent'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>✨ AI Company Generator</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+                    Rekomendasi
+                  </span>
+                </button>
 
-                {/* Industry Dropdown */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-300">Bidang Industri:</label>
-                  <select
-                    value={industry}
-                    onChange={(e) => setIndustry(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-gray-950 border border-gray-800 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all cursor-pointer"
-                  >
-                    <option value="Software Engineering">Software Engineering & SaaS Startup</option>
-                    <option value="Digital Marketing Agency">Digital Marketing & SEO Agency</option>
-                    <option value="Game Studio">Game Development & Creative Studio</option>
-                    <option value="Content & Media House">Content Writing & Media House</option>
-                    <option value="AI & Data Labs">AI Research & Data Analytics</option>
-                    <option value="Legal & Consulting">Legal & Strategic Consulting Firm</option>
-                  </select>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setCreationMethod('manual')}
+                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                    creationMethod === 'manual'
+                      ? 'bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border border-purple-500/50 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)]'
+                      : 'text-gray-400 hover:text-gray-200 border border-transparent'
+                  }`}
+                >
+                  <ShoppingBag className="w-3.5 h-3.5 text-purple-400" />
+                  <span>🛠️ Mulai dari Nol / Marketplace</span>
+                </button>
+              </div>
 
-                {/* Autorun at Startup Toggle */}
-                <label className="flex items-start gap-3 p-3.5 rounded-xl bg-gray-950/80 border border-gray-800 hover:border-cyan-500/40 cursor-pointer transition-colors group">
-                  <input
-                    type="checkbox"
-                    checked={autorun}
-                    onChange={(e) => setAutorun(e.target.checked)}
-                    className="mt-0.5 rounded border-gray-700 bg-gray-900 text-cyan-500 focus:ring-cyan-500"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-3.5 h-3.5 text-cyan-400" />
-                      <span className="text-xs font-semibold text-white group-hover:text-cyan-300 transition-colors">
-                        Jalankan Otomatis Saat Komputer Dinyalakan (Autorun at Startup)
-                      </span>
+              {/* ========================================================= */}
+              {/* TAB 1: AI COMPANY GENERATOR & GLOBAL LLM SETUP             */}
+              {/* ========================================================= */}
+              {creationMethod === 'ai' && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  {/* Global LLM Explanation Banner */}
+                  <div className="flex items-start gap-3 p-3.5 rounded-xl bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-purple-950/40 border border-cyan-500/30 text-xs">
+                    <Bot className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white text-xs">Setup LLM Global Perusahaan</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 font-mono">
+                          Universal Auto-Inherit
+                        </span>
+                      </div>
+                      <p className="text-gray-300 text-[11px] mt-0.5 leading-relaxed">
+                        Provider LLM yang Anda atur di sini akan langsung menjadi <strong className="text-cyan-300">Global LLM Provider</strong> seluruh agen di kantor. Setiap karyawan baru otomatis memakai model ini tanpa perlu konfigurasi berulang!
+                      </p>
                     </div>
-                    <p className="text-[11px] text-gray-400 mt-0.5">
-                      Server kantor virtual otomatis aktif di background pada port :28483 saat PC booting.
-                    </p>
                   </div>
-                </label>
 
-                {/* Summary Card */}
-                <div className="p-4 rounded-xl bg-gray-950/80 border border-gray-800 space-y-2 text-xs">
-                  <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
-                    <span className="text-gray-400">Mode Inisialisasi:</span>
-                    <span className="font-semibold text-white uppercase">{mode === 'create' ? 'Kantor Baru' : 'Pemulihan Backup'}</span>
+                  {/* Provider Selector Grid */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-gray-300 flex items-center justify-between">
+                      <span>Pilih Provider LLM Global:</span>
+                      <span className="text-[11px] text-gray-500">Mendukung OpenAI, Gemini, Groq, DeepSeek, Claude, & Ollama</span>
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {[
+                        { id: 'groq', name: '⚡ Groq Cloud', desc: 'Llama 3.3 70B (Ultra Cepat)', color: 'border-orange-500/40 text-orange-400' },
+                        { id: 'gemini', name: '🌐 Google Gemini', desc: 'Gemini 1.5 Flash (Kapasitas Besar)', color: 'border-blue-500/40 text-blue-400' },
+                        { id: 'deepseek', name: '🧠 DeepSeek', desc: 'DeepSeek-V3 / Chat (Hemat & Cerdas)', color: 'border-cyan-500/40 text-cyan-400' },
+                        { id: 'openai', name: '🟢 OpenAI', desc: 'GPT-4o Mini / GPT-4o', color: 'border-emerald-500/40 text-emerald-400' },
+                        { id: 'anthropic', name: '🟣 Anthropic', desc: 'Claude 3.5 Sonnet', color: 'border-purple-500/40 text-purple-400' },
+                        { id: 'custom', name: '🖥️ Ollama / Custom', desc: 'Local host:11434 atau Proxy', color: 'border-gray-500/40 text-gray-300' },
+                      ].map((p) => {
+                        const isSelected = llmProvider === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => handleProviderChange(p.id as any)}
+                            className={`p-2.5 rounded-xl border text-left transition-all ${
+                              isSelected
+                                ? 'bg-cyan-950/60 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)] ring-1 ring-cyan-400'
+                                : 'bg-gray-950/80 border-gray-800 hover:border-gray-700'
+                            }`}
+                          >
+                            <div className="font-semibold text-xs text-white flex items-center justify-between">
+                              <span>{p.name}</span>
+                              {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />}
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-0.5">{p.desc}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
-                    <span className="text-gray-400">Region Klaster:</span>
-                    <span className="font-mono text-cyan-400 font-semibold">{selectedRegionId}</span>
+
+                  {/* Model & API Key Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-300">Model Name:</label>
+                      <input
+                        type="text"
+                        value={llmModel}
+                        onChange={(e) => setLlmModel(e.target.value)}
+                        placeholder="Contoh: llama-3.3-70b-versatile"
+                        className="w-full px-3.5 py-2 rounded-xl bg-gray-950 border border-gray-800 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-gray-300">API Key Provider:</label>
+                        <button
+                          type="button"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
+                        >
+                          {showApiKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          <span>{showApiKey ? 'Sembunyikan' : 'Lihat'}</span>
+                        </button>
+                      </div>
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        value={llmApiKey}
+                        onChange={(e) => setLlmApiKey(e.target.value)}
+                        placeholder={llmProvider === 'custom' ? 'Opsional untuk Ollama lokal' : 'gsk_... / AIzaSy... / sk-...'}
+                        className="w-full px-3.5 py-2 rounded-xl bg-gray-950 border border-gray-800 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                      />
+                    </div>
                   </div>
-                  {userCoords && (
-                    <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
-                      <span className="text-gray-400">Koordinat Nearby Office:</span>
-                      <span className="font-mono text-emerald-400 font-semibold">
-                        {userCoords.city || 'GPS'} ({userCoords.latitude.toFixed(2)}, {userCoords.longitude.toFixed(2)})
-                      </span>
+
+                  {/* Advanced Base URL Toggle (or shown if custom) */}
+                  {(llmProvider === 'custom' || showAdvancedLLM) && (
+                    <div className="space-y-1 animate-in fade-in duration-200">
+                      <label className="text-xs font-medium text-gray-300">Custom Base URL Endpoint:</label>
+                      <input
+                        type="text"
+                        value={llmBaseUrl}
+                        onChange={(e) => setLlmBaseUrl(e.target.value)}
+                        placeholder="http://localhost:11434/v1"
+                        className="w-full px-3.5 py-2 rounded-xl bg-gray-950 border border-gray-800 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                      />
                     </div>
                   )}
-                  <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
-                    <span className="text-gray-400">Proof-of-Ownership:</span>
-                    <span className="font-mono text-purple-300">BIP-39 Asymmetric Signature</span>
+
+                  {/* Business Idea Prompt */}
+                  <div className="space-y-1.5 p-3.5 rounded-xl bg-gray-950/80 border border-gray-800">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-cyan-300 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Preferensi & Ide Bisnis Kantor:</span>
+                      </label>
+                      <span className="text-[11px] text-gray-500">AI merancang nama, divisi, karyawan & tugas</span>
+                    </div>
+
+                    <textarea
+                      rows={3}
+                      value={businessPrompt}
+                      onChange={(e) => setBusinessPrompt(e.target.value)}
+                      placeholder="Contoh: Platform SaaS CRM & kasir cloud untuk UMKM kuliner di Indonesia dengan fitur loyalty point dan audit inventori otomatis..."
+                      className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 resize-none leading-relaxed"
+                    />
+
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={companyName}
+                          onChange={(e) => setCompanyName(e.target.value)}
+                          placeholder="Nama Perusahaan (opsional)"
+                          className="px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-xs text-white focus:outline-none focus:border-cyan-500 w-48"
+                        />
+                        <select
+                          value={industry}
+                          onChange={(e) => setIndustry(e.target.value)}
+                          className="px-2.5 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-xs text-gray-300 focus:outline-none focus:border-cyan-500 cursor-pointer"
+                        >
+                          <option value="Software Engineering">Software & SaaS</option>
+                          <option value="Digital Marketing Agency">Marketing Agency</option>
+                          <option value="AI & Data Labs">AI & Data Labs</option>
+                          <option value="Game Studio">Game Studio</option>
+                          <option value="Content & Media House">Media House</option>
+                          <option value="Legal & Consulting">Consulting</option>
+                        </select>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleGenerateAICompany}
+                        disabled={isGeneratingCompany || (!businessPrompt.trim() && !companyName.trim())}
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-xs font-bold text-black transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                      >
+                        {isGeneratingCompany ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>{generationStatus || 'Merancang...'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{generatedCompany ? '✨ Regenerate Tim AI' : '✨ Generate Tim AI Otomatis'}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {generationError && (
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-950/40 border border-red-800/60 text-xs text-red-300">
+                        <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                        <span>{generationError}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-gray-400">Lokasi Keystore:</span>
-                    <span className="font-mono text-gray-300">~/.ceo-virtual/keystore.json</span>
+
+                  {/* AI Generated Preview Card */}
+                  {generatedCompany && (
+                    <div className="p-4 rounded-xl bg-gradient-to-b from-cyan-950/30 to-gray-950/80 border border-cyan-500/40 space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white">{generatedCompany.name}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-semibold">
+                              {generatedCompany.industry}
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800 font-mono">
+                              {generatedCompany.officeLayoutTemplate || 'tech_startup'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                            {generatedCompany.description}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-800 text-[11px] text-emerald-300 shrink-0">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Siap Meluncur</span>
+                        </div>
+                      </div>
+
+                      {/* Generated Agents Row */}
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                          Tim Karyawan Awal ({generatedCompany.agents.length} Orang):
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {generatedCompany.agents.map((ag) => (
+                            <div
+                              key={ag.id}
+                              className="p-2.5 rounded-lg bg-gray-950/90 border border-gray-800/90 flex items-center gap-2.5"
+                            >
+                              <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-sm"
+                                style={{ backgroundColor: ag.avatarColor || '#6366f1' }}
+                              >
+                                {ag.name.slice(0, 1)}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between">
+                                  <h5 className="text-xs font-semibold text-white truncate">{ag.name}</h5>
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-gray-900 text-cyan-400 font-mono">
+                                    {ag.personality?.mbti || 'AI'}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-gray-400 truncate">{ag.roleTitle}</p>
+                                <div className="flex gap-1 mt-1 overflow-hidden">
+                                  {ag.skills.slice(0, 2).map((s, i) => (
+                                    <span key={i} className="text-[9px] px-1 py-0.2 rounded bg-gray-900/80 text-gray-400 truncate">
+                                      {s}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Active Global LLM Confirmation Tag */}
+                      <div className="flex items-center gap-2 p-2 rounded-lg bg-cyan-950/60 border border-cyan-800/60 text-[11px] text-cyan-300">
+                        <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        <span>
+                          <strong>Global LLM Aktif:</strong> Tim ini otomatis terhubung ke <strong>{llmProvider.toUpperCase()}</strong> ({llmModel}) untuk ngobrol, task backlog, & live coding.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ========================================================= */}
+              {/* TAB 2: MANUAL GENESIS & MARKETPLACE (0 EMPLOYEES)         */}
+              {/* ========================================================= */}
+              {creationMethod === 'manual' && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-purple-300">
+                      <ShoppingBag className="w-4 h-4 text-purple-400" />
+                      <span>Mulai dari Nol (Kavling Bersih & Marketplace)</span>
+                    </div>
+                    <p className="text-xs text-gray-300 leading-relaxed">
+                      Kantor akan diinisialisasi dalam kondisi bersih tanpa data dummy (0 karyawan). Anda dapat membuat agen sendiri secara manual atau menyewa/membeli agen spesialis dari <strong>Marketplace P2P</strong> setelah masuk ke kantor virtual.
+                    </p>
+                  </div>
+
+                  {/* Company Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-300">Nama Perusahaan / Kantor Virtual:</label>
+                    <input
+                      type="text"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="Contoh: Nusantara AI Dynamics"
+                      className="w-full px-4 py-2.5 rounded-xl bg-gray-950 border border-gray-800 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                    />
+                  </div>
+
+                  {/* Industry Dropdown */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-300">Bidang Industri:</label>
+                    <select
+                      value={industry}
+                      onChange={(e) => setIndustry(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-gray-950 border border-gray-800 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all cursor-pointer"
+                    >
+                      <option value="Software Engineering">Software Engineering & SaaS Startup</option>
+                      <option value="Digital Marketing Agency">Digital Marketing & SEO Agency</option>
+                      <option value="Game Studio">Game Development & Creative Studio</option>
+                      <option value="Content & Media House">Content Writing & Media House</option>
+                      <option value="AI & Data Labs">AI Research & Data Analytics</option>
+                      <option value="Legal & Consulting">Legal & Strategic Consulting Firm</option>
+                    </select>
                   </div>
                 </div>
+              )}
 
-                {submitError && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-950/40 border border-red-800/60 text-xs text-red-300">
-                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-                    <span>{submitError}</span>
+              {/* Autorun at Startup Toggle */}
+              <label className="flex items-start gap-3 p-3.5 rounded-xl bg-gray-950/80 border border-gray-800 hover:border-cyan-500/40 cursor-pointer transition-colors group">
+                <input
+                  type="checkbox"
+                  checked={autorun}
+                  onChange={(e) => setAutorun(e.target.checked)}
+                  className="mt-0.5 rounded border-gray-700 bg-gray-900 text-cyan-500 focus:ring-cyan-500"
+                />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="text-xs font-semibold text-white group-hover:text-cyan-300 transition-colors">
+                      Jalankan Otomatis Saat Komputer Dinyalakan (Autorun at Startup)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    Server kantor virtual otomatis aktif di background pada port :28483 saat PC booting.
+                  </p>
+                </div>
+              </label>
+
+              {/* Summary Card */}
+              <div className="p-4 rounded-xl bg-gray-950/80 border border-gray-800 space-y-2 text-xs">
+                <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
+                  <span className="text-gray-400">Mode Inisialisasi:</span>
+                  <span className="font-semibold text-white">
+                    {creationMethod === 'ai' ? '✨ AI Generated Company' : '🛠️ Manual Genesis (Kavling Bersih)'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
+                  <span className="text-gray-400">LLM Provider Global:</span>
+                  <span className="font-mono text-cyan-400 font-semibold">
+                    {creationMethod === 'ai' && (llmApiKey.trim() || llmProvider === 'custom')
+                      ? `${llmProvider.toUpperCase()} (${llmModel})`
+                      : 'Belum Diatur (Manual BYOK)'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
+                  <span className="text-gray-400">Region Klaster:</span>
+                  <span className="font-mono text-cyan-400 font-semibold">{selectedRegionId}</span>
+                </div>
+                {userCoords && (
+                  <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
+                    <span className="text-gray-400">Koordinat Nearby Office:</span>
+                    <span className="font-mono text-emerald-400 font-semibold">
+                      {userCoords.city || 'GPS'} ({userCoords.latitude.toFixed(2)}, {userCoords.longitude.toFixed(2)})
+                    </span>
                   </div>
                 )}
+                <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
+                  <span className="text-gray-400">Proof-of-Ownership:</span>
+                  <span className="font-mono text-purple-300">BIP-39 Asymmetric Signature</span>
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-gray-400">Lokasi Keystore:</span>
+                  <span className="font-mono text-gray-300">~/.ceo-virtual/keystore.json</span>
+                </div>
               </div>
+
+              {submitError && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-950/40 border border-red-800/60 text-xs text-red-300">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>{submitError}</span>
+                </div>
+              )}
             </div>
           )}
 

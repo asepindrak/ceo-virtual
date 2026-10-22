@@ -58,6 +58,8 @@ export interface KavlingLike {
   secondaryColor: string;
   accentColor: string;
   employees: KavlingEmployeeLike[];
+  isEmptyLot?: boolean;
+  plotLabel?: string;
 }
 
 /** Geometri kavling yang sudah dihitung. */
@@ -1425,9 +1427,115 @@ const makeGeo = (cx: number, cz: number, hw: number, hd: number, primary: string
 });
 
 // =============================================================================
+// PUBLIC: EMPTY KAVLING (KAVLING KOSONG / TERSEDIA)
+// =============================================================================
+export const renderEmptyKavling = (c: IsoCtx, k: KavlingLike, hovered: boolean) => {
+  const g = makeGeo(k.cx, k.cz, k.halfW, k.halfD, '#059669', '#10b981', '#34d399');
+  const lotLabel = k.plotLabel || `Kavling #${k.id.replace(/\D/g, '') || '1'}`;
+  const signTitle = `📍 KAVLING KOSONG (TERSEDIA)`;
+  const signSub = `MENUNGGU NODE P2P TERHUBUNG`;
+
+  // Monumen untuk baris selatan berada di belakang kavling (gambar duluan)
+  if (g.entranceAtBack) {
+    monumentSign(c, g.cx - 5.5, g.z0 - 0.7, signTitle, signSub, '#059669', hovered);
+  }
+
+  // Plinth fondasi batu paving/tanah surveyor rapi & bersih
+  plinth(c, g, hovered ? '#f0fdf4' : '#f8fafc', hovered, '#cbd5e1');
+
+  // Surveyor Grid (Garis grid arsitektur tanah)
+  floorGrid(c, g.x0 + 0.5, g.z0 + 0.5, g.x1 - 0.5, g.z1 - 0.5, 3.0, 'rgba(100, 116, 139, 0.22)');
+
+  const ctx = c.ctx;
+  const s = c.zoom;
+
+  // Garis batas keliling kavling surveyor tape
+  ctx.save();
+  ctx.setLineDash([8 * s, 6 * s]);
+  const pTL = P(c, g.x0 + 1.0, g.z0 + 1.0, 0.5);
+  const pTR = P(c, g.x1 - 1.0, g.z0 + 1.0, 0.5);
+  const pBR = P(c, g.x1 - 1.0, g.z1 - 1.0, 0.5);
+  const pBL = P(c, g.x0 + 1.0, g.z1 - 1.0, 0.5);
+  ctx.strokeStyle = hovered ? '#059669' : 'rgba(16, 185, 129, 0.65)';
+  ctx.lineWidth = Math.max(1.2, 1.8 * s);
+  ctx.beginPath();
+  ctx.moveTo(pTL.x, pTL.y);
+  ctx.lineTo(pTR.x, pTR.y);
+  ctx.lineTo(pBR.x, pBR.y);
+  ctx.lineTo(pBL.x, pBL.y);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+
+  // 4 Patok Surveyor (Survey Stakes) dengan bendera oranye & hijau di tiap sudut
+  const corners = [
+    { x: g.x0 + 1.2, z: g.z0 + 1.2 },
+    { x: g.x1 - 1.2, z: g.z0 + 1.2 },
+    { x: g.x1 - 1.2, z: g.z1 - 1.2 },
+    { x: g.x0 + 1.2, z: g.z1 - 1.2 },
+  ];
+  corners.forEach((cp, ci) => {
+    // Tiang patok surveyor
+    isoBox(c, cp.x, cp.z, 0.25, 0.25, 14, '#b45309');
+    // Bendera pita surveyor di ujung tiang
+    const top = P(c, cp.x, cp.z, 14);
+    ctx.fillStyle = ci % 2 === 0 ? '#f97316' : '#10b981';
+    ctx.beginPath();
+    ctx.moveTo(top.x, top.y);
+    ctx.lineTo(top.x + 8 * s, top.y - 3 * s);
+    ctx.lineTo(top.x, top.y - 6 * s);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Holographic blueprint / surveyor ring di tengah kavling
+  const centerIso = P(c, g.cx, g.cz, 1);
+  if (s >= 0.55) {
+    ctx.save();
+    // Lingkaran target survey
+    ctx.strokeStyle = hovered ? 'rgba(5, 150, 105, 0.85)' : 'rgba(16, 185, 129, 0.45)';
+    ctx.lineWidth = Math.max(1, 1.5 * s);
+    ctx.beginPath();
+    ctx.ellipse(centerIso.x, centerIso.y, 48 * s, 25 * s, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Pulse marker animasi lembut
+    const pulseR = (32 + Math.sin(c.t * 3) * 6) * s;
+    ctx.beginPath();
+    ctx.ellipse(centerIso.x, centerIso.y, pulseR, pulseR * 0.52, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.28)';
+    ctx.stroke();
+
+    // Label di tengah tanah: Nama Kavling & Status
+    const groundFontSize = Math.max(8, Math.round(9 * s));
+    ctx.font = `bold ${groundFontSize}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#047857';
+    ctx.fillText(`[ ${lotLabel.toUpperCase()} ]`, centerIso.x, centerIso.y - 6 * s);
+    ctx.font = `${Math.max(7, Math.round(7.5 * s))}px sans-serif`;
+    ctx.fillStyle = '#64748b';
+    ctx.fillText('Siap Dibangun Saat Node P2P Terhubung', centerIso.x, centerIso.y + 6 * s);
+    ctx.restore();
+  }
+
+  // Monumen untuk baris utara berada di depan kavling
+  if (!g.entranceAtBack) {
+    monumentSign(c, g.cx + 5.5, g.z1 + 1.1, signTitle, signSub, '#059669', hovered);
+  }
+};
+
+// =============================================================================
 // PUBLIC: COMPANY KAVLING
 // =============================================================================
 export const renderCompanyKavling = (c: IsoCtx, k: KavlingLike, hovered: boolean) => {
+  // Bila kavling ditandai kosong atau belum memiliki karyawan (tidak ada node peer aktif),
+  // render tampilan Kavling Kosong arsitektural resmi!
+  if (k.isEmptyLot || !k.employees || k.employees.length === 0) {
+    renderEmptyKavling(c, k, hovered);
+    return;
+  }
+
   const def = TEMPLATES[k.layoutTemplate] ?? TEMPLATES.tech_startup;
   const g = makeGeo(k.cx, k.cz, k.halfW, k.halfD, k.primaryColor, k.secondaryColor, k.accentColor);
   const signTitle = `${k.badgeIcon} ${k.shortName}`;

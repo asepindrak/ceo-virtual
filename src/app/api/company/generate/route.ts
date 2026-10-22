@@ -9,51 +9,63 @@ export async function POST(req: Request) {
     const {
       name,
       industry,
+      businessPrompt,
       agentCount = 4,
       config,
       layoutTemplate = 'tech_startup',
     }: {
-      name: string;
-      industry: string;
+      name?: string;
+      industry?: string;
+      businessPrompt?: string;
       agentCount?: number;
       config?: LLMConfig;
       layoutTemplate?: any;
     } = body;
 
-    const cleanName = (name || '').trim();
-    const cleanIndustry = (industry || '').trim();
+    let cleanName = (name || '').trim();
+    let cleanIndustry = (industry || '').trim() || 'Software Engineering & AI';
+    const cleanPrompt = (businessPrompt || '').trim();
 
-    if (!cleanName || !cleanIndustry) {
+    if (!cleanName && !cleanPrompt) {
       return NextResponse.json(
-        { success: false, error: 'Nama perusahaan dan industri harus diisi.' },
+        { success: false, error: 'Silakan masukkan nama perusahaan atau deskripsi ide bisnis Anda.' },
         { status: 400 }
       );
     }
 
-    const companyId = `company-${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now().toString(36)}`;
+    if (!cleanName) {
+      cleanName = 'Nusantara AI Dynamics';
+    }
+
+    const companyId = `company-${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'nexus'}-${Date.now().toString(36)}`;
     const count = Math.min(6, Math.max(3, Number(agentCount) || 4));
 
     // Check if real LLM is configured (either custom baseUrl or valid provider apiKey)
     const hasValidLLM = Boolean(
       config &&
       ((config.provider === 'custom' && config.baseUrl) ||
-       (config.apiKey && config.apiKey.length > 5))
+       (config.apiKey && config.apiKey.length > 3))
     );
 
     if (hasValidLLM && config) {
       try {
-        const systemPrompt = `Anda adalah Executive Organizational Architect AI.
+        const systemPrompt = `Anda adalah Executive Organizational Architect AI kelas dunia.
 Tugas Anda adalah merancang struktur organisasi lengkap untuk perusahaan baru di industri spesifik dalam format JSON murni.
-Pastikan nama-nama karyawan sangat natural, peran dan skill relevan 100% dengan industri "${cleanIndustry}", dan kepribadian MBTI bervariasi.`;
+Pastikan nama-nama karyawan sangat natural (kombinasi nama profesional Indonesia & global), peran dan skill relevan 100% dengan ide bisnis yang diberikan, dan kepribadian MBTI bervariasi.
+Kembalikan HANYA format JSON valid tanpa penjelasan tambahan.`;
 
-        const userPrompt = `Rancang perusahaan baru:
-- Nama Perusahaan: "${cleanName}"
+        const userPrompt = `Rancang perusahaan baru berdasarkan preferensi berikut:
+- Nama Perusahaan (jika sudah ada gunakan, atau perbagus jika relevan): "${cleanName}"
 - Bidang Industri & Spesialisasi: "${cleanIndustry}"
-- Jumlah Karyawan / Agen: ${count} orang
+- Ide Bisnis / Visi Khusus: "${cleanPrompt || 'Pengembangan solusi digital mutakhir dengan otomasi agen cerdas'}"
+- Jumlah Karyawan / Agen Kunci: ${count} orang
 
 Format JSON yang HARUS dikembalikan (HANYA JSON VALID TANPA MARKDOWN):
 {
-  "description": "Deskripsi profil dan visi perusahaan dalam 1-2 kalimat",
+  "name": "Nama Perusahaan (misal KulinaLedger atau DevPulse)",
+  "industry": "Nama Industri",
+  "officeLayoutTemplate": "tech_startup",
+  "description": "Deskripsi profil dan visi perusahaan dalam 1-2 kalimat yang menarik",
   "departments": [
     {
       "idSuffix": "dept-core",
@@ -154,6 +166,10 @@ Catatan penting:
 
         const parsed = JSON.parse(raw);
         if (parsed.departments && parsed.agents && parsed.agents.length >= 2) {
+          const finalCompanyName = (parsed.name || cleanName).trim();
+          const finalIndustry = (parsed.industry || cleanIndustry).trim();
+          const finalLayout = parsed.officeLayoutTemplate || layoutTemplate || 'tech_startup';
+
           const depts: Department[] = parsed.departments.map((d: any, idx: number) => ({
             id: `${companyId}-${d.idSuffix || `dept-${idx}`}`,
             name: d.name || `Divisi ${idx + 1}`,
@@ -175,15 +191,16 @@ Catatan penting:
               accessory: a.accessory || 'none',
               avatarColor: a.avatarColor || (idx === 0 ? '#6366f1' : idx === 1 ? '#06b6d4' : idx === 2 ? '#f59e0b' : '#10b981'),
               role: a.role === 'designer' ? 'ui_designer' : (a.role || (idx === 0 ? 'project_manager' : idx === 1 ? 'fullstack_dev' : 'content_writer')),
-              roleTitle: a.roleTitle || `${cleanIndustry} Specialist`,
+              roleTitle: a.roleTitle || `${finalIndustry} Specialist`,
               departmentId: deptId,
               deskPosition: DESK_SLOTS[idx] || { x: 0, z: 0 },
               currentPosition: DESK_SLOTS[idx] || { x: 0, z: 0 },
               rotationY: idx % 2 === 0 ? 0 : Math.PI,
               state: 'working',
-              stateMessage: `Fokus pada eksekusi operasional "${cleanName}"`,
+              stateMessage: `Fokus pada eksekusi operasional "${finalCompanyName}"`,
+              inheritedLLMCategory: 'text',
               skills: Array.isArray(a.skills) ? a.skills : ['Keahlian Utama', 'Kolaborasi Tim'],
-              bio: a.bio || `Profesional di bidang ${cleanIndustry}.`,
+              bio: a.bio || `Profesional di bidang ${finalIndustry}.`,
               personality: {
                 mbti: a.personality?.mbti || (idx === 0 ? 'ENTJ' : idx === 1 ? 'INTJ' : 'ENFP'),
                 enneagram: a.personality?.enneagram || (idx === 0 ? '8w7' : '5w6'),
@@ -193,9 +210,9 @@ Catatan penting:
                 interests: Array.isArray(a.personality?.interests) ? a.personality.interests : ['Teknologi', 'Kopi'],
               },
               liveCodeOutput: [
-                `// [${a.name}] ${cleanName} - ${a.roleTitle}`,
-                `export function init${cleanName.replace(/[^a-zA-Z0-9]/g, '')}Workflow() {`,
-                `  return { status: "ACTIVE", domain: "${cleanIndustry}" };`,
+                `// [${a.name}] ${finalCompanyName} - ${a.roleTitle}`,
+                `export function init${finalCompanyName.replace(/[^a-zA-Z0-9]/g, '')}Workflow() {`,
+                `  return { status: "ACTIVE", domain: "${finalIndustry}" };`,
                 `}`,
               ],
               stats: { tasksCompleted: 0, linesOfCode: 120, wordsWritten: 450, collabCount: 0 },
@@ -207,9 +224,9 @@ Catatan penting:
             const deptId = depts[t.deptIndex] ? depts[t.deptIndex].id : depts[0].id;
             return {
               id: `task-${companyId}-${idx + 1}`,
-              title: t.title || `Inisiasi ${cleanIndustry} Sprint`,
-              projectName: cleanName,
-              description: t.description || `Eksekusi prioritas awal untuk ${cleanName}.`,
+              title: t.title || `Inisiasi ${finalIndustry} Sprint`,
+              projectName: finalCompanyName,
+              description: t.description || `Eksekusi prioritas awal untuk ${finalCompanyName}.`,
               type: t.type || (idx === 0 ? 'coding' : 'content'),
               departmentId: deptId,
               assignedAgentId: assignedAgent?.id,
@@ -220,7 +237,7 @@ Catatan penting:
                   id: `art-${companyId}-${idx + 1}`,
                   fileName: `SprintDeliverable_${idx + 1}.md`,
                   type: 'markdown',
-                  content: `# ${t.title || 'Sprint Deliverable'}\nDokumen inisiasi oleh tim ${cleanName}.`,
+                  content: `# ${t.title || 'Sprint Deliverable'}\nDokumen inisiasi oleh tim ${finalCompanyName}.`,
                 },
               ],
               logs: ['Tiket dibuat otomatis oleh LLM.', 'Pengerjaan dimulai di meja kerja.'],
@@ -228,26 +245,29 @@ Catatan penting:
             };
           });
 
+          const globalCategorySetting = {
+            provider: config.provider,
+            baseUrl: config.baseUrl,
+            apiKey: config.apiKey,
+            model: config.model,
+            description: `Global LLM Provider (${config.provider} - ${config.model}) aktif untuk seluruh tim.`,
+            isEnabled: true,
+          };
+
           const generatedCompany: Company = {
             id: companyId,
             ownerUserId: 'usr-sang-01',
-            name: cleanName,
-            industry: cleanIndustry,
-            description: parsed.description || `Perusahaan berdaya otonom yang bergerak di industri ${cleanIndustry}.`,
+            name: finalCompanyName,
+            industry: finalIndustry,
+            description: parsed.description || `Perusahaan berdaya otonom yang bergerak di industri ${finalIndustry}.`,
             departments: depts,
             agents,
             tasks,
-            officeLayoutTemplate: layoutTemplate,
+            officeLayoutTemplate: finalLayout,
             globalLLMConfig: {
               ...DEFAULT_SHADOWMOVE_GLOBAL_LLM,
-              text: {
-                provider: config.provider,
-                baseUrl: config.baseUrl,
-                apiKey: config.apiKey,
-                model: config.model,
-                description: `Model AI kustom untuk ${cleanName}`,
-                isEnabled: true,
-              },
+              text: globalCategorySetting,
+              fast: globalCategorySetting,
             },
           };
 
@@ -429,6 +449,7 @@ Catatan penting:
       rotationY: idx % 2 === 0 ? 0 : Math.PI,
       state: 'working',
       stateMessage: `Fokus pada eksekusi operasional "${cleanName}"`,
+      inheritedLLMCategory: 'text',
       skills: t.skills,
       bio: t.bio,
       personality: {
@@ -510,7 +531,15 @@ Catatan penting:
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
           model: config.model,
-          description: `Model AI untuk ${cleanName}`,
+          description: `Global Model (${config.provider} - ${config.model}) untuk ${cleanName}`,
+          isEnabled: true,
+        },
+        fast: {
+          provider: config.provider,
+          baseUrl: config.baseUrl,
+          apiKey: config.apiKey,
+          model: config.model,
+          description: `Global Fast Model (${config.provider} - ${config.model}) untuk ${cleanName}`,
           isEnabled: true,
         },
       } : DEFAULT_SHADOWMOVE_GLOBAL_LLM,

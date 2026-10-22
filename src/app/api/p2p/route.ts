@@ -9,6 +9,8 @@ import {
   setPublicRelayUrl,
   syncWithPublicRelay,
   updateNodePresence,
+  updateLocalAgentsState,
+  getLocalAgentsState,
 } from '@/lib/p2pNodeManager';
 
 export async function GET(req: NextRequest) {
@@ -34,16 +36,21 @@ export async function POST(req: NextRequest) {
 
     // A. Incoming Handshake from another Vigent Node
     if (action === 'handshake') {
-      const { senderNodeId, senderCompanyName, senderRegionalSector, senderHttpPort } = body;
+      const { senderNodeId, senderCompanyName, senderRegionalSector, senderHttpPort, employees, companyId, industry, officeLayoutTemplate } = body;
       const identity = getOrCreateNodeIdentity();
+      const localState = getLocalAgentsState();
 
-      // Return local node info to completing reciprocal handshake
+      // Return local node info and live employees to complete reciprocal handshake
       return NextResponse.json({
         success: true,
         nodeId: identity.nodeId,
         companyName: identity.companyName,
         regionalSector: identity.regionalSector,
         fingerprint: identity.fingerprint,
+        companyId: localState.companyMeta.companyId,
+        industry: localState.companyMeta.industry,
+        officeLayoutTemplate: localState.companyMeta.officeLayoutTemplate,
+        employees: localState.agents,
         message: 'Handshake accepted! Both nodes are now connected in CEO Virtual P2P Mesh.',
       });
     }
@@ -98,6 +105,19 @@ export async function POST(req: NextRequest) {
       const { companyName, regionalSector } = body;
       const updated = updateNodePresence(companyName, regionalSector);
       return NextResponse.json({ success: true, identity: updated });
+    }
+
+    // H. Realtime sync presence & employee behaviors across P2P swarm
+    if (action === 'sync_presence') {
+      const { agents, companyId, companyName, industry, officeLayoutTemplate, regionalSector } = body;
+      updateLocalAgentsState(agents, {
+        companyId,
+        companyName,
+        industry,
+        officeLayoutTemplate,
+        regionalSector,
+      });
+      return NextResponse.json({ success: true, syncedAgentsCount: Array.isArray(agents) ? agents.length : 0 });
     }
 
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });

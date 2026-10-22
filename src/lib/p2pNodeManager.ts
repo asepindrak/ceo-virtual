@@ -45,11 +45,44 @@ export interface PeerNode {
   isOnline: boolean;
   discoveredVia: 'lan_udp' | 'direct_connect' | 'public_relay';
   reputationScore: number;
+  companyId?: string;
+  industry?: string;
+  officeLayoutTemplate?: string;
+  employees?: any[];
+  lastPresenceUpdate?: number;
 }
 
 // In-Memory state for active daemon
 let activeIdentity: NodeIdentity | null = null;
 let activePeers: Map<string, PeerNode> = new Map();
+let localAgents: any[] = [];
+let localCompanyMeta: {
+  companyId?: string;
+  companyName?: string;
+  industry?: string;
+  officeLayoutTemplate?: string;
+} = {};
+
+export function updateLocalAgentsState(agents: any[], companyMeta?: any) {
+  if (Array.isArray(agents)) {
+    localAgents = agents;
+  }
+  if (companyMeta) {
+    localCompanyMeta = { ...localCompanyMeta, ...companyMeta };
+    if (companyMeta.companyName) {
+      updateNodePresence(companyMeta.companyName, companyMeta.regionalSector);
+    }
+  }
+  broadcastBeacon();
+}
+
+export function getLocalAgentsState() {
+  return {
+    agents: localAgents,
+    companyMeta: localCompanyMeta,
+  };
+}
+
 let udpServer: dgram.Socket | null = null;
 let broadcastInterval: NodeJS.Timeout | null = null;
 let relaySyncInterval: NodeJS.Timeout | null = null;
@@ -193,6 +226,11 @@ export function startP2PDiscoveryDaemon(): boolean {
             isOnline: true,
             discoveredVia: 'lan_udp',
             reputationScore: existing?.reputationScore || 100,
+            companyId: payload.companyId || existing?.companyId,
+            industry: payload.industry || existing?.industry,
+            officeLayoutTemplate: payload.officeLayoutTemplate || existing?.officeLayoutTemplate,
+            employees: Array.isArray(payload.employees) ? payload.employees : (existing?.employees || []),
+            lastPresenceUpdate: Date.now(),
           };
 
           activePeers.set(payload.nodeId, peer);
@@ -250,6 +288,10 @@ export function broadcastBeacon(): boolean {
     companyName: identity.companyName,
     regionalSector: identity.regionalSector,
     httpPort: identity.httpPort,
+    companyId: localCompanyMeta.companyId,
+    industry: localCompanyMeta.industry,
+    officeLayoutTemplate: localCompanyMeta.officeLayoutTemplate,
+    employees: localAgents,
     timestamp: Date.now(),
   });
 
@@ -287,6 +329,10 @@ export async function connectToPeerDirectly(peerUrl: string): Promise<{ success:
         senderCompanyName: identity.companyName,
         senderRegionalSector: identity.regionalSector,
         senderHttpPort: identity.httpPort,
+        companyId: localCompanyMeta.companyId,
+        industry: localCompanyMeta.industry,
+        officeLayoutTemplate: localCompanyMeta.officeLayoutTemplate,
+        employees: localAgents,
       }),
       signal: AbortSignal.timeout(5000),
     });
@@ -309,6 +355,11 @@ export async function connectToPeerDirectly(peerUrl: string): Promise<{ success:
         isOnline: true,
         discoveredVia: 'direct_connect',
         reputationScore: 100,
+        companyId: data.companyId,
+        industry: data.industry,
+        officeLayoutTemplate: data.officeLayoutTemplate,
+        employees: Array.isArray(data.employees) ? data.employees : [],
+        lastPresenceUpdate: Date.now(),
       };
 
       activePeers.set(data.nodeId, peer);
