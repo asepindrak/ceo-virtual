@@ -57,7 +57,7 @@ export const OFFICE_LAYOUT_TEMPLATES: OfficeLayoutTemplateInfo[] = [
     icon: '⚡',
     badge: 'Startup',
     color: '#6366f1',
-    description: 'Tata letak modern nan dinamis dengan workstation pods ganda, ruang sprint meeting kaca, pantry kopi lengkap, dan area arcade lounge relaksasi.',
+    description: 'Dynamic modern layout featuring dual workstation pods, glass sprint meeting room, full espresso bar pantry, and relaxing arcade lounge.',
     highlights: ['Workstation Pods Ultrawide', 'Glass Sprint Review Room', 'Pantry & Espresso Bar', 'Retro Arcade & Lounge Sofa'],
   },
   {
@@ -67,7 +67,7 @@ export const OFFICE_LAYOUT_TEMPLATES: OfficeLayoutTemplateInfo[] = [
     icon: '☁️',
     badge: 'Cloud & Mesh',
     color: '#0284c7',
-    description: 'Desain infrastruktur komputasi awan dengan barisan rak server colocation berlampu LED biru/sian, dinding display NOC 24/7, dan raised antistatic floor.',
+    description: 'Cloud computing infrastructure layout featuring colocation server racks with blue/cyan LED arrays, 24/7 NOC display wall, and raised antistatic floor.',
     highlights: ['Cold-Aisle Server Racks', 'NOC Mission Control Wall', 'Raised Antistatic Floor', 'Cable Duct Fiber Trays'],
   },
   {
@@ -77,7 +77,7 @@ export const OFFICE_LAYOUT_TEMPLATES: OfficeLayoutTemplateInfo[] = [
     icon: '☕',
     badge: 'Cafe & Dev',
     color: '#b45309',
-    description: 'Suasana hangat bergaya cafe boutique dengan lantai kayu jati (teak parquet), bar roasting kopi manual, meja panjang kayu komunal, dan lampu gantung warm ambient.',
+    description: 'Warm boutique cafe ambiance with teak parquet hardwood flooring, manual coffee roasting bar, long communal tables, and warm ambient pendant lighting.',
     highlights: ['Teak Wood Parquet Floor', 'Espresso Roaster Counter', 'Communal Coworking Bench', 'Hanging Pendant Greenery'],
   },
   {
@@ -87,7 +87,7 @@ export const OFFICE_LAYOUT_TEMPLATES: OfficeLayoutTemplateInfo[] = [
     icon: '📈',
     badge: 'Trading & Asset',
     color: '#059669',
-    description: 'Lantai marmer mewah beraksen emas dengan meja trading 4-monitor Bloomberg terminal, live candlestick ticker wall, dan ruang rapat direksi kedap suara berkeamanan tinggi.',
+    description: 'Luxurious gold-accented marble flooring with 4-monitor Bloomberg terminal trading desks, live candlestick ticker wall, and soundproof high-security boardroom.',
     highlights: ['Polished Marble Floors', 'Multi-Screen Trading Pods', 'Live Candlestick Ticker Wall', 'Biometric Glass Boardroom'],
   },
   {
@@ -97,7 +97,7 @@ export const OFFICE_LAYOUT_TEMPLATES: OfficeLayoutTemplateInfo[] = [
     icon: '🎨',
     badge: 'GenAI & Design',
     color: '#d97706',
-    description: 'Studio seni digital & GenAI dengan karpet geometris warna-warni, meja gambar digital stylus Cintiq, galeri display AI kanvas dinamis, dan moodboard Pantone kreatif.',
+    description: 'Digital art & GenAI studio with colorful geometric rugs, Cintiq stylus drawing tablets, dynamic AI canvas display gallery, and creative Pantone swatch moodboards.',
     highlights: ['Artistic Geometric Rugs', 'Digital Drafting Tablets', 'Dynamic GenAI Art Gallery', 'Pantone Swatch Moodboards'],
   },
   {
@@ -107,7 +107,7 @@ export const OFFICE_LAYOUT_TEMPLATES: OfficeLayoutTemplateInfo[] = [
     icon: '🤖',
     badge: 'Hardware & Drone',
     color: '#0891b2',
-    description: 'Laboratorium teknik presisi tinggi dengan lantai antistatis ESD kelabu bergaris bahaya, meja perakitan robotik dengan lengan mekanik, rak komponen, dan helipad uji terbang drone.',
+    description: 'High-precision engineering laboratory with gray ESD antistatic hazard-striped flooring, robotic assembly benches with mechanical arms, component racks, and indoor drone test flight helipad.',
     highlights: ['Antistatic ESD Gray Floor', 'Robotic Assembly Benches', 'Parts Bins & Tool Racks', 'Indoor Drone Flight Helipad'],
   },
 ];
@@ -124,31 +124,31 @@ export const DEFAULT_SHADOWMOVE_GLOBAL_LLM: CompanyGlobalLLMConfig = {
   text: {
     provider: 'openai',
     model: 'gpt-4o',
-    description: 'Model utama penalaran, arsitektur software, fullstack code, dan sprint logic.',
+    description: 'Primary model for reasoning, software architecture, fullstack code, and sprint logic.',
     isEnabled: true,
   },
   image: {
     provider: 'openai',
     model: 'dall-e-3',
-    description: 'Model kreasi visual, moodboard estetika, wireframe UI, dan ilustrasi digital.',
+    description: 'Visual creation, aesthetic moodboards, UI wireframes, and digital illustrations.',
     isEnabled: true,
   },
   fast: {
     provider: 'groq',
     model: 'llama-3.3-70b-versatile',
-    description: 'Model sub-second untuk triage tiket cepat, audit bug, dan evaluasi otomatis.',
+    description: 'Sub-second model for rapid ticket triage, bug auditing, and automated evaluations.',
     isEnabled: true,
   },
   vision: {
     provider: 'anthropic',
     model: 'claude-3-5-sonnet-20241022',
-    description: 'Model multimodal untuk audit visual layout mobile/desktop dan inspeksi screenshot UI.',
+    description: 'Multimodal model for visual auditing of mobile/desktop layouts and UI screenshot inspections.',
     isEnabled: true,
   },
   audio: {
     provider: 'openai',
     model: 'whisper-1',
-    description: 'Transkripsi audio meeting, voice notes, dan rekaman war room.',
+    description: 'Audio meeting transcriptions, voice notes, and war room recordings.',
     isEnabled: false,
   },
 };
@@ -1048,9 +1048,9 @@ export function generateCustomCompany(
       mbti: idx === 0 ? 'ENTJ' : idx === 1 ? 'INTJ' : idx === 2 ? 'ENFP' : 'ISTJ',
       enneagram: idx === 0 ? '8w7' : idx === 1 ? '5w6' : idx === 2 ? '7w8' : '1w9',
       archetype: idx === 0 ? 'The Strategic Commander' : idx === 1 ? 'The Mastermind Architect' : idx === 2 ? 'The Creative Catalyst' : 'The Resilient Sentinel',
-      traits: idx === 0 ? ['Strategis', 'Tegas', 'Visioner'] : idx === 1 ? ['Analitis', 'Problem Solver', 'Presisi'] : idx === 2 ? ['Ekspresif', 'Kreatif', 'Antusias'] : ['Teliti', 'Disiplin', 'Zero Defect'],
-      speakingStyle: idx === 0 ? 'Visioner, tegas dan terarah' : idx === 1 ? 'Logis, to-the-point dan analitis' : idx === 2 ? 'Hangat, ekspresif dan penuh ide' : 'Sopan, terstruktur dan teliti',
-      interests: ['Teknologi Terkini', 'Kopi', 'Game', 'Masa Depan AI', 'Otomasi'],
+      traits: idx === 0 ? ['Strategic', 'Decisive', 'Visionary'] : idx === 1 ? ['Analytical', 'Problem Solver', 'Precise'] : idx === 2 ? ['Expressive', 'Creative', 'Enthusiastic'] : ['Detail-Oriented', 'Disciplined', 'Zero Defect'],
+      speakingStyle: idx === 0 ? 'Visionary, decisive and goal-oriented' : idx === 1 ? 'Logical, to-the-point and analytical' : idx === 2 ? 'Warm, expressive and full of ideas' : 'Courteous, structured and meticulous',
+      interests: ['Emerging Tech', 'Coffee', 'Gaming', 'Future of AI', 'Automation'],
     },
     skills: t.skills,
     bio: t.bio,

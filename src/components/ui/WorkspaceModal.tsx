@@ -151,7 +151,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
         body: JSON.stringify({
           action: 'generate_task_code',
           projectName: newProjectName.trim(),
-          taskTitle: `Proyek Baru: ${newProjectName.trim()}`,
+          taskTitle: `New Project: ${newProjectName.trim()}`,
           taskType: 'coding',
           agentName: 'Autonomous Agent',
         }),
@@ -326,10 +326,10 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
             <button
               onClick={() => handleOpenExplorer()}
               className="px-3 py-1.5 bg-[#c85a2b] hover:bg-[#b54d22] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
-              title="Buka Folder di Windows Explorer"
+              title="Open Workspaces Folder in OS File Explorer"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span>Buka di Explorer</span>
+              <span>Open in Explorer</span>
             </button>
             <button
               onClick={fetchWorkspaceData}
@@ -413,7 +413,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
               className="px-2.5 py-1 bg-[#c85a2b] hover:bg-[#b54d22] text-white rounded-lg font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Tambah Proyek</span>
+              <span>Add Project</span>
             </button>
           </div>
         </div>
@@ -437,7 +437,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                   }`}
                 >
                   <GitBranch className="w-3.5 h-3.5" />
-                  <span>Clone dari GitHub</span>
+                  <span>Clone from GitHub</span>
                 </button>
 
                 <button
@@ -453,7 +453,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Scaffold Proyek Baru</span>
+                  <span>Scaffold New Project</span>
                 </button>
               </div>
 
@@ -465,7 +465,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                 }}
                 className="text-[#786653] hover:text-[#2c231c] text-xs font-semibold px-2 py-1"
               >
-                Tutup
+                Close
               </button>
             </div>
 
@@ -474,12 +474,12 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
               <form onSubmit={handleCloneRepo} className="flex flex-col gap-2.5">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
                   <div className="md:col-span-8 flex flex-col gap-1">
-                    <label className="text-[11px] font-bold text-[#786653]">Link Repository GitHub</label>
+                    <label className="text-[11px] font-bold text-[#786653]">GitHub Repository URL</label>
                     <input
                       type="text"
                       required
                       disabled={isCloning}
-                      placeholder="https://github.com/facebook/react (atau git@github.com:...)"
+                      placeholder="https://github.com/facebook/react (or git@github.com:...)"
                       value={gitRepoUrl}
                       onChange={(e) => handleGitUrlChange(e.target.value)}
                       className="w-full bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-3 py-1.5 text-[#2c231c] placeholder-[#9c8976] focus:outline-none focus:border-[#c85a2b]"
@@ -487,11 +487,11 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                   </div>
 
                   <div className="md:col-span-4 flex flex-col gap-1">
-                    <label className="text-[11px] font-bold text-[#786653]">Nama Folder di Workspaces (Opsional)</label>
+                    <label className="text-[11px] font-bold text-[#786653]">Workspace Folder Name (Optional)</label>
                     <input
                       type="text"
                       disabled={isCloning}
-                      placeholder="auto (misal: react)"
+                      placeholder="auto (e.g. react)"
                       value={gitCustomFolder}
                       onChange={(e) => setGitCustomFolder(e.target.value)}
                       className="bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-3 py-1.5 text-[#2c231c] placeholder-[#9c8976] focus:outline-none focus:border-[#c85a2b]"
@@ -501,9 +501,9 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
 
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                   <p className="text-[11px] text-[#786653]">
-                    💡 Proyek akan di-clone langsung ke:{' '}
+                    💡 Project will be cloned directly into:{' '}
                     <code className="bg-[#f4ebe1] px-1.5 py-0.5 rounded font-mono text-[#c85a2b] font-bold">
-                      ~/.vigent/workspaces/{gitCustomFolder || '<nama-repo>'}
+                      ~/.ceo-virtual/workspaces/{gitCustomFolder || '<repo-name>'}
                     </code>
                   </p>
 
@@ -516,12 +516,12 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                       {isCloning ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Sedang Meng-clone Repo...</span>
+                          <span>Cloning Repository...</span>
                         </>
                       ) : (
                         <>
                           <GitBranch className="w-3.5 h-3.5" />
-                          <span>Clone ke Workspaces</span>
+                          <span>Clone to Workspaces</span>
                         </>
                       )}
                     </button>
@@ -531,7 +531,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                       onClick={() => setIsCreatingProject(false)}
                       className="px-2.5 py-1.5 text-[#786653] hover:text-[#2c231c]"
                     >
-                      Batal
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -541,12 +541,12 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
             {/* Form: Scaffold Template Baru */}
             {projectMode === 'scaffold' && (
               <form onSubmit={handleCreateProject} className="flex flex-col gap-2">
-                <label className="text-[11px] font-bold text-[#786653]">Nama Folder Proyek Baru</label>
+                <label className="text-[11px] font-bold text-[#786653]">New Project Folder Name</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     required
-                    placeholder="misal: payment-service-api"
+                    placeholder="e.g. payment-service-api"
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
                     className="flex-1 bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-3 py-1.5 text-[#2c231c] placeholder-[#9c8976] focus:outline-none focus:border-[#c85a2b]"
@@ -556,14 +556,14 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                     className="px-3.5 py-1.5 bg-[#c85a2b] hover:bg-[#b54d22] text-white rounded-lg font-semibold flex items-center gap-1 shadow-sm"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>Generate Folder Proyek</span>
+                    <span>Generate Project Folder</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsCreatingProject(false)}
                     className="px-2.5 py-1.5 text-[#786653] hover:text-[#2c231c]"
                   >
-                    Batal
+                    Cancel
                   </button>
                 </div>
               </form>
@@ -604,7 +604,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                 }`}
               >
                 <Folder className="w-3.5 h-3.5" />
-                <span>Proyek ({projects.length})</span>
+                <span>Projects ({projects.length})</span>
               </button>
               <button
                 onClick={() => setWorkspaceView('artifacts')}
@@ -615,7 +615,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Artefak ({artifacts.length})</span>
+                <span>Artifacts ({artifacts.length})</span>
               </button>
             </div>
 
@@ -623,12 +623,12 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
             {workspaceView === 'projects' && (
               <>
                 <div className="text-[11px] font-bold text-[#786653] uppercase tracking-wider mb-2 flex items-center justify-between">
-                  <span>Folder Repositori & Codebase ({projects.length})</span>
+                  <span>Repositories & Codebases ({projects.length})</span>
                 </div>
 
                 {projects.length === 0 && (
                   <div className="text-center py-8 text-[#9c8976] text-xs italic">
-                    Belum ada folder proyek di {projectsDir}
+                    No project folders found in {projectsDir}
                   </div>
                 )}
 
@@ -667,13 +667,13 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                             handleOpenExplorer(proj.folderPath);
                           }}
                           className="p-1 text-[#786653] hover:text-[#c85a2b] hover:bg-[#ede2d1] rounded"
-                          title="Buka Folder Ini di Windows Explorer"
+                          title="Open This Folder in OS File Explorer"
                         >
                           <ExternalLink className="w-3 h-3" />
                         </button>
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-[#786653] font-mono">
-                        <span>{proj.filesCount} file dibuat</span>
+                        <span>{proj.filesCount} files created</span>
                         <span>{new Date(proj.lastModified).toLocaleDateString()}</span>
                       </div>
                     </div>
@@ -691,14 +691,14 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                     onClick={() => handleOpenExplorer(artifactsDir)}
                     className="text-[10px] text-[#4338ca] hover:underline font-semibold flex items-center gap-0.5"
                   >
-                    <span>Folder Artefak</span>
+                    <span>Artifacts Folder</span>
                     <ExternalLink className="w-2.5 h-2.5" />
                   </button>
                 </div>
 
                 {artifacts.length === 0 && (
                   <div className="text-center py-8 text-[#9c8976] text-xs italic">
-                    Belum ada artefak task di {artifactsDir}
+                    No task artifacts found in {artifactsDir}
                   </div>
                 )}
 
@@ -733,7 +733,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                             handleOpenExplorer(art.folderPath);
                           }}
                           className="p-1 text-[#786653] hover:text-[#4338ca] hover:bg-[#ede2d1] rounded"
-                          title="Buka Folder Artefak Ini di Explorer"
+                          title="Open This Artifact Folder in Explorer"
                         >
                           <ExternalLink className="w-3 h-3" />
                         </button>
@@ -742,7 +742,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                         <span className="px-1.5 py-0.5 rounded bg-[#eef2ff] text-[#4338ca] font-medium border border-[#c7d2fe]/60">
                           {art.category.replace(/^company-/, '')}
                         </span>
-                        <span>{art.filesCount} file deliverable</span>
+                        <span>{art.filesCount} deliverable files</span>
                       </div>
                     </div>
                   );
@@ -773,10 +773,10 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-2.5 py-1 bg-[#1f6860] hover:bg-[#164e48] text-white text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors shadow-xs"
-                          title="Buka preview website di browser baru"
+                          title="Open website preview in new browser tab"
                         >
                           <Globe className="w-3 h-3" />
-                          <span>Preview Browser</span>
+                          <span>Browser Preview</span>
                         </a>
                       )}
                       <button
@@ -784,7 +784,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                         className="px-2.5 py-1 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#2c231c] text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors border border-[#d6c5ad]"
                       >
                         <ExternalLink className="w-3 h-3" />
-                        <span>Buka Folder</span>
+                        <span>Open Folder</span>
                       </button>
                     </div>
                   </div>
@@ -809,7 +809,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                       );
                     })}
                     {selectedProject.files.length === 0 && (
-                      <span className="text-[11px] text-[#9c8976] italic py-1">Belum ada file di folder ini</span>
+                      <span className="text-[11px] text-[#9c8976] italic py-1">No files in this folder yet</span>
                     )}
                   </div>
 
@@ -817,7 +817,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                   <div className="flex-1 p-3 overflow-auto bg-[#fbf7ee] text-xs font-mono text-[#2c231c]">
                     {fileLoading ? (
                       <div className="flex items-center justify-center h-full text-[#9c8976]">
-                        Memuat file dari disk...
+                        Loading file from disk...
                       </div>
                     ) : fileContent !== null ? (
                       <pre className="text-[#2c231c] leading-relaxed whitespace-pre font-mono">
@@ -825,14 +825,14 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                       </pre>
                     ) : (
                       <div className="flex items-center justify-center h-full text-[#9c8976] italic">
-                        Pilih file di atas untuk melihat isi kode asli dari disk
+                        Select a file above to inspect real source code from disk
                       </div>
                     )}
                   </div>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-[#9c8976] text-xs italic">
-                  Pilih sebuah proyek di sebelah kiri untuk melihat file yang di-generate.
+                  Select a project on the left to inspect generated codebase files.
                 </div>
               )
             )}
@@ -852,14 +852,14 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] border border-[#c7d2fe] font-bold">
-                        📑 Artefak Task
+                        📑 Task Deliverables
                       </span>
                       <button
                         onClick={() => handleOpenExplorer(selectedArtifact.folderPath)}
                         className="px-2.5 py-1 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#2c231c] text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors border border-[#d6c5ad]"
                       >
                         <ExternalLink className="w-3 h-3" />
-                        <span>Buka Folder</span>
+                        <span>Open Folder</span>
                       </button>
                     </div>
                   </div>
@@ -884,7 +884,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                       );
                     })}
                     {selectedArtifact.files.length === 0 && (
-                      <span className="text-[11px] text-[#9c8976] italic py-1">Belum ada file di folder artefak ini</span>
+                      <span className="text-[11px] text-[#9c8976] italic py-1">No files in this artifact folder yet</span>
                     )}
                   </div>
 
@@ -892,7 +892,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                   <div className="flex-1 p-3 overflow-auto bg-[#fbf7ee] text-xs font-mono text-[#2c231c]">
                     {artifactFileLoading ? (
                       <div className="flex items-center justify-center h-full text-[#9c8976]">
-                        Memuat isi artefak dari disk...
+                        Loading artifact content from disk...
                       </div>
                     ) : artifactFileContent !== null ? (
                       <pre className="text-[#2c231c] leading-relaxed whitespace-pre font-mono">
@@ -900,14 +900,14 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose }) => {
                       </pre>
                     ) : (
                       <div className="flex items-center justify-center h-full text-[#9c8976] italic">
-                        Pilih file artefak di atas untuk membaca dokumen deliverable.
+                        Select an artifact file above to inspect deliverable documentation.
                       </div>
                     )}
                   </div>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-[#9c8976] text-xs italic">
-                  Pilih artefak tugas di sebelah kiri untuk membaca dokumen deliverable yang dihasilkan agen.
+                  Select a task artifact on the left to read deliverable specs produced by agents.
                 </div>
               )
             )}

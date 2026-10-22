@@ -112,7 +112,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
         senderName: firstAgent.name,
         senderAvatarColor: firstAgent.avatarColor || '#6366f1',
         senderRoleTitle: firstAgent.roleTitle || 'Team Lead',
-        message: `Halo Boss! Selamat datang di War Room ${company.name}. Tim kami siap menerima instruksi dan berkolaborasi. Anda bisa ketik "@" untuk mention agen spesifik atau bertanya mengenai progres tugas.`,
+        message: `Hello Boss! Welcome to the ${company.name} War Room. Our team is ready to execute instructions and collaborate. Type "@" to mention specific agents or inquire about sprint progress.`,
         timestamp: Date.now(),
       },
     ];
@@ -218,7 +218,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
     }
 
     const encoded = encodeURIComponent(text);
-    const audio = new Audio(`/api/voice/tts?text=${encoded}&lang=id`);
+    const audio = new Audio(`/api/voice/tts?text=${encoded}&lang=en`);
     audioPlayerRef.current = audio;
     setPlayingAudioMsgId(msgId);
 
@@ -306,7 +306,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
 
   const handleTestBotToken = async () => {
     if (!telegramConfig.botToken.trim()) {
-      setTokenTestResult({ success: false, message: 'Harap masukkan Bot Token terlebih dahulu.' });
+      setTokenTestResult({ success: false, message: 'Please enter a Bot Token first.' });
       return;
     }
     setTokenTesting(true);
@@ -321,14 +321,14 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
       if (data.success) {
         setTokenTestResult({
           success: true,
-          message: `Koneksi berhasil! Bot: @${data.botInfo?.username} (${data.botInfo?.firstName || 'Bot'})`,
+          message: `Connection successful! Bot: @${data.botInfo?.username} (${data.botInfo?.firstName || 'Bot'})`,
         });
         setBotInfo(data.botInfo);
       } else {
-        setTokenTestResult({ success: false, message: data.error || 'Gagal menghubungi Telegram API' });
+        setTokenTestResult({ success: false, message: data.error || 'Failed to connect to Telegram API' });
       }
     } catch (err: any) {
-      setTokenTestResult({ success: false, message: err.message || 'Error saat pengujian token' });
+      setTokenTestResult({ success: false, message: err.message || 'Error during token test' });
     } finally {
       setTokenTesting(false);
     }
@@ -348,7 +348,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        setTelegramToast('Konfigurasi Telegram tersimpan!');
+        setTelegramToast('Telegram configuration saved!');
         setTimeout(() => setTelegramToast(null), 3000);
         await fetchTelegramStatus();
       }
@@ -376,10 +376,10 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
       if (data.success) {
         setIsBotRunning(Boolean(data.isRunning));
         if (data.botInfo) setBotInfo(data.botInfo);
-        setTelegramToast(isBotRunning ? 'Bot Telegram dimatikan' : 'Bot Telegram aktif & siap!');
+        setTelegramToast(isBotRunning ? 'Telegram bot stopped' : 'Telegram bot active & ready!');
         setTimeout(() => setTelegramToast(null), 3000);
       } else {
-        alert(data.message || data.error || 'Gagal mengubah status bot');
+        alert(data.message || data.error || 'Failed to toggle bot status');
       }
     } catch (err) {
       console.error(err);
@@ -420,8 +420,8 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             id: ev.id,
             timestamp: ev.timestamp,
             type: isCasual ? 'casual_talk' : 'collaboration',
-            categoryTag: ev.categoryTag || (isCasual ? '☕ Obrolan Santai' : '💻 Koordinasi Sprint'),
-            projectName: isCasual ? undefined : 'ShadowMove Landing Page',
+            categoryTag: ev.categoryTag || (isCasual ? '☕ Casual Chat' : '💻 Sprint Coordination'),
+            projectName: isCasual ? undefined : (tasks[0]?.projectName || `${company.name} Workspace`),
             senderId: sender?.id || 'agent',
             senderName: ev.agentName,
             senderRoleTitle: sender?.roleTitle || 'Team Member',
@@ -431,12 +431,12 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             targetRoleTitle: target?.roleTitle || 'Collaborator',
             targetAvatarColor: target?.avatarColor || '#ec4899',
             topic: isCasual
-              ? `${ev.categoryTag || 'Obrolan Santai'} (Kehidupan & Hobi)`
-              : 'Koordinasi Sprint & Implementasi Arsitektur',
+              ? `${ev.categoryTag || 'Casual Chat'} (Life & Hobbies)`
+              : 'Sprint Coordination & Architecture Implementation',
             dialog: cleanDialog,
             outcome: isCasual
-              ? 'Ngobrol santai sejenak untuk merefresh pikiran dan menjaga keakraban tim.'
-              : 'Disepakati: Integrasi dilanjutkan sesuai rencana kerja sprint.',
+              ? 'Casual conversation to recharge and maintain team camaraderie.'
+              : 'Agreed: Proceed with sprint execution plan.',
           };
 
           if (existingIdx !== -1) {
@@ -485,8 +485,8 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
     {
       id: 'all',
       name: 'all',
-      displayName: '@all (Semua Tim Kantor)',
-      roleTitle: 'Broadcast ke seluruh agent',
+      displayName: '@all (Entire Office Team)',
+      roleTitle: 'Broadcast to all agents',
       avatarColor: '#ea580c',
     },
     ...agents.map((ag) => ({
@@ -809,7 +809,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
         id: cloneStatusId,
         senderType: 'system',
         senderName: 'GitHub Clone Engine',
-        message: `📦 Mendeteksi repository GitHub: ${cloneUrl}\n⏳ Sedang meng-clone ke direktori workspace (~/.vigent/workspaces/${targetFolder})...`,
+        message: `📦 Detected GitHub repository: ${cloneUrl}\n⏳ Cloning to workspace directory (~/.ceo-virtual/workspaces/${targetFolder})...`,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, cloneInitialMsg]);
@@ -822,13 +822,13 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
         });
         const cloneData = await cloneRes.json();
         if (cloneData.success) {
-          cloneSuccessNote = `\n[Info Sistem: Repository GitHub ${cloneUrl} berhasil di-clone ke folder workspace "~/.vigent/workspaces/${cloneData.projectName}" (${cloneData.filesCount} file)]`;
+          cloneSuccessNote = `\n[System Info: GitHub repository ${cloneUrl} cloned to workspace folder "~/.ceo-virtual/workspaces/${cloneData.projectName}" (${cloneData.filesCount} files)]`;
           setMessages((prev) =>
             prev.map((m) =>
               m.id === cloneStatusId
                 ? {
                     ...m,
-                    message: `✅ Berhasil meng-clone **${cloneData.projectName}** (${cloneData.filesCount} file) ke folder workspaces!\n📁 Lokasi: ~/.vigent/workspaces/${cloneData.projectName}\nFolder proyek kini aktif dan siap dieksplorasi.`,
+                    message: `✅ Successfully cloned **${cloneData.projectName}** (${cloneData.filesCount} files) to workspace!\n📁 Location: ~/.ceo-virtual/workspaces/${cloneData.projectName}\nProject folder is now active and ready for exploration.`,
                   }
                 : m
             )
@@ -839,7 +839,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
               m.id === cloneStatusId
                 ? {
                     ...m,
-                    message: `❌ Gagal meng-clone repository: ${cloneData.error || cloneData.message}`,
+                    message: `❌ Failed to clone repository: ${cloneData.error || cloneData.message}`,
                   }
                 : m
             )
@@ -851,7 +851,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             m.id === cloneStatusId
               ? {
                   ...m,
-                  message: `❌ Terjadi kesalahan saat clone: ${err.message}`,
+                  message: `❌ Error during clone: ${err.message}`,
                 }
               : m
           )
@@ -912,12 +912,12 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
           replyText = data.content;
         } else if (data.error) {
           const taskStatus = currentTask
-            ? `saat ini saya sedang mengerjakan tugas **${currentTask.title}** (${Math.round(currentTask.progress || 0)}% selesai, status: ${currentTask.status}).`
-            : `saat ini saya sedang standby di meja kantor dan siap mengerjakan sprint tiket baru dari Boss.`;
+            ? `currently I am working on task **${currentTask.title}** (${Math.round(currentTask.progress || 0)}% completed, status: ${currentTask.status}).`
+            : `currently I am standby at my office desk ready for new sprint tickets from Boss.`;
 
-          replyText = `Halo Boss! Saya ${responder.name} (${responder.roleTitle}), ${taskStatus}\n\n*(ℹ️ Respon LLM [${effectiveConfig.provider} - ${effectiveConfig.model}]: ${data.error}. Pastikan API Key telah diisi di menu Global LLM)*`;
+          replyText = `Hello Boss! I am ${responder.name} (${responder.roleTitle}), ${taskStatus}\n\n*(ℹ️ LLM Response [${effectiveConfig.provider} - ${effectiveConfig.model}]: ${data.error}. Verify API Key in Global LLM menu)*`;
         } else {
-          replyText = `Halo Boss, saya ${responder.name} (${responder.roleTitle}) siap menerima instruksi dan mengeksekusi rencana sprint.`;
+          replyText = `Hello Boss, I am ${responder.name} (${responder.roleTitle}) ready to receive instructions and execute the sprint plan.`;
         }
 
         const agentMsg: OfficeGroupChatMessage = {
@@ -952,7 +952,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
           senderName: responder.name,
           senderAvatarColor: responder.avatarColor,
           senderRoleTitle: responder.roleTitle,
-          message: `⚠️ Terjadi kendala teknis saat menghubungi LLM: ${err.message || err}`,
+          message: `⚠️ Technical difficulty communicating with LLM: ${err.message || err}`,
           timestamp: Date.now(),
         };
         setMessages((prev) => [...prev, agentMsg]);
@@ -964,17 +964,17 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
 
   const handleClearHistory = () => {
     if (activeTab === 'war_room') {
-      if (confirm('Yakin ingin mengosongkan riwayat chat War Room ini?')) {
+      if (confirm('Are you sure you want to clear this War Room chat history?')) {
         setMessages([]);
         localStorage.removeItem(CHAT_STORAGE_KEY);
       }
     } else if (activeTab === 'agent_collabs') {
-      if (confirm('Yakin ingin mengosongkan riwayat rekaman diskusi antar agent ini?')) {
+      if (confirm('Are you sure you want to clear this agent collaboration log history?')) {
         setCollabLogs([]);
         localStorage.removeItem(COLLAB_STORAGE_KEY);
       }
     } else if (activeTab === 'activity_logs') {
-      if (confirm('Yakin ingin mengosongkan riwayat log kegiatan karyawan ini?')) {
+      if (confirm('Are you sure you want to clear this employee activity log history?')) {
         onClearEvents?.();
       }
     }
@@ -1120,17 +1120,17 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-[#2c231c]">
-                  War Room & History Chat Tim
+                  War Room & Team Chat History
                 </h2>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] border border-[#c7d2fe] font-bold font-mono">
                   {company.name}
                 </span>
                 <span className="hidden sm:inline text-[10px] px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#065f46] border border-[#a7f3d0] font-bold">
-                  ● {agents.length} Agent Online
+                  ● {agents.length} Agents Online
                 </span>
               </div>
               <p className="text-xs text-[#786653]">
-                Pusat komunikasi interaktif tim: Chat bersama seluruh agent (@tag) dan lihat rekaman diskusi live antar agent.
+                Interactive team hub: Chat with all agents (@tag) and observe real-time peer discussions.
               </p>
             </div>
           </div>
@@ -1144,7 +1144,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   ? 'bg-[#0284c7] hover:bg-[#0369a1] text-white border-[#0284c7] shadow-sky-600/20'
                   : 'bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#0284c7] border-[#0284c7]/30'
               }`}
-              title="Pengaturan Bot Telegram & Tagging Karyawan (Isolated Per Company)"
+              title="Telegram Bot Settings & Employee Tagging (Isolated Per Company)"
             >
               <Smartphone className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">
@@ -1161,7 +1161,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
               <button
                 onClick={onOpenDevServers}
                 className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-[#1f6860] hover:bg-[#164e48] text-white text-xs font-semibold rounded-xl transition-all shadow-xs"
-                title="Buka Docker Desktop-style Dev Server & Open Ports"
+                title="Open Docker Desktop-style Dev Server & Open Ports"
               >
                 <Radio className="w-3.5 h-3.5 animate-pulse" />
                 <span>Dev Servers (:28483)</span>
@@ -1171,7 +1171,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             <button
               onClick={handleClearHistory}
               className="p-1.5 text-[#786653] hover:text-[#dc2626] hover:bg-[#ede2d1] rounded-lg transition-colors"
-              title={activeTab === 'war_room' ? 'Bersihkan riwayat percakapan War Room' : 'Bersihkan rekaman diskusi antar agent'}
+              title={activeTab === 'war_room' ? 'Clear War Room chat history' : 'Clear agent discussion logs'}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -1212,7 +1212,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Riwayat Diskusi & Obrolan Agent</span>
+              <span>Agent Discussions & Dialogue</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono">
                 {collabLogs.length}
               </span>
@@ -1227,7 +1227,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
               }`}
             >
               <Coffee className="w-3.5 h-3.5" />
-              <span>Log Kegiatan Karyawan</span>
+              <span>Employee Activity Logs</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono">
                 {events.length}
               </span>
@@ -1239,10 +1239,10 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
               <button
                 onClick={handleTriggerManualCollab}
                 className="px-2.5 py-1 bg-[#ede2d1] hover:bg-[#dccab3] text-[#2c231c] rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-                title="Minta dua agent untuk berdiskusi & sinkronisasi langsung di kantor"
+                title="Prompt two agents to discuss and sync in the office"
               >
                 <Sparkles className="w-3 h-3 text-[#c85a2b]" />
-                <span className="hidden sm:inline">Simulasikan Diskusi Baru</span>
+                <span className="hidden sm:inline">Simulate Discussion</span>
               </button>
 
               <div className="flex items-center gap-1 text-xs">
@@ -1252,7 +1252,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   onChange={(e) => setCollabFilterAgent(e.target.value)}
                   className="px-2 py-1 bg-[#f4ebe1] border border-[#d6c5ad] rounded-lg text-xs focus:outline-none"
                 >
-                  <option value="all">Semua Agent</option>
+                  <option value="all">All Agents</option>
                   {agents.map((ag) => (
                     <option key={ag.id} value={ag.name}>
                       {ag.name}
@@ -1271,7 +1271,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             <div className="px-4 py-1.5 bg-[#fffdf9] border-b border-[#d6c5ad] flex items-center gap-1.5 overflow-x-auto text-xs no-scrollbar">
               <span className="text-[10px] font-bold text-[#786653] uppercase tracking-wider shrink-0 flex items-center gap-1">
                 <AtSign className="w-3 h-3 text-[#4338ca]" />
-                Tag Cepat:
+                Quick Tag:
               </span>
               <button
                 onClick={() => insertMention({ name: 'all' })}
@@ -1404,24 +1404,24 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                                 ? 'bg-purple-600 text-white animate-pulse'
                                 : 'bg-[#f4ebe1] hover:bg-[#ede2d1] text-[#78350f] border border-[#d6c5ad]'
                             }`}
-                            title="Dengarkan suara audio ini (Text-to-Speech)"
+                            title="Listen to message audio (Text-to-Speech)"
                           >
                             {playingAudioMsgId === msg.id ? (
                               <>
                                 <VolumeX className="w-3 h-3 text-white" />
-                                <span>Hentikan Suara</span>
+                                <span>Stop Voice</span>
                               </>
                             ) : (
                               <>
                                 <Volume2 className="w-3 h-3 text-[#c85a2b]" />
-                                <span>Dengarkan Suara</span>
+                                <span>Listen Voice</span>
                               </>
                             )}
                           </button>
                           {playingAudioMsgId === msg.id && (
                             <span className="text-[10px] font-mono font-medium text-purple-600 flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping" />
-                              Sedang diputar...
+                              Playing...
                             </span>
                           )}
                         </div>
@@ -1438,7 +1438,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                     <Loader2 className="w-3.5 h-3.5" />
                   </div>
                   <span>
-                    <strong>{typingAgent || 'Agent'}</strong> sedang merespons...
+                    <strong>{typingAgent || 'Agent'}</strong> is responding...
                   </span>
                 </div>
               )}
@@ -1452,7 +1452,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
               {mentionQuery !== null && mentionCandidates.length > 0 && (
                 <div className="absolute bottom-full left-4 mb-2 w-80 max-h-64 overflow-y-auto bg-[#faf5eb] border-2 border-[#4338ca] rounded-2xl shadow-2xl z-50 p-1.5 animate-in slide-in-from-bottom-2">
                   <div className="px-2.5 py-1 text-[10px] font-bold text-[#786653] uppercase tracking-wider flex items-center justify-between border-b border-[#d6c5ad] mb-1">
-                    <span>PILIH AGENT DENGAN ENTER / KLIK:</span>
+                    <span>SELECT AGENT WITH ENTER / CLICK:</span>
                     <span className="font-mono text-[#4338ca]">@{mentionQuery}</span>
                   </div>
                   {mentionCandidates.map((candidate, idx) => (
@@ -1503,7 +1503,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   value={inputText}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ketik pesan atau '@' untuk tag agent (contoh: @Kenji bagaimana status wireframe?)"
+                  placeholder="Type a message or '@' to tag an agent (e.g. @Kenji how is the wireframe coming along?)"
                   rows={2}
                   className="flex-1 bg-transparent border-0 resize-none text-xs text-[#2c231c] placeholder-[#9c8976] focus:outline-none focus:ring-0 leading-relaxed"
                 />
@@ -1512,7 +1512,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   onClick={handleSend}
                   disabled={!inputText.trim() || isTyping}
                   className="p-2.5 bg-[#4338ca] hover:bg-[#3730a3] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-all shrink-0 shadow-sm"
-                  title="Kirim pesan (Enter)"
+                  title="Send message (Enter)"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -1524,7 +1524,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
         {/* TAB 2: Agent Collaboration & Discussion Live Logs */}
         {activeTab === 'agent_collabs' && (
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#fbf7ee]">
-            {/* Filter Bar with Segmented Buttons (Semua / Obrolan Santai / Pekerjaan) */}
+            {/* Filter Bar with Segmented Buttons (All / Casual / Work) */}
             <div className="bg-[#fffdf9] p-2.5 rounded-2xl border border-[#d6c5ad] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               {/* Segmented Filter Pills */}
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -1536,7 +1536,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                       : 'bg-[#f4ebe1] hover:bg-[#ede2d1] text-[#786653]'
                   }`}
                 >
-                  <span>Semua Obrolan</span>
+                  <span>All Discussions</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 font-mono">
                     {collabLogs.length}
                   </span>
@@ -1551,7 +1551,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   }`}
                 >
                   <Coffee className="w-3.5 h-3.5" />
-                  <span>☕ Obrolan Santai</span>
+                  <span>☕ Casual Chat</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 font-mono">
                     {casualCount}
                   </span>
@@ -1566,7 +1566,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   }`}
                 >
                   <Briefcase className="w-3.5 h-3.5" />
-                  <span>💼 Pekerjaan & Sprint</span>
+                  <span>💼 Work & Sprints</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 font-mono">
                     {workCount}
                   </span>
@@ -1582,7 +1582,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                     onChange={(e) => setCollabFilterAgent(e.target.value)}
                     className="px-2.5 py-1.5 bg-[#f4ebe1] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none text-[#2c231c] font-medium"
                   >
-                    <option value="all">Semua Agent</option>
+                    <option value="all">All Agents</option>
                     {agents.map((ag) => (
                       <option key={ag.id} value={ag.name}>
                         {ag.name}
@@ -1594,10 +1594,10 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                 <button
                   onClick={handleTriggerManualCollab}
                   className="px-2.5 py-1.5 bg-[#ede2d1] hover:bg-[#dccab3] text-[#2c231c] rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors border border-[#d6c5ad]"
-                  title="Minta dua agent untuk berinteraksi spontan di kantor"
+                  title="Prompt two agents to interact spontaneously in the office"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-[#c85a2b]" />
-                  <span className="hidden sm:inline">Obrolan Baru</span>
+                  <span className="hidden sm:inline">New Discussion</span>
                 </button>
               </div>
             </div>
@@ -1619,13 +1619,13 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                       {isCasual ? (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fdf2f8] text-[#be185d] border border-[#fbcfe8] flex items-center gap-1 shadow-2xs">
                           <Coffee className="w-3 h-3 text-[#ec4899]" />
-                          <span>Obrolan Santai</span>
+                          <span>Casual Chat</span>
                           {log.categoryTag && <span className="opacity-90">• {log.categoryTag}</span>}
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#eff6ff] text-[#1d4ed8] border border-[#bfdbfe] flex items-center gap-1 shadow-2xs">
                           <Briefcase className="w-3 h-3 text-[#3b82f6]" />
-                          <span>Pekerjaan & Sprint</span>
+                          <span>Work & Sprint</span>
                           {log.categoryTag && <span className="opacity-90">• {log.categoryTag}</span>}
                         </span>
                       )}
@@ -1683,12 +1683,12 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                     {isCasual ? (
                       <span className="text-[#be185d] flex items-center gap-1">
                         <Sparkles className="w-3.5 h-3.5 text-[#ec4899]" />
-                        <span>Topik Santai: {log.topic}</span>
+                        <span>Casual Topic: {log.topic}</span>
                       </span>
                     ) : (
                       <span className="text-[#1f6860] flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#1f6860]" />
-                        <span>Topik Pekerjaan: {log.topic}</span>
+                        <span>Work Topic: {log.topic}</span>
                       </span>
                     )}
                   </div>
@@ -1716,7 +1716,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                       )}
                       <div className="leading-snug">
                         <strong className="block font-bold mb-0.5">
-                          {isCasual ? 'Catatan Obrolan Santai:' : 'Rencana / Kesepakatan yang Dicapai:'}
+                          {isCasual ? 'Casual Chat Notes:' : 'Agreed Sprint Decisions:'}
                         </strong>
                         <span>{log.outcome}</span>
                       </div>
@@ -1729,9 +1729,9 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
             {filteredCollabLogs.length === 0 && (
               <div className="text-center py-12 text-[#786653] text-xs bg-[#fffdf9] rounded-2xl border border-[#d6c5ad]">
                 <Coffee className="w-8 h-8 text-[#d6c5ad] mx-auto mb-2" />
-                <p className="font-semibold text-[#2c231c]">Belum ada rekaman obrolan untuk filter ini.</p>
+                <p className="font-semibold text-[#2c231c]">No recorded conversations found for this filter.</p>
                 <p className="mt-1">
-                  Klik tombol <strong className="text-[#c85a2b]">"Obrolan Baru"</strong> di atas untuk memicu interaksi spontan antar agent.
+                  Click <strong className="text-[#c85a2b]">"New Discussion"</strong> above to prompt spontaneous agent collaboration.
                 </p>
               </div>
             )}
@@ -1753,7 +1753,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                       : 'bg-[#f4ebe1] hover:bg-[#ede2d1] text-[#786653]'
                   }`}
                 >
-                  <span>Semua Kegiatan</span>
+                  <span>All Activities</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 font-mono">
                     {events.length}
                   </span>
@@ -1768,7 +1768,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   }`}
                 >
                   <Coffee className="w-3.5 h-3.5" />
-                  <span>☕ Kopi & Pantry</span>
+                  <span>☕ Coffee & Pantry</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 font-mono">
                     {coffeeCount}
                   </span>
@@ -1798,7 +1798,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   }`}
                 >
                   <Footprints className="w-3.5 h-3.5" />
-                  <span>🚶 Santai di Lobby</span>
+                  <span>🚶 Relax in Lobby</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 font-mono">
                     {lobbyCount}
                   </span>
@@ -1828,7 +1828,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   }`}
                 >
                   <CheckCircle className="w-3.5 h-3.5" />
-                  <span>⚡ Tugas & Coding</span>
+                  <span>⚡ Tasks & Coding</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 font-mono">
                     {taskCount}
                   </span>
@@ -1843,7 +1843,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                     type="text"
                     value={activitySearchQuery}
                     onChange={(e) => setActivitySearchQuery(e.target.value)}
-                    placeholder="Cari log kegiatan (misal: mesin kopi, arcade, sprint, tiket)..."
+                    placeholder="Search activity logs (e.g., coffee machine, arcade, sprint, ticket)..."
                     className="w-full pl-8 pr-3 py-1.5 bg-[#f4ebe1] border border-[#d6c5ad] rounded-xl text-xs text-[#2c231c] placeholder-[#9c8976] focus:outline-none focus:border-[#c85a2b]"
                   />
                 </div>
@@ -1855,7 +1855,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                     onChange={(e) => setActivityFilterAgent(e.target.value)}
                     className="px-2.5 py-1.5 bg-[#f4ebe1] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none text-[#2c231c] font-medium"
                   >
-                    <option value="all">Semua Karyawan</option>
+                    <option value="all">All Employees</option>
                     {agents.map((ag) => (
                       <option key={ag.id} value={ag.name}>
                         {ag.name}
@@ -1953,9 +1953,9 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
               {filteredEvents.length === 0 && (
                 <div className="text-center py-12 text-[#786653] text-xs bg-[#fffdf9] rounded-2xl border border-[#d6c5ad]">
                   <Coffee className="w-8 h-8 text-[#d6c5ad] mx-auto mb-2" />
-                  <p className="font-semibold text-[#2c231c]">Tidak ada kegiatan yang sesuai dengan filter.</p>
+                  <p className="font-semibold text-[#2c231c]">No activities match this filter.</p>
                   <p className="mt-1">
-                    Kegiatan karyawan seperti menyeduh kopi di pantry, bermain game arcade, santai di lobby, dan menyelesaikan tugas akan tersimpan dan tampil otomatis di sini.
+                    Employee activities like brewing coffee in pantry, playing arcade games, relaxing in the lobby, and completing tasks will appear automatically here.
                   </p>
                 </div>
               )}
@@ -1975,14 +1975,14 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-base font-bold text-[#2c231c]">
-                        Integrasi Bot Telegram & Tag Karyawan
+                        Telegram Bot Integration & Employee Tagging
                       </h3>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#e0f2fe] text-[#0284c7] border border-[#bae6fd] font-bold font-mono">
                         {company.name} (Isolated)
                       </span>
                     </div>
                     <p className="text-xs text-[#786653]">
-                      Hubungkan grup Telegram kantor Anda dengan bot Telegraf dan tag karyawan secara langsung.
+                      Connect your office Telegram group with Telegraf bot and tag employees directly.
                     </p>
                   </div>
                 </div>
@@ -2020,7 +2020,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                     />
                     <div>
                       <div className="font-bold text-xs flex items-center gap-2">
-                        <span>Status Bot:</span>
+                        <span>Bot Status:</span>
                         <span
                           className={`px-2 py-0.5 rounded font-mono text-[11px] ${
                             isBotRunning
@@ -2028,7 +2028,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                               : 'bg-stone-200 text-stone-700'
                           }`}
                         >
-                          {isBotRunning ? 'AKTIF (LONG-POLLING ONLINE)' : 'NONAKTIF / OFFLINE'}
+                          {isBotRunning ? 'ACTIVE (LONG-POLLING ONLINE)' : 'INACTIVE / OFFLINE'}
                         </span>
                         {botInfo?.username && (
                           <span className="font-mono text-[#0284c7] font-bold">
@@ -2038,8 +2038,8 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                       </div>
                       <p className="text-[11px] text-[#786653] mt-0.5">
                         {isBotRunning
-                          ? `Bot mandiri untuk kantor ${company.name} siap menerima pesan dan tag di Telegram.`
-                          : 'Masukkan token bot dan klik "Nyalakan Bot" untuk mengaktifkan obrolan Telegram.'}
+                          ? `Independent bot for ${company.name} is ready to receive messages and tags in Telegram.`
+                          : 'Enter bot token and click "Start Bot" to activate Telegram chat.'}
                       </p>
                     </div>
                   </div>
@@ -2054,7 +2054,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                     }`}
                   >
                     <Power className="w-3.5 h-3.5" />
-                    <span>{isBotRunning ? 'Matikan Bot' : 'Nyalakan Bot'}</span>
+                    <span>{isBotRunning ? 'Stop Bot' : 'Start Bot'}</span>
                   </button>
                 </div>
 
@@ -2062,7 +2062,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                 <div className="bg-[#fffdf9] p-4 rounded-xl border border-[#d6c5ad] space-y-2.5">
                   <div className="flex items-center justify-between">
                     <label className="font-bold text-[#2c231c] flex items-center gap-1.5">
-                      <span>Bot Token Telegram (Dari @BotFather)</span>
+                      <span>Telegram Bot Token (From @BotFather)</span>
                       <span className="text-rose-500">*</span>
                     </label>
                     <a
@@ -2071,7 +2071,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                       rel="noopener noreferrer"
                       className="text-[#0284c7] hover:underline flex items-center gap-1 text-[11px]"
                     >
-                      <span>Buka @BotFather</span>
+                      <span>Open @BotFather</span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
@@ -2083,7 +2083,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                       onChange={(e) =>
                         setTelegramConfig((prev) => ({ ...prev, botToken: e.target.value.trim() }))
                       }
-                      placeholder="Contoh: 1234567890:ABCdefGhIJKlmNoPQRsTUVwxyZ_1234567"
+                      placeholder="e.g. 1234567890:ABCdefGhIJKlmNoPQRsTUVwxyZ_1234567"
                       className="flex-1 px-3 py-2 bg-white border border-[#d6c5ad] rounded-xl text-xs font-mono text-[#2c231c] focus:outline-none focus:border-[#0284c7] shadow-inner"
                     />
                     <button
@@ -2097,12 +2097,12 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                       ) : (
                         <CheckCheck className="w-3.5 h-3.5" />
                       )}
-                      <span>Tes Token</span>
+                      <span>Test Token</span>
                     </button>
                   </div>
 
                   <p className="text-[11px] text-[#786653]">
-                    Buka Telegram, cari <strong>@BotFather</strong>, ketik <code>/newbot</code>, beri nama bot kantor Anda, lalu salin token API HTTP ke kolom ini.
+                    Open Telegram, search for <strong>@BotFather</strong>, type <code>/newbot</code>, name your office bot, and copy the HTTP API token into this field.
                   </p>
 
                   {/* Test Result Feedback */}
@@ -2135,11 +2135,11 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                     onChange={(e) =>
                       setTelegramConfig((prev) => ({ ...prev, chatId: e.target.value.trim() }))
                     }
-                    placeholder="Contoh: 123456789 atau ID grup -100123456789"
+                    placeholder="e.g. 123456789 or group ID -100123456789"
                     className="w-full px-3 py-2 bg-white border border-[#d6c5ad] rounded-xl text-xs font-mono text-[#2c231c] focus:outline-none focus:border-[#0284c7] shadow-inner"
                   />
                   <p className="text-[11px] text-[#786653]">
-                    💡 <em>Otomatis Terdeteksi:</em> Kirim pesan <code>/start</code> atau <code>/chatid</code> ke bot Anda di Telegram, maka Chat ID akan otomatis terisi. Atau ketik manual ID grup/personal Anda di sini.
+                    💡 <em>Auto-Detected:</em> Send <code>/start</code> or <code>/chatid</code> to your bot in Telegram to auto-fill Chat ID, or type your group/personal ID manually.
                   </p>
                 </div>
 
@@ -2147,10 +2147,10 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                 <div className="bg-[#fffdf9] p-4 rounded-xl border border-[#d6c5ad] flex items-center justify-between">
                   <div>
                     <div className="font-bold text-[#2c231c]">
-                      Sinkronisasi Percakapan Dua Arah
+                      Two-Way Conversation Sync
                     </div>
                     <p className="text-[11px] text-[#786653] mt-0.5">
-                      Pesan dari War Room web otomatis diteruskan ke obrolan Telegram, dan sebaliknya.
+                      Messages from the web War Room are automatically forwarded to Telegram, and vice versa.
                     </p>
                   </div>
                   <input
@@ -2163,7 +2163,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   />
                 </div>
 
-                {/* 5. Panduan Tag Karyawan di Telegram (Fitur Utama yang diminta pengguna) */}
+                {/* 5. Guide for Tagging Employees in Telegram */}
                 <div className="bg-[#eef2ff] p-4 rounded-xl border border-[#c7d2fe] space-y-3">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-lg bg-[#4338ca] text-white">
@@ -2171,10 +2171,10 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                     </div>
                     <div>
                       <h4 className="font-bold text-[#312e81] text-xs">
-                        Panduan Tag Karyawan di Chat Telegram
+                        Guide: Tagging Employees in Telegram
                       </h4>
                       <p className="text-[11px] text-[#4338ca]">
-                        Ketik pesan di Telegram seperti grup chat biasa, lalu tag nama karyawan:
+                        Type messages in Telegram like any group chat, then tag the employee's name:
                       </p>
                     </div>
                   </div>
@@ -2214,10 +2214,10 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                         <span className="w-2.5 h-2.5 rounded-full bg-[#ea580c] shrink-0" />
                         <div>
                           <div className="font-bold text-[#7c2d12] text-[11px]">
-                            Seluruh Tim Kantor
+                            Entire Office Team
                           </div>
                           <div className="text-[10px] text-[#9a3412]">
-                            Panggil semua lead divisi rapat sekaligus
+                            Summon all division leads to meeting simultaneously
                           </div>
                         </div>
                       </div>
@@ -2230,13 +2230,13 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   {/* Labeled Reply Callout Box */}
                   <div className="p-3 bg-white/80 rounded-xl border border-[#c7d2fe] text-[11px] text-[#312e81] space-y-1">
                     <div className="font-bold flex items-center gap-1.5 text-[#1e1b4b]">
-                      <span>🏷️ Balasan Berlabel Otomatis:</span>
+                      <span>🏷️ Automatic Labeled Replies:</span>
                     </div>
                     <p className="leading-relaxed">
-                      Walaupun hanya menggunakan <strong>1 bot Telegram</strong> untuk perusahaan Anda, setiap balasan di chat Telegram akan otomatis diberi <strong>label identitas & peran karyawan yang menjawab</strong> (contoh: <code>🧑‍💻 [Kenji Sato - Founder & System Architect]: ...</code> atau <code>🎨 [Rei Kasumi - Creative Director & UI/UX]: ...</code>).
+                      Even with only <strong>1 Telegram bot</strong> for your company, every reply in Telegram chat is automatically prefixed with the <strong>responding employee's name & role</strong> (e.g. <code>🧑‍💻 [Kenji Sato - Founder & System Architect]: ...</code> or <code>🎨 [Rei Kasumi - Creative Director & UI/UX]: ...</code>).
                     </p>
                     <p className="text-[#4338ca] italic">
-                      Dengan cara ini, seluruh anggota di grup Telegram selalu tahu persis karyawan mana yang membalas pesan!
+                      This way, everyone in your Telegram group always knows exactly which agent is replying!
                     </p>
                   </div>
                 </div>
@@ -2249,7 +2249,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                   onClick={() => setIsTelegramModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-[#5c4939] hover:bg-[#ede2d1] transition-colors"
                 >
-                  Tutup
+                  Close
                 </button>
                 <div className="flex items-center gap-2">
                   <button
@@ -2259,7 +2259,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                     className="px-4 py-2 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#2c231c] border border-[#d6c5ad] rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
                   >
                     {savingTelegram ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                    <span>Simpan Pengaturan</span>
+                    <span>Save Settings</span>
                   </button>
                   <button
                     type="button"
@@ -2275,7 +2275,7 @@ export const OfficeChatModal: React.FC<OfficeChatModalProps> = ({
                     }`}
                   >
                     <Power className="w-3.5 h-3.5" />
-                    <span>{isBotRunning ? 'Matikan Bot' : 'Simpan & Nyalakan Bot'}</span>
+                    <span>{isBotRunning ? 'Stop Bot' : 'Save & Start Bot'}</span>
                   </button>
                 </div>
               </div>

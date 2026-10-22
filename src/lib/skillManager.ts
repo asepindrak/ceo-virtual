@@ -167,13 +167,13 @@ function ensureStarterSkills() {
     saveSkill(
       'nextjs-app-router',
       'Next.js App Router Architecture Expert',
-      'SOP dan panduan standar pembuatan komponen React 19, Server Actions, dan Tailwind v4',
+      'SOP and standard guidelines for building React 19 components, Server Actions, and Tailwind v4',
       ['frontend_dev', 'fullstack_dev'],
       `# Next.js App Router Best Practices
-1. **Server vs Client**: Selalu utamakan Server Components untuk data fetching. Tambahkan directive 'use client' hanya pada komponen yang memerlukan state/browser interactivity.
-2. **Directory Structure**: Letakkan halaman di \`src/app/<route>/page.tsx\` dan reusable components di \`src/components/\`.
-3. **Styling**: Gunakan Tailwind utility classes yang rapi dan konsisten dengan modern dark mode themes.
-4. **Resiliency**: Selalu lengkapi error handling dan loading states.`,
+1. **Server vs Client**: Always prioritize Server Components for data fetching. Add 'use client' directive only to components requiring state/browser interactivity.
+2. **Directory Structure**: Place pages in \`src/app/<route>/page.tsx\` and reusable components in \`src/components/\`.
+3. **Styling**: Use clean Tailwind utility classes consistent with modern dark mode themes.
+4. **Resiliency**: Always provide robust error handling and loading states.`,
       ['nextjs', 'react', 'tailwind', 'frontend']
     );
   }
@@ -183,13 +183,13 @@ function ensureStarterSkills() {
     saveSkill(
       'database-prisma-postgres',
       'Database Modeling & PostgreSQL Specialist',
-      'Panduan pembuatan skema relasional, indeks performa, dan validasi transaksi ACID',
+      'Relational schema design guidelines, performance indexing, and ACID transaction safety',
       ['backend_dev', 'fullstack_dev'],
       `# Database & PostgreSQL Architecture Guidelines
-1. **Relations & Normalization**: Rancang relasi one-to-many atau many-to-many dengan foreign key yang jelas dan cascade rules yang aman.
-2. **Indexing**: Berikan index pada kolom yang sering dicari (\`slug\`, \`userId\`, \`status\`, \`createdAt\`).
-3. **Safety**: Hindari hard delete untuk data penting; gunakan pattern soft-delete (\`deletedAt\`) bila relevan.
-4. **Environment**: Gunakan variabel \`DATABASE_URL\` dari environment file.`,
+1. **Relations & Normalization**: Design one-to-many or many-to-many relations with explicit foreign keys and safe cascade rules.
+2. **Indexing**: Index frequently queried columns (\`slug\`, \`userId\`, \`status\`, \`createdAt\`).
+3. **Safety**: Avoid hard deletion on critical records; apply soft-delete patterns (\`deletedAt\`) where relevant.
+4. **Environment**: Use \`DATABASE_URL\` securely from environment configuration.`,
       ['database', 'postgres', 'prisma', 'backend']
     );
   }
@@ -199,13 +199,13 @@ function ensureStarterSkills() {
     saveSkill(
       'seo-technical-writing',
       'High-Conversion Technical Writing & SEO',
-      'Pedoman pembuatan artikel teknis, dokumentasi API, dan copywriting terstruktur',
+      'Guidelines for crafting technical articles, API references, and structured copywriting',
       ['content_writer', 'seo_specialist'],
       `# Technical Writing Standards
-1. **Heading Hierarchy**: Gunakan single H1 untuk judul artikel, diikuti H2 dan H3 secara logis.
-2. **Readability**: Gunakan bullet points, callout alerts, dan tabel komparatif untuk memudahkan pemahaman.
-3. **Code Examples**: Berikan contoh kode yang valid, minimal, dan dapat dijalankan.
-4. **Tone of Voice**: Profesional, informatif, to-the-point, dan ramah pengembang.`,
+1. **Heading Hierarchy**: Use a single H1 for the article title, followed logically by H2 and H3 subheadings.
+2. **Readability**: Employ bullet points, callout alerts, and comparative tables for fast comprehension.
+3. **Code Examples**: Provide valid, concise, and executable code snippets.
+4. **Tone of Voice**: Professional, informative, to-the-point, and developer-friendly.`,
       ['content', 'markdown', 'seo', 'docs']
     );
   }
@@ -215,13 +215,13 @@ function ensureStarterSkills() {
     saveSkill(
       'cybersecurity-qa-audit',
       'Security Audit & QA Penetration Testing',
-      'Checklist audit keamanan OWASP Top 10, sanitasi input, dan validasi otentikasi',
+      'OWASP Top 10 security audit checklist, input sanitization, and authentication validation',
       ['qa_engineer', 'devops'],
       `# Security Verification Checklist
-1. **Sanitization**: Periksa injection vulnerabilities (SQLi, XSS, Command Injection).
-2. **Auth & RBAC**: Pastikan endpoint terlindungi middleware autentikasi dan otorisasi role yang ketat.
-3. **Secrets Management**: Pastikan tidak ada API Key atau kredensial yang ter-hardcode di file git.
-4. **Rate Limiting**: Selalu rekomendasikan rate-limiting pada endpoint publik (login, register, payment).`,
+1. **Sanitization**: Audit for injection vulnerabilities (SQLi, XSS, Command Injection).
+2. **Auth & RBAC**: Ensure sensitive endpoints are guarded with authentication middleware and strict role-based access control.
+3. **Secrets Management**: Verify no API keys, private tokens, or credentials are hardcoded into Git.
+4. **Rate Limiting**: Always recommend rate-limiting on public endpoints (login, register, payment).`,
       ['security', 'audit', 'qa', 'owasp']
     );
   }

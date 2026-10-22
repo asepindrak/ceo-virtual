@@ -57,8 +57,8 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
   const [loading, setLoading] = useState(true);
   const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [skillsDir, setSkillsDir] = useState('~/.vigent/skills');
-  const [mcpConfigFile, setMcpConfigFile] = useState('~/.vigent/mcp_config.json');
+  const [skillsDir, setSkillsDir] = useState('~/.ceo-virtual/skills');
+  const [mcpConfigFile, setMcpConfigFile] = useState('~/.ceo-virtual/mcp_config.json');
 
   // Preview Skill Modal
   const [previewSkill, setPreviewSkill] = useState<Skill | null>(null);
@@ -85,8 +85,8 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
       if (data.success) {
         setMcpServers(data.mcpServers || []);
         setSkills(data.skills || []);
-        setSkillsDir(data.skillsDir || '~/.vigent/skills');
-        setMcpConfigFile(data.mcpConfigFile || '~/.vigent/mcp_config.json');
+        setSkillsDir(data.skillsDir || '~/.ceo-virtual/skills');
+        setMcpConfigFile(data.mcpConfigFile || '~/.ceo-virtual/mcp_config.json');
       }
     } catch (err) {
       console.error(err);
@@ -215,7 +215,7 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
                 </span>
               </div>
               <p className="text-xs text-[#786653]">
-                Toko modul ekstensi MCP dan SOP keahlian khusus divisi kantor virtual
+                MCP extension module catalog and specialized division SOP procedures for virtual offices
               </p>
             </div>
           </div>
@@ -277,7 +277,7 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
               <div>
                 <h3 className="font-bold text-sm text-[#2c231c]">Active Model Context Protocol (MCP) Servers</h3>
                 <p className="text-xs text-[#786653]">
-                  Ekspos alat nyata (Database, GitHub, Web Search, Filesystem) langsung ke agen sesuai tugasnya.
+                  Expose real-world tools (Database, GitHub, Web Search, Filesystem) directly to agents based on their roles.
                 </p>
               </div>
               <button
@@ -285,7 +285,7 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
                 className="px-3 py-1.5 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#2c231c] rounded-lg text-xs font-semibold flex items-center gap-1 border border-[#d6c5ad] transition-colors"
               >
                 <Plus className="w-3.5 h-3.5 text-[#c85a2b]" />
-                <span>Tambah Custom MCP</span>
+                <span>Add Custom MCP</span>
               </button>
             </div>
 
@@ -294,20 +294,20 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
               <form onSubmit={handleAddCustomMcp} className="p-3 rounded-xl bg-[#fffdf9] border border-[#d6c5ad] space-y-2 text-xs">
                 <div className="font-bold text-[#2c231c] flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-[#c85a2b]" />
-                  <span>Daftarkan Server MCP Baru</span>
+                  <span>Register New MCP Server</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <input
                     type="text"
                     required
-                    placeholder="Nama Server (misal: Docker MCP)"
+                    placeholder="Server Name (e.g., Docker MCP)"
                     value={newMcpName}
                     onChange={(e) => setNewMcpName(e.target.value)}
                     className="bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-2.5 py-1.5 text-[#2c231c] placeholder-[#9c8976]"
                   />
                   <input
                     type="text"
-                    placeholder="Deskripsi fungsi alat"
+                    placeholder="Tool capability description"
                     value={newMcpDesc}
                     onChange={(e) => setNewMcpDesc(e.target.value)}
                     className="bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-2.5 py-1.5 text-[#2c231c] placeholder-[#9c8976]"
@@ -331,10 +331,10 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
                 </div>
                 <div className="flex gap-2 pt-1">
                   <button type="submit" className="px-3 py-1.5 bg-[#c85a2b] hover:bg-[#b54d22] text-white rounded-lg font-bold">
-                    Simpan Server MCP
+                    Save MCP Server
                   </button>
                   <button type="button" onClick={() => setIsAddingMcp(false)} className="px-2.5 py-1.5 text-[#786653] hover:text-[#2c231c]">
-                    Batal
+                    Cancel
                   </button>
                 </div>
               </form>
@@ -374,7 +374,7 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
                         }`}
                       >
                         <Power className="w-3 h-3" />
-                        <span>{server.enabled ? 'Aktif' : 'Non-aktif'}</span>
+                        <span>{server.enabled ? 'Active' : 'Inactive'}</span>
                       </button>
                     </div>
 
@@ -382,13 +382,13 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
                   </div>
 
                   <div className="pt-2 border-t border-[#d6c5ad] flex items-center justify-between text-[10px]">
-                    <span className="text-[#786653]">Hak Akses Divisi:</span>
+                    <span className="text-[#786653]">Division Access:</span>
                     <span className="px-2 py-0.5 rounded-full bg-[#f4ebe1] text-[#2c231c] border border-[#d6c5ad] font-mono font-bold">
                       {server.assignedRoles === 'all'
-                        ? 'Semua Divisi'
+                        ? 'All Divisions'
                         : Array.isArray(server.assignedRoles)
                         ? server.assignedRoles.join(', ')
-                        : 'Divisi'}
+                        : 'Division'}
                     </span>
                   </div>
                 </div>
@@ -404,7 +404,7 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
               <div>
                 <h3 className="font-bold text-sm text-[#2c231c]">Installed Skills & SOP Workflows</h3>
                 <p className="text-xs text-[#786653]">
-                  Panduan SOP dan best-practice yang otomatis diinjeksikan ke prompt agen saat mengerjakan tiket.
+                  Standard Operating Procedures (SOP) and guidelines automatically injected into agent prompts for task tickets.
                 </p>
               </div>
               <button
@@ -412,7 +412,7 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
                 className="px-3 py-1.5 bg-[#7d3b8f] hover:bg-[#682e78] text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Buat Skill Baru</span>
+                <span>Create New Skill</span>
               </button>
             </div>
 
@@ -421,20 +421,20 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
               <form onSubmit={handleCreateSkill} className="p-3.5 rounded-xl bg-[#fffdf9] border border-[#d6c5ad] space-y-2.5 text-xs">
                 <div className="font-bold text-[#2c231c] flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-[#7d3b8f]" />
-                  <span>Buat Skill (SKILL.md) Baru</span>
+                  <span>Create New Skill (SKILL.md)</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <input
                     type="text"
                     required
-                    placeholder="Judul Skill (misal: FastAPI Architecture Specialist)"
+                    placeholder="Skill Title (e.g., FastAPI Architecture Specialist)"
                     value={newSkillTitle}
                     onChange={(e) => setNewSkillTitle(e.target.value)}
                     className="bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-2.5 py-1.5 text-[#2c231c]"
                   />
                   <input
                     type="text"
-                    placeholder="Deskripsi singkat"
+                    placeholder="Short description"
                     value={newSkillDesc}
                     onChange={(e) => setNewSkillDesc(e.target.value)}
                     className="bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-2.5 py-1.5 text-[#2c231c]"
@@ -443,17 +443,17 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
                 <textarea
                   rows={4}
                   required
-                  placeholder="# SOP & Aturan Koding&#10;1. Selalu gunakan Pydantic V2 untuk schema...&#10;2. Gunakan async def pada semua endpoint I/O..."
+                  placeholder="# SOP & Coding Guidelines&#10;1. Always use Pydantic V2 for schemas...&#10;2. Use async def on all I/O endpoints..."
                   value={newSkillInstructions}
                   onChange={(e) => setNewSkillInstructions(e.target.value)}
                   className="w-full bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg p-2.5 text-[#2c231c] font-mono text-xs"
                 />
                 <div className="flex gap-2">
                   <button type="submit" className="px-3 py-1.5 bg-[#7d3b8f] hover:bg-[#682e78] text-white rounded-lg font-bold">
-                    Simpan Skill ke Disk
+                    Save Skill to Disk
                   </button>
                   <button type="button" onClick={() => setIsCreatingSkill(false)} className="px-2.5 py-1.5 text-[#786653] hover:text-[#2c231c]">
-                    Batal
+                    Cancel
                   </button>
                 </div>
               </form>
@@ -496,7 +496,7 @@ export const ExtensionHubModal: React.FC<ExtensionHubModalProps> = ({ onClose })
                         </span>
                       ))}
                     </div>
-                    <span className="text-[#7d3b8f] font-bold group-hover:underline">Buka SOP ➔</span>
+                    <span className="text-[#7d3b8f] font-bold group-hover:underline">Open SOP ➔</span>
                   </div>
                 </div>
               ))}

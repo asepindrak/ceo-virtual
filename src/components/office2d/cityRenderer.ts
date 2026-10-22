@@ -1431,9 +1431,9 @@ const makeGeo = (cx: number, cz: number, hw: number, hd: number, primary: string
 // =============================================================================
 export const renderEmptyKavling = (c: IsoCtx, k: KavlingLike, hovered: boolean) => {
   const g = makeGeo(k.cx, k.cz, k.halfW, k.halfD, '#059669', '#10b981', '#34d399');
-  const lotLabel = k.plotLabel || `Kavling #${k.id.replace(/\D/g, '') || '1'}`;
-  const signTitle = `📍 KAVLING KOSONG (TERSEDIA)`;
-  const signSub = `MENUNGGU NODE P2P TERHUBUNG`;
+  const lotLabel = k.plotLabel || `Parcel #${k.id.replace(/\D/g, '') || '1'}`;
+  const signTitle = `📍 VACANT LOT (AVAILABLE)`;
+  const signSub = `AWAITING P2P PEER NODE`;
 
   // Monumen untuk baris selatan berada di belakang kavling (gambar duluan)
   if (g.entranceAtBack) {
@@ -1515,7 +1515,7 @@ export const renderEmptyKavling = (c: IsoCtx, k: KavlingLike, hovered: boolean) 
     ctx.fillText(`[ ${lotLabel.toUpperCase()} ]`, centerIso.x, centerIso.y - 6 * s);
     ctx.font = `${Math.max(7, Math.round(7.5 * s))}px sans-serif`;
     ctx.fillStyle = '#64748b';
-    ctx.fillText('Siap Dibangun Saat Node P2P Terhubung', centerIso.x, centerIso.y + 6 * s);
+    ctx.fillText('Ready for Construction Upon P2P Connection', centerIso.x, centerIso.y + 6 * s);
     ctx.restore();
   }
 
@@ -1703,7 +1703,7 @@ export const renderSuperMart = (c: IsoCtx, hovered: boolean) => {
   });
   q.flush();
   frontRails(c, g);
-  monumentSign(c, cx + 5.5, g.z1 + 1.1, '🏪 SuperMart 24/7', 'FASILITAS PUBLIK', '#16a34a', hovered);
+  monumentSign(c, cx + 5.5, g.z1 + 1.1, '🏪 SuperMart 24/7', 'PUBLIC FACILITY', '#16a34a', hovered);
 };
 
 // =============================================================================

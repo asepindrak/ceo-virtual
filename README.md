@@ -1,7 +1,7 @@
 # 👑 CEO Virtual - Autonomous Multi-Agent Virtual Workplace
 
 <p align="center">
-  <b>Simulasi Kantor Virtual Multi-Agent Otonom dengan Arsitektur Node-to-Node P2P, Identitas Kriptografis Web3, Orkestrasi Telegram Bot, & Generator Kode Nyata di Disk</b><br>
+  <b>Autonomous Multi-Agent Virtual Workplace Simulation with Peer-to-Peer Node Architecture, Web3 Cryptographic Identity, Telegram Bot Orchestration, & Real On-Disk Code Generation</b><br>
   <i>CEO Virtual — Autonomous Multi-Agent Workplace & Decentralized Virtual Company Management</i>
 </p>
 
@@ -19,7 +19,7 @@
 
 ## ⚡ 1-Click Quick Installation
 
-Install dan jalankan CEO Virtual dalam 1 baris perintah langsung dari GitHub:
+Install and launch CEO Virtual in a single command directly from GitHub:
 
 ### **Windows (PowerShell)**
 ```powershell
@@ -31,188 +31,188 @@ irm https://raw.githubusercontent.com/asepindrak/ceo-virtual/main/install.ps1 | 
 curl -fsSL https://raw.githubusercontent.com/asepindrak/ceo-virtual/main/install.sh | bash
 ```
 
-> 💡 **Pilihan Autorun Interaktif**: Saat instalasi berjalan, script installer akan menanyakan apakah Anda ingin mengaktifkan *Autorun at Startup* `[Y/n]` secara otomatis.
+> 💡 **Interactive Autorun Prompt**: During installation, the script will ask if you want to enable *Autorun at Startup* `[Y/n]` automatically.
 
 ---
 
-## 🚀 Alur Setup Pertama Kali (Web-First Interactive Onboarding)
+## 🚀 First-Time Setup (Web-First Interactive Onboarding)
 
-Setelah instalasi selesai, server otomatis aktif pada port dedicated **`:28483`** dan **langsung membuka browser** ke `http://localhost:28483`.
+Once installation finishes, the server starts on dedicated port **`:28483`** and **automatically opens your browser** to `http://localhost:28483`.
 
 ```text
 +---------------------------------------------------------------------------------+
 |                         👑 CEO VIRTUAL INITIALIZATION                           |
 |               Autonomous Multi-Agent Workplace on Decentralized P2P             |
 +---------------------------------------------------------------------------------+
-|   [ 🚀 Buat Kantor Baru ]                      [ 🔄 Pulihkan Kantor ]           |
+|   [ 🚀 Create New Company ]                    [ 🔄 Restore Company ]           |
 |   (Create New Company & Wallet)                (Restore from Backup File)       |
 +---------------------------------------------------------------------------------+
 ```
 
-### 1. 🔑 Identitas Kriptografis & Kode Cadangan
-* **BIP-39 Mnemonic Seed Phrase (12 Kata Rahasia)**: Dibangkitkan secara deterministik dengan alamat owner publik (`0x...`).
-* **📋 Tombol Salin (Copy to Clipboard)**: Salin 12 kata dalam 1 klik dengan feedback notifikasi.
-* **📥 Tombol Unduh File Cadangan (`.txt`)**: Mengunduh file `ceo-virtual-backup-<nama-kantor>.txt` yang berisi alamat node, 12 kata pemulihan, dan panduan keamanan.
-* **🔄 Pulihkan Kantor (Restore)**: Jika install ulang PC atau pindah laptop, cukup **Drag & Drop / Upload file `.txt` cadangan** atau paste 12 kata pemulihan.
+### 1. 🔑 Cryptographic Identity & Backup Codes
+* **BIP-39 Mnemonic Seed Phrase (12 Secret Words)**: Deterministically generated with a public owner address (`0x...`).
+* **📋 Copy to Clipboard**: Copy all 12 words with 1-click notification feedback.
+* **📥 Download Backup File (`.txt`)**: Downloads `ceo-virtual-backup-<company-name>.txt` containing node address, 12 secret recovery words, and security guidelines.
+* **🔄 Restore Company**: When moving PCs or reinstalling, simply **Drag & Drop / Upload your `.txt` backup file** or paste your 12 recovery words.
 
-### 2. 🌐 Pemilihan Regional Shards & Dynamic Auto-Sharding
-* **📍 Deteksi Lokasi GPS Otomatis**: Sistem menggunakan Geolocation API browser (`navigator.geolocation`) dan fallback IP untuk menghitung jarak fisik (rumus Haversine dalam kilometer) ke setiap shard region. Shard terdekat (misal: *Jakarta ~14 km*) otomatis direkomendasikan dan dipilih.
-* Pilih klaster region terdekat untuk latensi real-time P2P:
+### 2. 🌐 Regional Shard Selection & Dynamic Auto-Sharding
+* **📍 Automatic GPS Location Detection**: Uses browser Geolocation API (`navigator.geolocation`) and IP fallback to calculate physical distance (Haversine formula in km) to each shard region. The closest shard (e.g., *Jakarta ~14 km*) is recommended and selected by default.
+* Select the lowest-latency regional cluster for real-time P2P sync:
   * 🇮🇩 `apac-jakarta-1` (12ms ping - Optimal)
   * 🇸🇬 `apac-singapore-1` (28ms ping - High Load)
   * 🇯🇵 `apac-tokyo-1` (74ms ping)
   * 🇩🇪 `eu-frankfurt-1` (165ms ping)
   * 🇺🇸 `us-east-1` (188ms ping)
-* **Dynamic Auto-Sharding Protocol**: Jika region mencapai utilisasi $\ge 90\%$, protokol konsensus node otomatis men-spawn shard baru (misal: **`APAC Jakarta Shard-2 (Auto-Spawned)`**) untuk menjaga performa jaringan.
+* **Dynamic Auto-Sharding Protocol**: When a region reaches $\ge 90\%$ capacity, the consensus protocol auto-spawns a new shard (e.g., **`APAC Jakarta Shard-2 (Auto-Spawned)`**) to maintain network performance.
 
 ### 3. 🤖 AI Company Generator, Global LLM Provider & Genesis Block
-* **✨ AI Company Generator (Auto Tim & Backlog Tugas)**:
-  * Masukkan ide atau preferensi bisnis Anda (misal: *SaaS CRM kasir kuliner*). AI akan otomatis merancang profil perusahaan, template layout kantor, divisi, tim karyawan awal (nama, role spesifik, keahlian, dan kepribadian MBTI bervariasi), serta tiket tugas backlog perdana di meja kerja.
-* **🌐 Setup LLM Global Perusahaan (Universal Auto-Inherit)**:
-  * Provider LLM yang diatur saat onboarding awal (**Groq, Google Gemini, DeepSeek, OpenAI, Anthropic, atau Ollama Lokal**) langsung dijadikan sebagai **Global LLM Provider** seluruh kantor. Semua karyawan yang bergabung otomatis mewarisi model ini untuk penalaran tiket, percakapan kantor, dan live coding tanpa perlu konfigurasi berulang.
-* **🛠️ Opsi Mulai dari Nol / Marketplace (Tanpa API Key)**:
-  * Jika belum memiliki API key LLM, pengguna dapat memilih opsi manual. Kantor akan diinisialisasi dalam kondisi bersih tanpa data dummy (**kavling kosong**). Karyawan baru dapat ditambahkan sendiri secara manual atau disewa dari **Marketplace P2P** kapan saja.
-* **⚡ Autorun at Startup & Nearby Office**:
-  * Opsi checkbox untuk mengaktifkan autorun di latar belakang saat komputer dinyalakan. Koordinat GPS disimpan untuk fitur *Nearby Office* (Kantor Tetangga).
-* Sistem menandatangani **Genesis Block** dengan kunci kriptografis lokal dan menyimpannya di `~/.ceo-virtual/keystore.json`.
+* **✨ AI Company Generator (Auto Team & Initial Backlog)**:
+  * Describe your business idea (e.g., *B2B SaaS Culinary POS System*). The AI automatically creates the company profile, office layout, departments, initial employee roster (roles, skills, and diverse MBTI personalities), plus initial sprint backlog tickets at desks.
+* **🌐 Global Enterprise LLM Setup (Universal Auto-Inherit)**:
+  * The LLM provider configured during onboarding (**Groq, Google Gemini, DeepSeek, OpenAI, Anthropic, or Local Ollama**) becomes the company's **Global LLM Provider**. All agents automatically inherit this configuration for ticket execution, office dialogue, and live coding.
+* **🛠️ Clean Start / Marketplace Option (No API Key Required)**:
+  * If you do not have an LLM API key yet, choose the clean start option. The office begins completely free of dummy data (**vacant lot**). You can add team members manually or hire agents from the **P2P Marketplace** at any time.
+* **⚡ Startup Autorun & Nearby Office**:
+  * Checkbox option to enable background autorun on system boot. GPS coordinates are saved for the *Nearby Office* mesh feature.
+* Signs the cryptographic **Genesis Block** and saves credentials locally to `~/.ceo-virtual/keystore.json`.
 
 ---
 
 ## 💻 CEO Virtual CLI (`ceo-virtual`)
 
-Setelah diinstall, Anda dapat mengontrol kantor virtual langsung dari terminal favorit Anda:
+Manage your virtual workplace directly from your terminal:
 
 ```bash
-# Menjalankan CEO Virtual pada port 28483 & otomatis membuka browser
+# Start CEO Virtual on port 28483 & auto-open browser
 ceo-virtual start
 
-# Cek status server, PID, port, dan status autorun
+# Check server status, PID, port, and autorun state
 ceo-virtual status
 
-# Hentikan server yang sedang berjalan
+# Stop running server
 ceo-virtual stop
 
-# Langsung buka folder workspace di File Explorer / Finder
+# Open workspaces folder in File Explorer / Finder
 ceo-virtual workspace
 
-# Aktifkan autorun otomatis saat komputer dinyalakan (boot)
+# Enable auto-start on computer boot
 ceo-virtual autorun enable
 
-# Non-aktifkan autorun
+# Disable auto-start
 ceo-virtual autorun disable
 
-# Uninstall CEO Virtual (lengkap dengan pilihan hapus/simpan memori)
+# Uninstall CEO Virtual (interactive prompt to keep or wipe memories)
 ceo-virtual uninstall
 
-# Buat folder proyek baru langsung via CLI
-ceo-virtual create <nama-proyek>
+# Scaffold a new project directory in workspaces
+ceo-virtual create <project-name>
 
-# Clone repository GitHub langsung ke workspace kantor
-ceo-virtual clone <url-github> [nama-folder]
+# Clone a GitHub repository directly into workspace
+ceo-virtual clone <github-url> [folder-name]
 ```
 
-*(Catatan: Perintah `vigent` tetap didukung sebagai alias perintah CLI untuk kompatibilitas mundur)*
+*(Note: `vigent` remains supported as an alias command for backward compatibility)*
 
 ---
 
-## 🌟 Fitur Unggulan
+## 🌟 Core Features
 
 ### 1. 🛡️ Node-to-Node P2P Blockchain & Proof-of-Ownership
-- Kepemilikan perusahaan dibuktikan secara matematis dengan tanda tangan digital kriptografis (Asymmetric Cryptography).
-- Bebas dari ketergantungan database terpusat tunggal (*zero single point of failure*).
-- Setiap instruksi penting ditandatangani oleh *Owner Address*, tersimpan dalam append-only event log lokal ber-hash (`prevHash -> hash`).
+- Cryptographic proof of ownership via asymmetric key signatures.
+- Zero dependency on centralized cloud databases (*zero single point of failure*).
+- Crucial actions are signed by the *Owner Address* and logged in a local append-only hashed event ledger (`prevHash -> hash`).
 
 ### 2. 🏢 Multi-Company & Autonomous Leader System
-- Kelola berbagai perusahaan (preset startup seperti *ShadowMove*, agensi studio, atau perusahaan kustom AI).
-- **Penentuan Leader Otomatis & Manual**:
-  - Deteksi otomatis leader tim berdasarkan hierarki jabatan (*Founder, Lead Architect, CEO, Director, Project Manager*).
-  - Pimpinan (Boss) dapat mengubah Leader Utama kapan saja cukup dengan 1 klik tombol **"👑 Set Jadi Leader"** di profil agen.
+- Manage multiple virtual companies and startup offices.
+- **Dynamic Leader Detection & Manual Override**:
+  - Automatically identifies team leads based on title hierarchy (*Founder, Lead Architect, CEO, Director, Project Manager*).
+  - The Boss can reassign the Primary Leader at any time via 1-click **"👑 Set as Leader"** in the agent inspector.
 
-### 3. 📱 Telegram Bot War Room Terisolasi (Bi-Directional Sync)
-- Setiap perusahaan dapat memiliki token Telegram Bot dan Chat ID terisolasi.
-- **Tagging Karyawan Spesifik**: Panggil karyawan dengan `@Kenji`, `@Rei`, `@Damian`, `@Yuki`, atau `@all`.
-- **Delegasi Sprint Otomatis**: Saat Boss memberikan instruksi proyek, Leader akan otomatis memecah arahan menjadi sub-task spesifik bagi tiap anggota tim (Frontend, Backend, QA).
-- **Laporan Berkala Otonom**: Tim melaporkan progres pengerjaan (50% & 100% milestone) langsung ke grup Telegram Boss atau ruang War Room kantor.
+### 3. 📱 Isolated Telegram Bot War Room (Bi-Directional Sync)
+- Each company can connect an isolated Telegram Bot token and Chat ID.
+- **Specific Agent Mentions**: Tag team members with `@Kenji`, `@Rei`, `@Damian`, `@Yuki`, or `@all`.
+- **Autonomous Sprint Delegation**: When the Boss issues project directives, the Leader breaks them into sub-tasks for team members (Frontend, Backend, QA).
+- **Milestone Progress Reports**: Agents report progress (50% and 100% completion) directly to the Telegram group or War Room chat.
 
-### 4. ☕ Rapat Harian Standup Conference Otonom
-- Agen-agen berkumpul di meja ruang rapat (Conference Room) untuk standup meeting pagi harian.
-- Masing-masing memaparkan apa yang dikerjakan kemarin, rencana hari ini, dan blocker.
-- Hasil rapat otomatis dirangkum dan diteruskan ke Telegram War Room.
+### 4. ☕ Autonomous Daily Standup Conference
+- Agents gather around the Conference Room table for scheduled daily standups.
+- Each member presents what they achieved yesterday, today's sprint goal, and blockers.
+- Meeting minutes are summarized and forwarded to the War Room & Telegram.
 
 ### 5. 🎨 Dual Engine Viewport (2.5D Isometric & 3D Three.js)
-- **2.5D Isometric Engine**: Rendering instan 60 FPS, ultra-ringan, stabil, dan ramah baterai laptop.
-- **3D WebGL Three.js Canvas**: Visualisasi 3D kantor penuh dengan kontrol kamera orbital, pencahayaan dinamis, stasiun kereta, dan visual interaktif.
+- **2.5D Isometric Engine**: Instant 60 FPS rendering, ultra-lightweight, and battery-friendly.
+- **3D WebGL Three.js Canvas**: Full 3D workplace visualization with orbital camera controls, dynamic lighting, and interactive stations.
 
-### 6. 📁 Real Disk Code Generation (`~/.ceo-virtual/workspaces`)
-- Setiap task koding yang diselesaikan agen benar-benar menghasilkan file kode sumber nyata di direktori terisolasi:
+### 6. 📁 Real On-Disk Code Generation (`~/.ceo-virtual/workspaces`)
+- Coding tasks generate tangible, working source code files in isolated directories:
   - `package.json`
   - `src/index.js`
   - `TASK_SUMMARY.md`
-  - Konfigurasi siap deploy dan live preview.
+  - Ready-to-deploy setups with live preview support.
 
-### 7. 🤖 Dukungan Multi-LLM Fleksibel (Global & BYOK)
-- Terapkan LLM secara global untuk seluruh agen dalam satu kantor atau atur konfigurasi individual per agen.
-- Kompatibel dengan berbagai provider AI:
-  - **OpenAI** (`gpt-4o`, `gpt-4o-mini`, dll.)
-  - **Anthropic Claude** (`claude-3-5-sonnet`, dll.)
+### 7. 🤖 Flexible Multi-LLM Support (Global & BYOK)
+- Apply models globally across all agents or customize individually per role.
+- Compatible with all major AI providers:
+  - **OpenAI** (`gpt-4o`, `gpt-4o-mini`, etc.)
+  - **Anthropic Claude** (`claude-3-5-sonnet`, etc.)
   - **Google Gemini** (`gemini-1.5-pro`, `gemini-2.0-flash`)
   - **Groq & DeepSeek** (Ultra-fast inference)
-  - **Local Ollama / Custom Endpoint**
+  - **Local Ollama / Custom Endpoints**
 
-### 8. 🎵 Retro Winamp Player & Office Audio System
-- Pemutar musik floating bergaya retro Winamp klasik yang terintegrasi dengan YouTube Music API.
-- Musik latar kantor virtual yang dapat dikontrol dari UI maupun via remote bot.
+### 8. 🎵 Retro Winamp Player & Office Audio
+- Classic Winamp-style floating audio player integrated with YouTube Music API.
+- Ambient office music controllable via the UI or remote bot commands.
 
-### 9. 📍 Spatial P2P & Ekosistem "Nearby Office" (Kantor Tetangga)
-- **Deteksi Geolocation Otomatis**: Mendeteksi lokasi GPS atau IP perangkat untuk menghubungkan kantor Anda ke shard region berlatensi terendah.
-- **Klaster Bisnis Tetangga**: Node-node di kota/distrik yang sama dapat saling terhubung untuk kolaborasi antar kantor virtual, kunjungan agen B2B, dan pembagian tugas.
-- **Privasi Terjaga**: Koordinat dibulatkan (*coarse geohash*) setingkat kota/area sehingga privasi rumah/lokasi presisi pengguna tetap aman 100%.
+### 9. 📍 Spatial P2P & "Nearby Office" Ecosystem
+- **Automatic Geolocation Detection**: Determines GPS or IP location to route your office node to the lowest-latency regional shard.
+- **Nearby Business Clusters**: Nodes in the same metropolitan area can discover one another for inter-company B2B visits, collaboration, and task sharing.
+- **Privacy Preserving**: Coordinates are rounded (*coarse geohash*) to city/district level to keep user locations 100% private.
 
 ---
 
-## 🛠️ Menjalankan Secara Manual (Development)
+## 🛠️ Manual Development Setup
 
-Jika ingin berkontribusi atau menjalankan dari source code:
+To run from source or contribute:
 
 ```bash
 # 1. Clone repository
 git clone https://github.com/asepindrak/ceo-virtual.git
 cd ceo-virtual
 
-# 2. Install dependensi
+# 2. Install dependencies
 npm install
 
-# 3. Jalankan development server pada port 28483
+# 3. Start development server on port 28483
 npm run dev
 
-# Atau jalankan via CLI
+# Or launch via CLI
 node ./bin/ceo-virtual.js start
 ```
 
-Buka browser di: **http://localhost:28483**
+Open your browser at: **http://localhost:28483**
 
 ---
 
-## 📁 Struktur Direktori & Workspaces
+## 📁 Directory & Workspace Structure
 
 ```text
 ~/.ceo-virtual/
-├── keystore.json        # Identitas node P2P, owner address, & Genesis signature
-├── regions.json         # Konfigurasi regional shard & auto-spawned cluster
-├── config.json          # Konfigurasi port, autorun, dan server
-├── server.pid           # PID background process
-├── workspaces/          # Direktori proyek nyata yang di-generate agen
-│   ├── shadowmove/
+├── keystore.json        # P2P node identity, owner address, & Genesis signature
+├── regions.json         # Regional shard configuration & auto-spawned clusters
+├── config.json          # Port configuration, autorun, and server preferences
+├── server.pid           # Active background process PID
+├── workspaces/          # Real project files generated by agents
+│   ├── my-first-project/
 │   └── ...
-├── telegram_<id>.json   # Pengaturan bot telegram per perusahaan
-└── chat_<id>.json       # Riwayat obrolan War Room
+├── telegram_<id>.json   # Per-company Telegram bot configuration
+└── chat_<id>.json       # War Room chat history
 ```
 
 ---
 
-## 🗑️ Cara Uninstall (Uninstallation)
+## 🗑️ Uninstallation
 
-Jika Anda ingin mencopot pemasangan CEO Virtual dari sistem Anda, gunakan script uninstaller 1-klik di bawah ini. Script akan secara otomatis menghentikan server, menghapus konfigurasi autorun saat startup, mencopot executable CLI, dan **memberikan pilihan interaktif apakah ingin menghapus data memori/cache atau tetap menyimpannya**:
+To remove CEO Virtual from your system, use the 1-click uninstaller. It automatically terminates active processes, removes startup autorun entries, removes CLI executables, and **offers an interactive choice to keep or wipe memories and workspace files**:
 
 ### **Windows (PowerShell)**
 ```powershell
@@ -224,20 +224,20 @@ irm https://raw.githubusercontent.com/asepindrak/ceo-virtual/main/uninstall.ps1 
 curl -fsSL https://raw.githubusercontent.com/asepindrak/ceo-virtual/main/uninstall.sh | bash
 ```
 
-### **Via Perintah CLI**
-Jika CLI `ceo-virtual` aktif di komputer Anda:
+### **Via CLI**
+If the `ceo-virtual` CLI is installed on your computer:
 ```bash
 ceo-virtual uninstall
 ```
 
-#### 🛡️ Pilihan Pembersihan Data & Memori:
-Saat proses uninstall dijalankan, Anda akan diminta konfirmasi:
-> `Apakah Anda ingin MENGHAPUS seluruh memori, cache & file workspace? [y/N]:`
+#### 🛡️ Data Retention Options:
+During uninstall, you will be prompted:
+> `Do you want to REMOVE all memories, cache & workspace files? [y/N]:`
 
-* **Pilih `N` (atau langsung tekan Enter):** *(Direkomendasikan)* Menghapus aplikasi dan autorun, namun **tetap menyimpan** data keystore P2P, memori AI, riwayat percakapan tim kantor, dan file proyek di `~/.ceo-virtual/workspaces`. Jika Anda menginstall kembali di masa mendatang, seluruh identitas dan perusahaan Anda akan langsung terbaca kembali secara utuh.
-* **Pilih `y`:** Menghapus seluruh folder `~/.ceo-virtual` dan cache secara bersih dan permanen dari komputer.
+* **Choose `N` (or press Enter):** *(Recommended)* Removes the application and autorun, but **preserves** your P2P keystore, AI memories, team chat logs, and project files in `~/.ceo-virtual/workspaces`. If you reinstall later, your company identity and projects will be recognized immediately.
+* **Choose `y`:** Completely and permanently deletes the `~/.ceo-virtual` directory and all cached data.
 
 ---
 
-## 📄 Lisensi
-Didistribusikan di bawah lisensi **MIT**. Bebas digunakan, dimodifikasi, dan dikembangkan untuk keperluan personal maupun komersial.
+## 📄 License
+Distributed under the **MIT License**. Free to use, modify, and distribute for personal and commercial purposes.

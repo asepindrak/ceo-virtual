@@ -80,7 +80,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
   const [newPort, setNewPort] = useState('3000');
   const [newUrl, setNewUrl] = useState('http://localhost:3000');
   const [newFramework, setNewFramework] = useState('Vite / React');
-  const [newDescription, setNewDescription] = useState('Development server lokal');
+  const [newDescription, setNewDescription] = useState('Local development server');
 
   useEffect(() => {
     try {
@@ -128,7 +128,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
       url: newUrl.trim(),
       status: 'running',
       framework: newFramework.trim() || 'Custom Dev Server',
-      description: newDescription.trim() || 'Server pengembangan lokal terhubung ke CEO Virtual.',
+      description: newDescription.trim() || 'Local development server connected to CEO Virtual.',
     };
 
     setServers((prev) => [...prev, newServer]);
@@ -167,7 +167,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-[#786653]">
-                Daftar port dan web dev server yang sedang terbuka untuk project. Klik link atau port untuk langsung buka di browser / in-app preview.
+                Active dev server ports and endpoints for projects. Click port or link to launch in external browser or in-app preview.
               </p>
             </div>
           </div>
@@ -176,7 +176,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
             <button
               onClick={() => setShowAddForm(!showAddForm)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1f6860] hover:bg-[#164e48] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
-              title="Daftarkan Port / Dev Server Lokal Lain"
+              title="Register Custom Local Port / Dev Server"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add Port</span>
@@ -205,23 +205,23 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                 className="p-3.5 bg-[#f4ebe1] border-b border-[#d6c5ad] space-y-2.5 text-xs animate-in slide-in-from-top-2"
               >
                 <div className="flex items-center justify-between font-bold text-[#2c231c]">
-                  <span>Daftarkan Dev Server / Port Baru</span>
+                  <span>Register New Dev Server / Port</span>
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
                     className="text-[#786653] hover:text-[#2c231c]"
                   >
-                    Batal
+                    Cancel
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-[11px] font-semibold text-[#5c4939] mb-1">
-                      Nama Project
+                      Project Name
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. ShadowMove Web App"
+                      placeholder="e.g. My Next.js Web App"
                       value={newProjectName}
                       onChange={(e) => setNewProjectName(e.target.value)}
                       required
@@ -276,7 +276,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
 
                 <div>
                   <label className="block text-[11px] font-semibold text-[#5c4939] mb-1">
-                    Deskripsi Singkat
+                    Short Description
                   </label>
                   <input
                     type="text"
@@ -292,7 +292,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                     type="submit"
                     className="px-3 py-1.5 bg-[#1f6860] hover:bg-[#164e48] text-white rounded-lg font-bold text-xs shadow-sm"
                   >
-                    Simpan Dev Server
+                    Save Dev Server
                   </button>
                 </div>
               </form>
@@ -301,7 +301,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
             {/* List Table */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
               <div className="flex items-center justify-between text-xs font-semibold text-[#786653] px-1">
-                <span>{servers.length} SERVERS TERDETEKSI</span>
+                <span>{servers.length} SERVERS DETECTED</span>
                 {servers.length > 0 && (
                   <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                     ● ALL SERVICES RUNNING
@@ -314,9 +314,9 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                   <div className="w-12 h-12 rounded-full bg-[#f4ebe1] flex items-center justify-center text-[#786653] mb-3">
                     <Server className="w-6 h-6" />
                   </div>
-                  <h4 className="text-xs font-bold text-[#2c231c]">Tidak Ada Dev Server yang Aktif</h4>
+                  <h4 className="text-xs font-bold text-[#2c231c]">No Active Dev Servers</h4>
                   <p className="text-[11px] text-[#786653] max-w-xs mt-1 leading-relaxed">
-                    Belum ada server development yang aktif. Server akan muncul otomatis saat agen menjalankan dev script atau Anda dapat menambahkan port server secara manual melalui tombol <strong>+ Tambah Port / Server</strong> di atas.
+                    No development servers are currently running. Servers will appear automatically when agents execute web scripts, or you can register ports manually using the <strong>+ Add Port</strong> button above.
                   </p>
                 </div>
               ) : (
@@ -341,7 +341,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                         <button
                           onClick={() => handleOpenBrowser(srv)}
                           className="px-2 py-1 rounded-md bg-[#24292f] hover:bg-black text-emerald-400 font-mono text-xs font-bold flex items-center gap-1.5 shadow-xs border border-gray-700 transition-colors group cursor-pointer"
-                          title="Klik untuk buka port di browser baru"
+                          title="Click to open port in a new browser tab"
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                           <span>:{srv.port}</span>
@@ -375,7 +375,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                       <button
                         onClick={() => handleCopyUrl(srv)}
                         className="p-1 hover:text-[#1f6860] transition-colors shrink-0"
-                        title="Salin URL ke clipboard"
+                        title="Copy URL to clipboard"
                       >
                         {copiedId === srv.id ? (
                           <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -398,7 +398,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                               ? 'bg-[#1f6860] text-white'
                               : 'bg-[#ede2d1] hover:bg-[#dccab3] text-[#2c231c]'
                           }`}
-                          title="Tampilkan preview interaktif di samping"
+                          title="Display interactive side preview"
                         >
                           <Monitor className="w-3 h-3" />
                           <span>In-App Preview</span>
@@ -407,16 +407,16 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                         <button
                           onClick={() => handleOpenBrowser(srv)}
                           className="px-2.5 py-1 bg-[#fffdf9] hover:bg-[#f4ebe1] border border-[#d6c5ad] rounded-lg text-xs font-medium text-[#2c231c] flex items-center gap-1 transition-colors"
-                          title="Buka web ini langsung di tab browser baru"
+                          title="Open directly in a new browser tab"
                         >
                           <ExternalLink className="w-3 h-3 text-[#1f6860]" />
-                          <span className="hidden sm:inline">Buka Web</span>
+                          <span className="hidden sm:inline">Open Web</span>
                         </button>
 
                           <button
                             onClick={() => handleDeleteServer(srv.id)}
                             className="p-1 text-[#786653] hover:text-red-600 transition-colors"
-                            title="Hapus server dari daftar"
+                            title="Remove server from list"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -496,7 +496,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-1.5 text-gray-300 hover:text-white hover:bg-[#444] rounded transition-colors"
-                    title="Buka di tab browser baru"
+                    title="Open in new browser tab"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
@@ -504,7 +504,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                   <button
                     onClick={() => setActivePreviewUrl(null)}
                     className="p-1.5 text-gray-400 hover:text-white hover:bg-[#444] rounded transition-colors"
-                    title="Tutup In-App Preview"
+                    title="Close In-App Preview"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -538,10 +538,10 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                 <Layers className="w-8 h-8" />
               </div>
               <h3 className="font-bold text-[#2c231c] text-sm mb-1">
-                Pilih Dev Server untuk Live Preview
+                Select a Dev Server for Live Preview
               </h3>
               <p className="text-xs max-w-sm text-[#786653] leading-relaxed mb-4">
-                Pilih salah satu port di sebelah kiri atau klik tombol <strong className="text-[#1f6860]">In-App Preview</strong> untuk melihat live web langsung di dalam antarmuka CEO Virtual!
+                Select a port on the left or click the <strong className="text-[#1f6860]">In-App Preview</strong> button to inspect the live web application directly inside CEO Virtual!
               </p>
               {servers.length > 0 && (
                 <button
@@ -549,7 +549,7 @@ export const DevServersModal: React.FC<DevServersModalProps> = ({
                   className="px-3.5 py-2 bg-[#1f6860] hover:bg-[#164e48] text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-colors"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Buka Preview {servers[0].projectName}</span>
+                  <span>Open Preview for {servers[0].projectName}</span>
                 </button>
               )}
             </div>

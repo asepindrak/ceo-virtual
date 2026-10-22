@@ -104,7 +104,7 @@ node "$TARGET_DIR/bin/ceo-virtual.js" memory init || true
 
 # Enable autorun
 if [ -t 0 ]; then
-  read -p "► Jalankan CEO Virtual otomatis saat booting (Autorun at Startup)? [Y/n] (Default: Y): " AUTORUN_CHOICE
+  read -p "► Launch CEO Virtual automatically on system boot (Autorun at Startup)? [Y/n] (Default: Y): " AUTORUN_CHOICE
   AUTORUN_CHOICE=${AUTORUN_CHOICE:-Y}
 else
   AUTORUN_CHOICE="Y"

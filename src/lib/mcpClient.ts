@@ -6,6 +6,7 @@ import { ToolDefinition } from './llmService';
 import { spawn } from 'child_process';
 
 export const VIGENT_MCP_CONFIG_FILE = path.join(VIGENT_HOME, 'mcp_config.json');
+export const CEO_MCP_CONFIG_FILE = VIGENT_MCP_CONFIG_FILE;
 
 export interface McpServerConfig {
   id: string;
@@ -28,7 +29,7 @@ export const MCP_CATALOG_PRESETS: McpServerConfig[] = [
   {
     id: 'github',
     name: 'GitHub MCP Server',
-    description: 'Manajemen repositori git, create branch, commit, inspect issues, and PR reviews.',
+    description: 'Manage git repositories, create branches, commit code, inspect issues, and review pull requests.',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-github'],
     env: { GITHUB_PERSONAL_ACCESS_TOKEN: '' },
@@ -39,7 +40,7 @@ export const MCP_CATALOG_PRESETS: McpServerConfig[] = [
   {
     id: 'postgres',
     name: 'PostgreSQL Database MCP',
-    description: 'Koneksi langsung ke database PostgreSQL untuk query data, verifikasi schema, dan migrasi.',
+    description: 'Direct connection to PostgreSQL databases to query tables, inspect schemas, and execute migrations.',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-postgres', 'postgresql://localhost:5432/vigent_db'],
     assignedRoles: ['backend_dev', 'fullstack_dev', 'data_analyst'],
@@ -49,7 +50,7 @@ export const MCP_CATALOG_PRESETS: McpServerConfig[] = [
   {
     id: 'brave-search',
     name: 'Brave Web Search MCP',
-    description: 'Pencarian internet langsung untuk riset artikel, update library teknologi, dan benchmarking.',
+    description: 'Real-time web search for framework documentation, technology updates, and market research.',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-brave-search'],
     env: { BRAVE_API_KEY: '' },
@@ -60,7 +61,7 @@ export const MCP_CATALOG_PRESETS: McpServerConfig[] = [
   {
     id: 'filesystem',
     name: 'Extended Filesystem MCP',
-    description: 'Akses membaca dan menganalisis struktur direktori lokal di workspace.',
+    description: 'Read and analyze local directory filesystems and workspaces.',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-filesystem'],
     assignedRoles: 'all',
@@ -70,7 +71,7 @@ export const MCP_CATALOG_PRESETS: McpServerConfig[] = [
   {
     id: 'fetch',
     name: 'Web Fetch & Scraper MCP',
-    description: 'Mengunduh konten halaman web publik dan mengonversi HTML ke format markdown.',
+    description: 'Fetch public web pages and convert HTML directly into clean markdown format.',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-fetch'],
     assignedRoles: ['content_writer', 'qa_engineer'],
@@ -151,7 +152,7 @@ export function getMcpToolsForRole(role: AgentRole): ToolDefinition[] {
         type: 'function',
         function: {
           name: 'mcp_github_create_issue_or_pr',
-          description: `[MCP: GitHub] Buat issue atau Pull Request baru di repository GitHub. Server: ${server.name}`,
+          description: `[MCP: GitHub] Create a new issue or pull request in a GitHub repository. Server: ${server.name}`,
           parameters: {
             type: 'object',
             properties: {
@@ -168,7 +169,7 @@ export function getMcpToolsForRole(role: AgentRole): ToolDefinition[] {
         type: 'function',
         function: {
           name: 'mcp_postgres_execute_query',
-          description: `[MCP: PostgreSQL] Jalankan SQL query terhadap database PostgreSQL untuk analisa atau validasi skema. Server: ${server.name}`,
+          description: `[MCP: PostgreSQL] Execute SQL query against PostgreSQL database for data analysis or schema validation. Server: ${server.name}`,
           parameters: {
             type: 'object',
             properties: {
@@ -183,7 +184,7 @@ export function getMcpToolsForRole(role: AgentRole): ToolDefinition[] {
         type: 'function',
         function: {
           name: 'mcp_brave_web_search',
-          description: `[MCP: Brave Search] Cari dokumentasi, informasi teknologi, atau berita terbaru di internet. Server: ${server.name}`,
+          description: `[MCP: Brave Search] Search online documentation, tech updates, or current web data. Server: ${server.name}`,
           parameters: {
             type: 'object',
             properties: {
@@ -198,7 +199,7 @@ export function getMcpToolsForRole(role: AgentRole): ToolDefinition[] {
         type: 'function',
         function: {
           name: 'mcp_fetch_web_page',
-          description: `[MCP: Web Fetch] Unduh halaman web dan ekstrak teks kontennya. Server: ${server.name}`,
+          description: `[MCP: Web Fetch] Download web page content and extract markdown text. Server: ${server.name}`,
           parameters: {
             type: 'object',
             properties: {

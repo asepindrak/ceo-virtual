@@ -48,7 +48,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   const [mbti, setMbti] = useState('INTJ');
   const [enneagram, setEnneagram] = useState('5w6');
   const [archetype, setArchetype] = useState('The Mastermind Architect');
-  const [speakingStyle, setSpeakingStyle] = useState('To-the-point, logis dan solutif');
+  const [speakingStyle, setSpeakingStyle] = useState('To-the-point, logical and solution-oriented');
   
   // LLM setup
   const [llmProvider, setLlmProvider] = useState<LLMConfig['provider']>('openai');
@@ -73,7 +73,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     if (userAccount.pointsBalance < agent.pricePoints) {
       setNotification({
         type: 'error',
-        msg: `Saldo poin tidak cukup! Butuh ${agent.pricePoints} PTS, saldo Anda ${userAccount.pointsBalance} PTS. Silakan Top Up.`,
+        msg: `Insufficient point balance! Requires ${agent.pricePoints} PTS, your balance is ${userAccount.pointsBalance} PTS. Please Top Up.`,
       });
       return;
     }
@@ -83,7 +83,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
       setNotification({
         type: 'success',
-        msg: `Berhasil merekrut ${agent.name}! Karyawan sedang masuk kantor melalui pintu masuk.`,
+        msg: `Successfully hired ${agent.name}! Employee is entering the office lobby.`,
       });
       setTimeout(() => {
         onClose();
@@ -91,7 +91,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     } else {
       setNotification({
         type: 'error',
-        msg: 'Semua meja kerja di kantor penuh! Pecat atau kosongkan meja terlebih dahulu.',
+        msg: 'All desks in the office are full! Fire or clear a desk first.',
       });
     }
   };
@@ -117,9 +117,9 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         mbti,
         enneagram,
         archetype,
-        traits: ['Profesional', 'Adaptif', 'Fokus'],
+        traits: ['Professional', 'Adaptive', 'Focused'],
         speakingStyle,
-        interests: ['Teknologi', 'Problem Solving', 'Inovasi'],
+        interests: ['Technology', 'Problem Solving', 'Innovation'],
       },
       gender,
       hairStyle: hairStyle as any,
@@ -152,7 +152,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     setActiveTab('browse');
     setNotification({
       type: 'success',
-      msg: `Selamat! Agen "${name}" berhasil dipublikasikan ke Marketplace untuk disewa pengguna lain.`,
+      msg: `Congratulations! Agent "${name}" published to Marketplace for hire.`,
     });
   };
 
@@ -167,13 +167,13 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold font-mono text-[#2c231c] tracking-tight">Marketplace AI Worker</h2>
+                <h2 className="text-lg font-bold font-mono text-[#2c231c] tracking-tight">AI Worker Marketplace</h2>
                 <span className="px-2 py-0.5 rounded-full bg-[#c68f23]/20 text-[#8c6214] font-mono text-[11px] font-bold border border-[#c68f23]/40">
                   Creator Economy
                 </span>
               </div>
               <p className="text-xs text-[#6e5d4f]">
-                Rekrut AI Agent berbakat dari komunitas atau buat dan monetisasi agen buatanmu sendiri
+                Hire talented AI Agents from the community or create and monetize your own agents
               </p>
             </div>
           </div>
@@ -183,11 +183,11 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             <button
               onClick={onOpenWallet}
               className="flex items-center gap-2 px-3 py-1.5 bg-[#fffdf9] border-2 border-[#c68f23]/50 rounded-xl hover:border-[#c68f23] transition-colors shadow-sm"
-              title="Isi Ulang Saldo Poin"
+              title="Top Up Point Balance"
             >
               <span className="text-base">🪙</span>
               <div className="text-left">
-                <div className="text-[10px] text-[#6e5d4f] leading-none">Saldo Poin</div>
+                <div className="text-[10px] text-[#6e5d4f] leading-none">Point Balance</div>
                 <div className="text-xs font-bold font-mono text-[#8c6214]" suppressHydrationWarning>
                   {formatNumber(userAccount.pointsBalance)} PTS
                 </div>
@@ -217,7 +217,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             }`}
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>Pasar Agen ({marketplaceAgents.length})</span>
+            <span>Agent Market ({marketplaceAgents.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('create')}
@@ -228,7 +228,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             }`}
           >
             <Plus className="w-4 h-4 text-[#c85a2b]" />
-            <span>Buat & Publikasikan Agen Baru</span>
+            <span>Create & Publish New Agent</span>
           </button>
         </div>
 
@@ -263,7 +263,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
                 <input
                   type="text"
-                  placeholder="Cari nama agen, keahlian, atau posisi..."
+                  placeholder="Search agent name, skills, or role..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full sm:w-72 bg-[#fffdf9] border-2 border-[#d6c5ad] rounded-xl px-3.5 py-2 text-[#2c231c] placeholder-[#9c8978] focus:outline-none focus:border-[#c85a2b] text-xs font-mono"
@@ -302,13 +302,13 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           <span className="text-[#6e5d4f]">
                             By:{' '}
                             <span className="font-bold text-[#2c231c]">
-                              {mktAgent.creatorName} {isCreatedByMe && '(Anda)'}
+                              {mktAgent.creatorName} {isCreatedByMe && '(You)'}
                             </span>
                           </span>
                           <div className="flex items-center gap-1 text-[#8c6214] font-mono font-bold">
                             <Star className="w-3.5 h-3.5 fill-[#c68f23] text-[#c68f23]" />
                             <span>{mktAgent.rating.toFixed(1)}</span>
-                            <span className="text-[#8c7b6c] font-normal">({mktAgent.hiresCount} hire)</span>
+                            <span className="text-[#8c7b6c] font-normal">({mktAgent.hiresCount} hires)</span>
                           </div>
                         </div>
 
@@ -330,7 +330,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                                     : 'bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]'
                                 }`}
                               >
-                                {mktAgent.gender === 'female' ? '♀ Perempuan' : '♂ Laki-laki'}
+                                {mktAgent.gender === 'female' ? '♀ Female' : '♂ Male'}
                               </span>
                             </div>
                             <div className="text-[#c85a2b] font-semibold text-xs">{mktAgent.roleTitle}</div>
@@ -393,20 +393,20 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                               </span>
                             ) : (
                               <span className="text-[#1b5e4b] flex items-center gap-1 font-semibold">
-                                <Unlock className="w-3 h-3 text-[#288279]" /> BYOK (Kustom)
+                                <Unlock className="w-3 h-3 text-[#288279]" /> BYOK (Custom)
                               </span>
                             )}
                           </div>
                           {mktAgent.llmConfig.isLocked ? (
                             <div className="text-[10px] text-[#6e5d4f]">
-                              Token ditanggung kreator. Sub token:{' '}
+                              Tokens covered by creator. Token sub:{' '}
                               <span className="text-[#8c6214] font-bold font-mono">
-                                {mktAgent.llmConfig.monthlySubscriptionPoints} PTS/bln
+                                {mktAgent.llmConfig.monthlySubscriptionPoints} PTS/mo
                               </span>
                             </div>
                           ) : (
                             <div className="text-[10px] text-[#6e5d4f]">
-                              Pengguna memasukkan API Key sendiri, token bebas limit lokal.
+                              User provides own API Key, unlimited local tokens.
                             </div>
                           )}
                         </div>
@@ -415,7 +415,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                       {/* Hire Action & Pricing */}
                       <div className="pt-2 border-t border-[#ebdcc9] flex items-center justify-between">
                         <div>
-                          <div className="text-[10px] text-[#6e5d4f]">Harga Rekrut Permanen</div>
+                          <div className="text-[10px] text-[#6e5d4f]">Permanent Hire Price</div>
                           <div className="text-sm font-bold font-mono text-[#c85a2b]" suppressHydrationWarning>
                             🪙 {formatNumber(mktAgent.pricePoints)} PTS
                           </div>
@@ -426,7 +426,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           className="px-4 py-2 bg-[#c85a2b] hover:bg-[#b04a1f] text-white font-bold rounded-xl transition-all shadow-sm text-xs flex items-center gap-1.5"
                         >
                           <ShoppingBag className="w-3.5 h-3.5" />
-                          <span>Rekrut Karyawan</span>
+                          <span>Hire Employee</span>
                         </button>
                       </div>
                     </div>
@@ -440,13 +440,13 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               <div className="p-3 bg-[#ebdcc9]/40 border border-[#d6c5ad] rounded-xl text-[#5c4a3d] flex items-start gap-2.5">
                 <Sparkles className="w-4 h-4 text-[#c85a2b] shrink-0 mt-0.5" />
                 <p>
-                  Publikasikan agen kustom buatanmu ke pasar. Pengguna lain dapat merekrut agen ini dengan poin yang akan masuk ke saldo akunmu!
+                  Publish your custom-crafted agent to the market. Other users can hire this agent with points that credit directly to your account!
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[#5c4a3d] font-bold mb-1">Nama Agen</label>
+                  <label className="block text-[#5c4a3d] font-bold mb-1">Agent Name</label>
                   <input
                     type="text"
                     required
@@ -457,7 +457,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[#5c4a3d] font-bold mb-1">Jabatan / Role Title</label>
+                  <label className="block text-[#5c4a3d] font-bold mb-1">Role Title</label>
                   <input
                     type="text"
                     required
@@ -471,7 +471,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[#5c4a3d] font-bold mb-1">Kategori Peran</label>
+                  <label className="block text-[#5c4a3d] font-bold mb-1">Role Category</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value as AgentRole)}
@@ -487,7 +487,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[#5c4a3d] font-bold mb-1">Gender / Jenis Kelamin</label>
+                  <label className="block text-[#5c4a3d] font-bold mb-1">Gender</label>
                   <select
                     value={gender}
                     onChange={(e) => {
@@ -501,8 +501,8 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     }}
                     className="w-full bg-[#fffdf9] border-2 border-[#d6c5ad] rounded-xl px-3 py-1.5 text-[#2c231c]"
                   >
-                    <option value="male">♂ Laki-laki</option>
-                    <option value="female">♀ Perempuan</option>
+                    <option value="male">♂ Male</option>
+                    <option value="female">♀ Female</option>
                   </select>
                 </div>
               </div>
@@ -510,7 +510,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               {/* Visual Hair, Eyes, & Colors */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-[#fdfaf5] border-2 border-[#d6c5ad] rounded-xl">
                 <div>
-                  <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Gaya Rambut</label>
+                  <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Hair Style</label>
                   <select
                     value={hairStyle}
                     onChange={(e) => setHairStyle(e.target.value)}
@@ -518,38 +518,38 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   >
                     {gender === 'female' ? (
                       <>
-                        <option value="twintails">🎀 Twintails (Kuncir Dua)</option>
-                        <option value="bob_cut">💇 Bob Cut (Hime Cut)</option>
-                        <option value="long_flowing">✨ Long Flowing (Panjang Terurai)</option>
-                        <option value="ponytail">🐎 Ponytail (Kuncir Belakang)</option>
+                        <option value="twintails">🎀 Twintails</option>
+                        <option value="bob_cut">💇 Bob Cut</option>
+                        <option value="long_flowing">✨ Long Flowing</option>
+                        <option value="ponytail">🐎 Ponytail</option>
                       </>
                     ) : (
                       <>
-                        <option value="undercut">⚡ Undercut (Modern Sharp)</option>
-                        <option value="short_messy">🌪️ Short Messy (Anime Spikes)</option>
-                        <option value="slick_back">👔 Slick Back (Eksekutif)</option>
+                        <option value="undercut">⚡ Undercut</option>
+                        <option value="short_messy">🌪️ Short Messy</option>
+                        <option value="slick_back">👔 Slick Back</option>
                       </>
                     )}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Aksesori Karakter</label>
+                  <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Character Accessory</label>
                   <select
                     value={accessory}
                     onChange={(e) => setAccessory(e.target.value)}
                     className="w-full bg-[#fffdf9] border-2 border-[#d6c5ad] rounded-xl px-2.5 py-1.5 text-[#2c231c] text-xs"
                   >
-                    <option value="none">Tanpa Aksesori</option>
-                    <option value="glasses">👓 Kacamata (Glasses)</option>
+                    <option value="none">None</option>
+                    <option value="glasses">👓 Glasses</option>
                     <option value="cyber_earpiece">🎧 Cyber Earpiece</option>
-                    <option value="hairclip">🌸 Jepit Rambut (Hairclip)</option>
-                    <option value="ribbon">🎀 Pita Rambut (Ribbon)</option>
+                    <option value="hairclip">🌸 Hairclip</option>
+                    <option value="ribbon">🎀 Ribbon</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Warna Karakter</label>
+                  <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Character Colors</label>
                   <div className="flex items-center gap-1.5">
                     <div className="flex flex-col items-center">
                       <input
@@ -557,9 +557,9 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         value={hairColor}
                         onChange={(e) => setHairColor(e.target.value)}
                         className="w-7 h-7 rounded-md cursor-pointer border border-[#d6c5ad]"
-                        title="Warna Rambut"
+                        title="Hair Color"
                       />
-                      <span className="text-[9px] text-[#6e5d4f]">Rambut</span>
+                      <span className="text-[9px] text-[#6e5d4f]">Hair</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <input
@@ -567,9 +567,9 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         value={eyeColor}
                         onChange={(e) => setEyeColor(e.target.value)}
                         className="w-7 h-7 rounded-md cursor-pointer border border-[#d6c5ad]"
-                        title="Warna Mata"
+                        title="Eye Color"
                       />
-                      <span className="text-[9px] text-[#6e5d4f]">Mata</span>
+                      <span className="text-[9px] text-[#6e5d4f]">Eyes</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <input
@@ -577,9 +577,9 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         value={shirtColor}
                         onChange={(e) => setShirtColor(e.target.value)}
                         className="w-7 h-7 rounded-md cursor-pointer border border-[#d6c5ad]"
-                        title="Warna Baju"
+                        title="Shirt Color"
                       />
-                      <span className="text-[9px] text-[#6e5d4f]">Baju</span>
+                      <span className="text-[9px] text-[#6e5d4f]">Shirt</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <input
@@ -587,20 +587,20 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         value={avatarColor}
                         onChange={(e) => setAvatarColor(e.target.value)}
                         className="w-7 h-7 rounded-md cursor-pointer border border-[#d6c5ad]"
-                        title="Warna Aksen"
+                        title="Accent Color"
                       />
-                      <span className="text-[9px] text-[#6e5d4f]">Aksen</span>
+                      <span className="text-[9px] text-[#6e5d4f]">Accent</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[#5c4a3d] font-bold mb-1">Bio / Persona Spesialisasi</label>
+                <label className="block text-[#5c4a3d] font-bold mb-1">Bio / Specialization Persona</label>
                 <textarea
                   rows={2}
                   required
-                  placeholder="Deskripsikan keunggulan dan metode kerja agen ini..."
+                  placeholder="Describe the strengths, tools, and working style of this agent..."
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   className="w-full bg-[#fffdf9] border-2 border-[#d6c5ad] rounded-xl px-3 py-2 text-[#2c231c] placeholder-[#9c8978] focus:outline-none focus:border-[#c85a2b]"
@@ -608,7 +608,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-[#5c4a3d] font-bold mb-1">Keahlian (Pisahkan koma)</label>
+                <label className="block text-[#5c4a3d] font-bold mb-1">Skills (Comma separated)</label>
                 <input
                   type="text"
                   placeholder="e.g. Next.js, Docker, Tailwind, Prompt Engineering"
@@ -622,11 +622,11 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               <div className="p-3.5 rounded-xl bg-[#fdf2f8]/60 border-2 border-[#fbcfe8] space-y-2.5">
                 <div className="font-bold text-[#be185d] flex items-center gap-1.5 text-xs font-mono">
                   <Sparkles className="w-4 h-4 text-[#ec4899]" />
-                  <span>Kepribadian Manusiawi (MBTI & Enneagram)</span>
+                  <span>Human Personality (MBTI & Enneagram)</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">Tipe MBTI</label>
+                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">MBTI Type</label>
                     <select
                       value={mbti}
                       onChange={(e) => setMbti(e.target.value)}
@@ -638,7 +638,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">Tipe Enneagram</label>
+                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">Enneagram Type</label>
                     <select
                       value={enneagram}
                       onChange={(e) => setEnneagram(e.target.value)}
@@ -652,7 +652,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">Archetype / Julukan</label>
+                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">Archetype / Title</label>
                     <input
                       type="text"
                       placeholder="e.g. The Mastermind Architect"
@@ -662,10 +662,10 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">Gaya Bicara Unik</label>
+                    <label className="block text-[#9d174d] text-[11px] font-bold mb-1">Unique Speaking Style</label>
                     <input
                       type="text"
-                      placeholder="e.g. To-the-point, logis dan santai"
+                      placeholder="e.g. To-the-point, logical and articulate"
                       value={speakingStyle}
                       onChange={(e) => setSpeakingStyle(e.target.value)}
                       className="w-full bg-[#fffdf9] border-2 border-[#fbcfe8] rounded-xl px-3 py-1.5 text-[#2c231c] text-xs"
@@ -679,13 +679,13 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="font-bold text-[#c85a2b] flex items-center gap-1.5 font-mono">
                     <Cpu className="w-4 h-4" />
-                    <span>Konfigurasi LLM & Monetisasi Token</span>
+                    <span>LLM Configuration & Token Monetization</span>
                   </div>
 
                   {/* Lock Switch */}
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-[#6e5d4f] font-medium">
-                      {isLocked ? '🔒 Kunci Provider (Token Langganan)' : '🔓 BYOK (Bebas Kustomisasi)'}
+                      {isLocked ? '🔒 Lock Provider (Subscription Token)' : '🔓 BYOK (Custom Key)'}
                     </span>
                     <button
                       type="button"
@@ -734,7 +734,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Base URL (Opsional)</label>
+                    <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Base URL (Optional)</label>
                     <input
                       type="text"
                       placeholder="https://api.openai.com/v1"
@@ -745,10 +745,10 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">API Key Kreator (Jika Dikunci)</label>
+                    <label className="block text-[#6e5d4f] text-[11px] font-bold mb-1">Creator API Key (If Locked)</label>
                     <input
                       type="password"
-                      placeholder={isLocked ? 'sk-...' : '(Opsional jika BYOK)'}
+                      placeholder={isLocked ? 'sk-...' : '(Optional if BYOK)'}
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
                       className="w-full bg-[#fffdf9] border-2 border-[#d6c5ad] rounded-xl px-3 py-1.5 text-[#2c231c] font-mono text-[11px]"
@@ -759,7 +759,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                 {isLocked && (
                   <div className="p-2.5 rounded-xl bg-[#c68f23]/10 border border-[#c68f23]/30 flex items-center justify-between">
                     <span className="text-[#8c6214] text-[11px] font-medium">
-                      Biaya Langganan Token Bulanan yang Dibebankan ke Penyewa:
+                      Monthly Token Subscription Fee Charged to Hirer:
                     </span>
                     <div className="flex items-center gap-1">
                       <input
@@ -770,7 +770,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         onChange={(e) => setMonthlySubscriptionPoints(Number(e.target.value))}
                         className="w-20 bg-[#fffdf9] border-2 border-[#c68f23]/50 rounded-lg px-2 py-1 text-right text-[#8c6214] font-mono text-xs font-bold"
                       />
-                      <span className="text-[#8c6214] font-bold font-mono">PTS/bln</span>
+                      <span className="text-[#8c6214] font-bold font-mono">PTS/mo</span>
                     </div>
                   </div>
                 )}
@@ -780,7 +780,7 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               <div className="grid grid-cols-2 gap-3 items-center pt-1">
                 <div>
                   <label className="block text-[#5c4a3d] font-bold mb-1">
-                    Harga Beli Perekrutan Awal (Poin)
+                    Initial Hire Price (Points)
                   </label>
                   <input
                     type="number"
@@ -793,9 +793,9 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                 </div>
 
                 <div className="text-right">
-                  <div className="text-[11px] text-[#6e5d4f] mb-1">Estimasi Royalti Poin</div>
+                  <div className="text-[11px] text-[#6e5d4f] mb-1">Estimated Point Royalties</div>
                   <div className="text-xs text-[#288279] font-bold">
-                    100% Poin masuk ke saldo Anda tiap ada yang rekrut
+                    100% of Points credit directly to your balance on hire
                   </div>
                 </div>
               </div>
@@ -806,14 +806,14 @@ export const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   onClick={() => setActiveTab('browse')}
                   className="px-4 py-2.5 bg-[#e8dac4] text-[#5c4a3d] font-bold rounded-xl hover:bg-[#d6c5ad] transition-colors"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-6 py-2.5 bg-[#c85a2b] hover:bg-[#b04a1f] text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Publikasikan ke Marketplace</span>
+                  <span>Publish to Marketplace</span>
                 </button>
               </div>
             </form>

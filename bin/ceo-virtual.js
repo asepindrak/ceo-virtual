@@ -218,7 +218,7 @@ Name=CEO Virtual
 
 function waitForServerHealth(port, maxWaitSec = 45) {
   return new Promise((resolve) => {
-    process.stdout.write(`  ${colors.cyan}► Menunggu server Next.js siap (Health Check)...${colors.reset} `);
+    process.stdout.write(`  ${colors.cyan}► Waiting for Next.js server to be ready (Health Check)...${colors.reset} `);
     const startTime = Date.now();
     const url = `http://localhost:${port}/api/node/status`;
 
@@ -237,11 +237,11 @@ function waitForServerHealth(port, maxWaitSec = 45) {
       if (isAlive) {
         clearInterval(interval);
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        console.log(`\n  ${colors.green}✓ Server SIAP dan merespons dalam ${elapsed}s!${colors.reset}`);
+        console.log(`\n  ${colors.green}✓ Server READY and responding in ${elapsed}s!${colors.reset}`);
         resolve(true);
       } else if (Date.now() - startTime > maxWaitSec * 1000) {
         clearInterval(interval);
-        console.log(`\n  ${colors.yellow}Server masih compiling di background. Silakan buka http://localhost:${port}${colors.reset}`);
+        console.log(`\n  ${colors.yellow}Server is still compiling in background. Please open http://localhost:${port}${colors.reset}`);
         resolve(false);
       } else {
         process.stdout.write('.');
@@ -298,7 +298,7 @@ async function handleCommand() {
       // Health check polling: wait until server actually returns 200 before opening browser!
       const ready = await waitForServerHealth(port, 45);
       if (ready) {
-        console.log(`  ${colors.green}► Membuka browser: ${url}${colors.reset}\n`);
+        console.log(`  ${colors.green}► Opening browser: ${url}${colors.reset}\n`);
         openUrl(url);
       }
       return;
@@ -519,7 +519,7 @@ async function handleCommand() {
       console.log(`  Storage Root:   ${colors.dim}${APP_HOME}${colors.reset}\n`);
 
       if (files.length === 0) {
-        console.log(`  ${colors.yellow}Belum ada file memori tersimpan. Inisialisasi sekarang dengan: ceo-virtual memory init${colors.reset}\n`);
+        console.log(`  ${colors.yellow}No memory files stored yet. Initialize now with: ceo-virtual memory init${colors.reset}\n`);
       } else {
         files.forEach((f) => {
           const compId = f.replace('memories_', '').replace('.json', '');
@@ -531,16 +531,16 @@ async function handleCommand() {
               const prog = JSON.parse(fs.readFileSync(progFile, 'utf-8'));
               levelInfo = `Level ${prog.level || 1} (${prog.xp || 0} XP, "${prog.title || 'Startup'}")`;
             }
-            console.log(`  🏢 Perusahaan: ${colors.bold}${compId}${colors.reset}`);
-            console.log(`     Tingkat:    ${colors.yellow}${levelInfo}${colors.reset}`);
-            console.log(`     Total Item: ${colors.green}${data.length} memori terindeks${colors.reset}`);
+            console.log(`  🏢 Company:    ${colors.bold}${compId}${colors.reset}`);
+            console.log(`     Tier:       ${colors.yellow}${levelInfo}${colors.reset}`);
+            console.log(`     Total Items: ${colors.green}${data.length} memories indexed${colors.reset}`);
             console.log(`     File:       ${colors.dim}${f}${colors.reset}\n`);
           } catch {}
         });
       }
     } else if (sub === 'init') {
-      console.log(`${colors.green}► Inisialisasi memori bawaan & level untuk seluruh perusahaan...${colors.reset}`);
-      const defaultPresetIds = ['shadowmove-hq', 'nexus-flow', 'aether-labs'];
+      console.log(`${colors.green}► Initializing default memory & progression tiers for active companies...${colors.reset}`);
+      const defaultPresetIds = ['nexus-flow', 'aether-labs'];
       defaultPresetIds.forEach((id) => {
         const memFile = path.join(APP_HOME, `memories_${id}.json`);
         const progFile = path.join(APP_HOME, `progression_${id}.json`);
@@ -553,8 +553,8 @@ async function handleCommand() {
                   id: `mem-${id}-seed-1`,
                   companyId: id,
                   category: 'architecture',
-                  title: 'Standar Arsitektur Clean Code & Modularitas',
-                  content: 'Seluruh agent diwajibkan menyusun deliverable dalam modul terpisah, menyertakan unit test, dan mendokumentasikan API.',
+                  title: 'Clean Code Architecture Standards & Modularity',
+                  content: 'All agents are required to organize deliverables into modular structures, include unit tests, and document APIs.',
                   importance: 'high',
                   tags: ['architecture', 'standard', 'clean-code'],
                   createdAt: Date.now(),
@@ -566,8 +566,8 @@ async function handleCommand() {
                   id: `mem-${id}-seed-2`,
                   companyId: id,
                   category: 'culture',
-                  title: 'Prinsip Kerja & Otonomi Karyawan AI',
-                  content: 'Setiap karyawan memiliki hak untuk mengambil keputusan teknis sesuai spesialisasi masing-masing dan berkoordinasi langsung dengan Leader.',
+                  title: 'Core Work Principles & AI Employee Autonomy',
+                  content: 'Each team member has full authority to make technical decisions within their domain and coordinate directly with the Leader.',
                   importance: 'medium',
                   tags: ['culture', 'values', 'autonomy'],
                   createdAt: Date.now(),
@@ -591,10 +591,10 @@ async function handleCommand() {
                 level: 1,
                 xp: 300,
                 nextLevelXp: 1000,
-                title: 'Startup Visioner',
+                title: 'Visionary Startup',
                 tasksCompletedCount: 2,
                 totalMemoriesCount: 2,
-                achievements: ['Kantor Berdiri', 'Memori Pertama Diindeks'],
+                achievements: ['Office Established', 'First Memory Indexed'],
               },
               null,
               2
@@ -603,7 +603,7 @@ async function handleCommand() {
           );
         }
       });
-      console.log(`${colors.green}✓ Memory Engine berhasil diinisialisasi untuk development & pengguna baru!${colors.reset}\n`);
+      console.log(`${colors.green}✓ Memory Engine initialized successfully for development and new users!${colors.reset}\n`);
     } else {
       console.log(`Usage: ceo-virtual memory [list | stats | init]`);
     }
@@ -632,15 +632,15 @@ async function handleCommand() {
   ${colors.cyan}ceo-virtual status${colors.reset}             Check if server is active, PID, and project stats
   ${colors.cyan}ceo-virtual stop${colors.reset}               Stop running server
   ${colors.cyan}ceo-virtual workspace${colors.reset}          Open ~/.ceo-virtual/workspaces in OS File Explorer
-  ${colors.cyan}ceo-virtual memory list${colors.reset}        Lihat arsip memori, level perusahaan, dan status Vector DB
-  ${colors.cyan}ceo-virtual memory init${colors.reset}        Inisialisasi memori seed & progression default
+  ${colors.cyan}ceo-virtual memory list${colors.reset}        View memory archive, company level, and Vector DB status
+  ${colors.cyan}ceo-virtual memory init${colors.reset}        Initialize seed memory & default progression
   ${colors.cyan}ceo-virtual mcp list${colors.reset}           List Model Context Protocol (MCP) servers
   ${colors.cyan}ceo-virtual mcp enable <id>${colors.reset}    Enable an MCP server (e.g. postgres, github, brave-search)
   ${colors.cyan}ceo-virtual mcp disable <id>${colors.reset}   Disable an MCP server
   ${colors.cyan}ceo-virtual skill list${colors.reset}         List installed Role Skills & SOPs
   ${colors.cyan}ceo-virtual autorun enable${colors.reset}     Enable auto-start on Windows/macOS/Linux startup
   ${colors.cyan}ceo-virtual autorun disable${colors.reset}    Disable startup autorun
-  ${colors.cyan}ceo-virtual uninstall${colors.reset}          Uninstall CEO Virtual & opsi pembersihan data
+  ${colors.cyan}ceo-virtual uninstall${colors.reset}          Uninstall CEO Virtual & data retention options
   ${colors.cyan}ceo-virtual create <name>${colors.reset}      Scaffold a new project in ~/.ceo-virtual/workspaces/
   ${colors.cyan}ceo-virtual clone <url> [name]${colors.reset} Clone a GitHub repository directly into workspaces
   ${colors.cyan}ceo-virtual help${colors.reset}               Show this help message

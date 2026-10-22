@@ -30,7 +30,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
       onTopUpSuccess(selectedPackage.points);
       confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
       setSuccessMsg(
-        `Pembayaran Berhasil! +${formatNumber(selectedPackage.points)} PTS telah ditambahkan ke saldo Anda.`
+        `Payment Successful! +${formatNumber(selectedPackage.points)} PTS has been added to your balance.`
       );
       setTimeout(() => {
         onClose();
@@ -48,8 +48,8 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-[#2c231c]">Dompet & Top Up Poin</h2>
-              <p className="text-xs text-[#786653]">Gunakan poin untuk merekrut AI Agent & langganan token</p>
+              <h2 className="text-lg font-bold text-[#2c231c]">Wallet & Top Up Points</h2>
+              <p className="text-xs text-[#786653]">Use points to hire AI Agents & manage token subscriptions</p>
             </div>
           </div>
           <button
@@ -63,7 +63,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
         {/* Current Balance Banner */}
         <div className="p-5 bg-[#fffdf9] border-b border-[#d6c5ad] flex items-center justify-between">
           <div>
-            <div className="text-xs text-[#786653] font-semibold">Saldo Poin Akun Anda</div>
+            <div className="text-xs text-[#786653] font-semibold">Your Account Point Balance</div>
             <div className="text-2xl font-black font-mono text-[#ab7a1a] flex items-center gap-2">
               <span suppressHydrationWarning>🪙 {formatNumber(userAccount.pointsBalance)}</span>
               <span className="text-xs font-bold text-[#786653]">PTS</span>
@@ -80,7 +80,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
             <div className="w-14 h-14 rounded-full bg-[#e6f4f2] text-[#1f6860] border border-[#a2d8d0] flex items-center justify-center mx-auto text-2xl font-bold">
               ✓
             </div>
-            <h3 className="text-lg font-bold text-[#2c231c]">Top Up Berhasil!</h3>
+            <h3 className="text-lg font-bold text-[#2c231c]">Top Up Successful!</h3>
             <p className="text-xs text-[#1f6860] font-semibold">{successMsg}</p>
           </div>
         ) : (
@@ -89,7 +89,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
             <div>
               <div className="font-semibold text-[#2c231c] mb-2.5 flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-[#c85a2b]" />
-                Pilih Paket Poin:
+                Select Point Package:
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {PAYMENT_PACKAGES.map((pkg) => {
@@ -106,7 +106,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
                     >
                       {pkg.isPopular && (
                         <span className="absolute -top-2.5 right-3 bg-[#c85a2b] text-white font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                          Populer
+                          Popular
                         </span>
                       )}
                       <div>
@@ -126,7 +126,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
 
             {/* Payment Method Selector */}
             <div>
-              <div className="font-semibold text-[#2c231c] mb-2">Metode Pembayaran:</div>
+              <div className="font-semibold text-[#2c231c] mb-2">Payment Method:</div>
               <div className="grid grid-cols-2 gap-2">
                 <label
                   onClick={() => setPaymentMethod('qris')}
@@ -173,7 +173,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
                   }`}
                 >
                   <CreditCard className="w-4 h-4 text-[#7d3b8f]" />
-                  <span className="text-xs">Kartu Debit / Kredit</span>
+                  <span className="text-xs">Debit / Credit Card</span>
                 </label>
               </div>
             </div>
@@ -181,7 +181,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
             {/* Total & Checkout */}
             <div className="pt-2 border-t border-[#d6c5ad] flex items-center justify-between">
               <div>
-                <div className="text-[11px] text-[#786653]">Total Pembayaran</div>
+                <div className="text-[11px] text-[#786653]">Total Payment</div>
                 <div className="text-base font-bold text-[#2c231c]" suppressHydrationWarning>
                   Rp {formatNumber(selectedPackage.priceIdr)}
                 </div>
@@ -195,12 +195,12 @@ export const WalletModal: React.FC<WalletModalProps> = ({
                 {isProcessing ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Memproses Transaksi...</span>
+                    <span>Processing Transaction...</span>
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    <span>Bayar & Top Up Instan</span>
+                    <span>Pay & Instant Top Up</span>
                   </>
                 )}
               </button>

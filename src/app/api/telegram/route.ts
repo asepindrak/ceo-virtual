@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     });
   } catch (err: any) {
     return NextResponse.json(
-      { success: false, error: err.message || 'Gagal mengambil status Telegram' },
+      { success: false, error: err.message || 'Failed to retrieve Telegram status' },
       { status: 500 }
     );
   }
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     if (action === 'test_token') {
       if (!botToken) {
         return NextResponse.json(
-          { success: false, error: 'botToken wajib diisi untuk pengetesan.' },
+          { success: false, error: 'botToken is required for testing.' },
           { status: 400 }
         );
       }
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     if (action === 'save_config') {
       if (!config) {
         return NextResponse.json(
-          { success: false, error: 'Config object wajib diisi.' },
+          { success: false, error: 'Config object is required.' },
           { status: 400 }
         );
       }
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       const status = getCompanyTelegramStatus(companyId);
       return NextResponse.json({
         success: true,
-        message: 'Konfigurasi Telegram perusahaan berhasil disimpan.',
+        message: 'Company Telegram configuration saved successfully.',
         ...status,
       });
     }
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
       if (status.isRunning) {
         return NextResponse.json({
           success: true,
-          message: 'Bot Telegram sudah dalam keadaan aktif.',
+          message: 'Telegram bot is already running.',
           ...status,
         });
       }
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
       }
       return NextResponse.json({
         success: false,
-        message: 'Belum ada Bot Token yang terkonfigurasi untuk auto-connect.',
+        message: 'No Bot Token configured for auto-connect.',
         ...status,
       });
     }
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
     if (action === 'broadcast_to_telegram') {
       if (!message) {
         return NextResponse.json(
-          { success: false, error: 'Pesan kosong' },
+          { success: false, error: 'Empty message' },
           { status: 400 }
         );
       }

@@ -168,7 +168,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: `Halo Boss! Saya ${agent.name} (${agent.roleTitle}). Siap mengerjakan tugas koding, menulis konten, atau analisis arsitektur. Anda juga bisa mengunggah screenshot gambar untuk saya review.`,
+      content: `Hello Boss! I am ${agent.name} (${agent.roleTitle}). Ready to work on coding tasks, content writing, or architectural analysis. You can also upload screenshots for me to review.`,
     },
   ]);
   const [chatInput, setChatInput] = useState('');
@@ -202,7 +202,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
     setChatMessages([
       {
         role: 'assistant',
-        content: `Halo Boss! Saya ${agent.name} (${agent.roleTitle}). Siap mengerjakan tugas koding, menulis konten, atau analisis arsitektur. Anda juga bisa mengunggah screenshot gambar untuk saya review.`,
+        content: `Hello Boss! I am ${agent.name} (${agent.roleTitle}). Ready to work on coding tasks, content writing, or architectural analysis. You can also upload screenshots for me to review.`,
       },
     ]);
   }, [agent.id, company?.id]);
@@ -231,15 +231,15 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
 
       setIsApplyingGlobal(false);
       if (applyToAll) {
-        setAppliedGlobalMsg(`✓ Model global ${effectiveConfig.provider.toUpperCase()} (${effectiveConfig.model}) berhasil diterapkan ke SELURUH agen kantor ${company?.name || ''} & tersimpan persisten!`);
+        setAppliedGlobalMsg(`✓ Global model ${effectiveConfig.provider.toUpperCase()} (${effectiveConfig.model}) successfully applied to ALL agents in ${company?.name || 'the office'} & persistently saved!`);
       } else {
-        setAppliedGlobalMsg(`✓ Model global ${effectiveConfig.provider.toUpperCase()} (${effectiveConfig.model}) berhasil diterapkan ke ${agent.name} & tersimpan persisten!`);
+        setAppliedGlobalMsg(`✓ Global model ${effectiveConfig.provider.toUpperCase()} (${effectiveConfig.model}) successfully applied to ${agent.name} & persistently saved!`);
       }
 
       setTimeout(() => setAppliedGlobalMsg(null), 5000);
     } catch (err: any) {
       setIsApplyingGlobal(false);
-      setTestState({ status: 'error', message: err.message || 'Gagal menerapkan model global' });
+      setTestState({ status: 'error', message: err.message || 'Failed to apply global model' });
     }
   };
 
@@ -271,7 +271,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
   };
 
   const handleTestConnection = async () => {
-    setTestState({ status: 'testing', message: 'Menghubungkan ke provider...' });
+    setTestState({ status: 'testing', message: 'Connecting to provider...' });
     try {
       const res = await fetch('/api/agent/chat', {
         method: 'POST',
@@ -291,18 +291,18 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
       if (data.success) {
         setTestState({
           status: 'success',
-          message: `✓ Terhubung ke ${data.provider} (${data.model})`,
+          message: `✓ Connected to ${data.provider} (${data.model})`,
         });
       } else {
         setTestState({
           status: 'error',
-          message: data.error || 'Koneksi gagal',
+          message: data.error || 'Connection failed',
         });
       }
     } catch (err: any) {
       setTestState({
         status: 'error',
-        message: err.message || 'Gagal menghubungi backend API',
+        message: err.message || 'Failed to connect to backend API',
       });
     }
   };
@@ -344,7 +344,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
         apiPayloadMessages.push({
           role: 'user',
           content: [
-            { type: 'text', text: userText || 'Tolong analisa gambar screenshot ini:' },
+            { type: 'text', text: userText || 'Please analyze this screenshot:' },
             { type: 'image_url', image_url: { url: userImg } },
           ],
         });
@@ -408,7 +408,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
           ...prev,
           {
             role: 'assistant',
-            content: data.content || '(Tugas dan tools telah dieksekusi)',
+            content: data.content || '(Tasks and tools have been executed)',
             toolResults: data.toolResults || [],
           },
         ]);
@@ -417,7 +417,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
           ...prev,
           {
             role: 'assistant',
-            content: `⚠️ Error dari LLM Provider: ${data.error}`,
+            content: `⚠️ LLM Provider Error: ${data.error}`,
           },
         ]);
       }
@@ -426,7 +426,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
         ...prev,
         {
           role: 'assistant',
-          content: `⚠️ Gagal menghubungi server: ${err.message}`,
+          content: `⚠️ Failed to reach server: ${err.message}`,
         },
       ]);
     } finally {
@@ -479,7 +479,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                     : 'bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]'
                 }`}
               >
-                {agent.gender === 'female' || ['Rei', 'Yuki', 'Maya', 'Elena', 'Chloe', 'Sarah', 'Aurora', 'Sofia', 'Aria'].some((fn) => agent.name.includes(fn)) ? '♀ Wanita' : '♂ Pria'}
+                {agent.gender === 'female' || ['Rei', 'Yuki', 'Maya', 'Elena', 'Chloe', 'Sarah', 'Aurora', 'Sofia', 'Aria'].some((fn) => agent.name.includes(fn)) ? '♀ Female' : '♂ Male'}
               </span>
               {agent.personality && (
                 <span className="text-[10px] px-1.5 py-0.2 bg-[#fdf2f8] text-[#be185d] border border-[#fbcfe8] rounded-md font-sans font-bold">
@@ -494,9 +494,9 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                   type="button"
                   onClick={() => onSetLeader(agent.id)}
                   className="text-[10px] px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 hover:text-amber-950 border border-amber-300 rounded-md font-semibold transition-colors flex items-center gap-1"
-                  title="Jadikan agent ini sebagai Leader Tim utama perusahaan"
+                  title="Set this agent as the primary Team Leader for the company"
                 >
-                  👑 Set Jadi Leader
+                  👑 Set as Leader
                 </button>
               )}
             </div>
@@ -521,7 +521,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-1.5 text-[#786653] hover:text-[#2c231c] hover:bg-[#ede2d1] rounded-lg transition-colors"
-            title={isExpanded ? 'Kecilkan Tampilan' : 'Perbesar / Expand Chat Container'}
+            title={isExpanded ? 'Collapse View' : 'Expand Chat Container'}
           >
             {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
@@ -570,21 +570,21 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
             <button
               onClick={() => onSendCoffee(agent.id)}
               className="p-1.5 bg-[#fef8e7] hover:bg-[#fdeed9] text-[#ab7a1a] border border-[#fae4a8] rounded-lg transition-colors"
-              title="Kirim istirahat kopi ke pantry"
+              title="Send to pantry for a coffee break"
             >
               <Coffee className="w-4 h-4" />
             </button>
             <button
               onClick={() => onSendSprint?.(agent.id)}
               className="p-1.5 bg-[#e6f7f6] hover:bg-[#d0f0ee] text-[#0891b2] border border-[#a5e8e4] rounded-lg transition-colors"
-              title="Kirim agen ke Sprint Station untuk review kanban & roadmap"
+              title="Send agent to Sprint Station to review kanban & roadmap"
             >
               <LayoutDashboard className="w-4 h-4" />
             </button>
             <button
               onClick={() => onReturnDesk(agent.id)}
               className="p-1.5 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#5c4939] border border-[#d6c5ad] rounded-lg transition-colors"
-              title="Kembali ke meja kerja"
+              title="Return to workstation desk"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -594,10 +594,10 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
             <button
               onClick={() => onTriggerHumanDecision(agent.id)}
               className="px-2 py-1 bg-[#fef3e7] hover:bg-[#fde9d2] text-[#c85a2b] border border-[#f0c8a5] rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold"
-              title="Minta agen jalan ke meja Owner untuk minta persetujuan keputusan"
+              title="Request agent to walk to Owner desk for decision approval"
             >
               <ShieldAlert className="w-3.5 h-3.5 text-[#c85a2b]" />
-              <span>Minta Approval</span>
+              <span>Request Approval</span>
             </button>
 
             {!confirmFire ? (
@@ -606,7 +606,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                 className="px-2 py-1 bg-[#fdf0f0] hover:bg-[#fae0e0] text-[#b93838] border border-[#f5c6c6] rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold"
               >
                 <UserMinus className="w-3.5 h-3.5 text-[#b93838]" />
-                <span>Pecat</span>
+                <span>Fire</span>
               </button>
             ) : (
               <div className="flex items-center gap-1">
@@ -614,13 +614,13 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                   onClick={() => onFireAgent(agent.id)}
                   className="px-2 py-1 bg-[#b93838] hover:bg-[#9e2d2d] text-white rounded-lg text-[10px] font-bold"
                 >
-                  Ya, Pecat!
+                  Yes, Fire!
                 </button>
                 <button
                   onClick={() => setConfirmFire(false)}
                   className="px-1.5 py-1 text-[#786653] hover:text-[#2c231c] text-[10px]"
                 >
-                  Batal
+                  Cancel
                 </button>
               </div>
             )}
@@ -672,7 +672,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
           }`}
         >
           <UserCheck className="w-3.5 h-3.5" />
-          <span>Profil</span>
+          <span>Profile</span>
         </button>
       </div>
 
@@ -691,7 +691,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
               >
                 <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider mb-1">
                   <span className={currentTask.status === 'done' ? 'text-[#065f46]' : 'text-[#786653]'}>
-                    {currentTask.status === 'done' ? '✓ Tiket Selesai (100%)' : 'Tiket yang Ditugaskan'}
+                    {currentTask.status === 'done' ? '✓ Completed Ticket (100%)' : 'Assigned Ticket'}
                   </span>
                   <span className="font-mono">{Math.round(currentTask.progress)}%</span>
                 </div>
@@ -723,7 +723,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                       }).catch(console.error);
                     }}
                     className="flex items-center gap-1 text-[9px] bg-[#27382d] hover:bg-[#344b3d] text-[#86efac] px-1.5 py-0.5 rounded border border-[#3b5544] transition-colors"
-                    title="Buka Folder Disk (~/.vigent/workspaces)"
+                    title="Open Workspace Folder (~/.ceo-virtual/workspaces)"
                   >
                     <Folder className="w-2.5 h-2.5" />
                     <span>Workspace Disk</span>
@@ -775,7 +775,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                     }`}
                   >
                     <span>
-                      {currentTask.status === 'done' ? '✓ Selesai 100%:' : '📌 Task:'} {currentTask.title}
+                      {currentTask.status === 'done' ? '✓ Done (100%):' : '📌 Task:'} {currentTask.title}
                     </span>
                     <span
                       className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold ${
@@ -800,7 +800,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
               </div>
             ) : (
               <div className="p-1.5 rounded-lg bg-[#f4ebe1] border border-[#d6c5ad] text-[11px] text-[#786653] italic">
-                💤 Belum ada task aktif yang di-assign ke {agent.name.split(' ')[0]}.
+                💤 No active tasks assigned to {agent.name.split(' ')[0]} yet.
               </div>
             )}
 
@@ -819,7 +819,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between text-[10px] text-[#786653] font-bold">
-                    <span>{msg.role === 'user' ? 'Boss (Anda)' : agent.name}</span>
+                    <span>{msg.role === 'user' ? 'Boss (You)' : agent.name}</span>
                   </div>
 
                   {msg.image && (
@@ -849,7 +849,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
               {isSending && (
                 <div className="p-2.5 rounded-xl bg-[#fffdf9] border border-[#d6c5ad] text-xs flex items-center gap-2 text-[#c85a2b] font-medium">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{agent.name} sedang berpikir & mengeksekusi...</span>
+                  <span>{agent.name} is thinking & executing...</span>
                 </div>
               )}
             </div>
@@ -858,7 +858,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
             {imageAttachment && (
               <div className="relative p-1 bg-[#fffdf9] rounded-lg border border-[#c85a2b] flex items-center gap-2">
                 <img src={imageAttachment} alt="Preview" className="w-10 h-10 object-cover rounded" />
-                <span className="text-[10px] text-[#c85a2b] font-semibold">Gambar/Screenshot terlampir</span>
+                <span className="text-[10px] text-[#c85a2b] font-semibold">Image/Screenshot attached</span>
                 <button
                   onClick={() => setImageAttachment(null)}
                   className="ml-auto p-1 text-[#786653] hover:text-[#2c231c]"
@@ -872,31 +872,31 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] no-scrollbar">
               <button
                 type="button"
-                onClick={() => setChatInput('Bagaimana progres task kamu saat ini? Apakah sudah beres?')}
+                onClick={() => setChatInput('What is your current task progress? Is everything on track?')}
                 className="px-2 py-0.5 bg-[#fffdf9] hover:bg-[#fdeed9] text-[#784620] border border-[#d6c5ad] hover:border-[#c85a2b] rounded-lg shrink-0 transition-colors"
               >
-                📊 Cek Status Task
+                📊 Check Task Status
               </button>
               <button
                 type="button"
-                onClick={() => setChatInput('Tampilkan potongan kode dan file yang sedang kamu kerjakan')}
+                onClick={() => setChatInput('Show the code snippets and files you are currently editing')}
                 className="px-2 py-0.5 bg-[#fffdf9] hover:bg-[#fdeed9] text-[#784620] border border-[#d6c5ad] hover:border-[#c85a2b] rounded-lg shrink-0 transition-colors"
               >
-                💻 Kode Terkini
+                💻 Current Code
               </button>
               <button
                 type="button"
-                onClick={() => setChatInput('Apa saja deliverable dan file yang sudah berhasil kamu selesaikan?')}
+                onClick={() => setChatInput('What deliverables and files have you completed?')}
                 className="px-2 py-0.5 bg-[#fffdf9] hover:bg-[#fdeed9] text-[#784620] border border-[#d6c5ad] hover:border-[#c85a2b] rounded-lg shrink-0 transition-colors"
               >
-                📁 Cek Deliverables
+                📁 Check Deliverables
               </button>
               <button
                 type="button"
-                onClick={() => setChatInput('Tolong fokus selesaikan task ini dengan standar kualitas tertinggi!')}
+                onClick={() => setChatInput('Please focus on completing this task with the highest quality standards!')}
                 className="px-2 py-0.5 bg-[#fffdf9] hover:bg-[#fdeed9] text-[#784620] border border-[#d6c5ad] hover:border-[#c85a2b] rounded-lg shrink-0 transition-colors"
               >
-                ⚡ Selesaikan Task
+                ⚡ Complete Task
               </button>
             </div>
 
@@ -904,7 +904,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
             <form onSubmit={handleSendMessage} className="pt-2 border-t border-[#d6c5ad] flex items-center gap-1.5">
               <label
                 className="p-2 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#5c4939] border border-[#d6c5ad] rounded-lg cursor-pointer transition-colors"
-                title="Lampirkan Gambar / Screenshot UI untuk Vision Analysis"
+                title="Attach Image / UI Screenshot for Vision Analysis"
               >
                 <ImageIcon className="w-4 h-4 text-[#c85a2b]" />
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
@@ -912,7 +912,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
 
               <input
                 type="text"
-                placeholder="Perintah atau pertanyaan..."
+                placeholder="Command or message..."
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 disabled={isSending}
@@ -945,7 +945,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                 }`}
               >
                 <Cpu className="w-3.5 h-3.5" />
-                <span>🏢 Global Perusahaan</span>
+                <span>🏢 Company Global</span>
               </button>
               <button
                 type="button"
@@ -957,7 +957,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                 }`}
               >
                 <Wrench className="w-3.5 h-3.5" />
-                <span>🛠️ Input Manual (BYOK)</span>
+                <span>🛠️ Manual Input (BYOK)</span>
               </button>
             </div>
 
@@ -965,7 +965,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
             {savedLLMMsg && (
               <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11px] font-bold flex items-center gap-1.5 animate-in fade-in">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Konfigurasi LLM agent {agent.name} berhasil diperbarui!</span>
+                <span>LLM configuration for agent {agent.name} updated successfully!</span>
               </div>
             )}
 
@@ -975,24 +975,24 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                 <div className="p-2.5 rounded-xl bg-[#eef2ff] border border-[#c7d2fe] text-[#312e81]">
                   <div className="font-bold text-xs flex items-center gap-1.5">
                     <Globe className="w-3.5 h-3.5 text-[#4f46e5]" />
-                    <span>Mewarisi Pengaturan Kantor {companyName}</span>
+                    <span>Inheriting Settings from {companyName}</span>
                   </div>
                   <p className="text-[11px] text-[#4338ca] mt-0.5">
-                    Agent akan menggunakan model, provider, dan API Key yang telah dikonfigurasi secara terpusat untuk kantor ini.
+                    Agent will use the model, provider, and API Key configured globally for this office.
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-[#615042] text-[11px] font-bold mb-1.5">
-                    Pilih Kategori Kemampuan LLM:
+                    Select LLM Capability Category:
                   </label>
                   <div className="grid grid-cols-1 gap-1.5">
                     {[
-                      { id: 'text' as LLMCategory, name: '📝 Teks, Coding & Arsitektur', desc: 'Penalaran logis & kode software' },
-                      { id: 'image' as LLMCategory, name: '🎨 Generasi Gambar & Desain UI', desc: 'Mockup antarmuka & ilustrasi' },
-                      { id: 'fast' as LLMCategory, name: '⚡ Eksekusi Cepat & Triage Task', desc: 'Audit kilat & respon instan' },
-                      { id: 'vision' as LLMCategory, name: '👁️ Vision & Inspeksi UI/UX', desc: 'Tangkapan layar & review desain' },
-                      { id: 'audio' as LLMCategory, name: '🎙️ Audio & Transkripsi Rapat', desc: 'Voice memo & audio meeting' },
+                      { id: 'text' as LLMCategory, name: '📝 Text, Coding & Architecture', desc: 'Logical reasoning & software coding' },
+                      { id: 'image' as LLMCategory, name: '🎨 Image Generation & UI Design', desc: 'UI mockups & illustrations' },
+                      { id: 'fast' as LLMCategory, name: '⚡ Fast Execution & Task Triage', desc: 'Rapid audit & instant response' },
+                      { id: 'vision' as LLMCategory, name: '👁️ Vision & UI/UX Inspection', desc: 'Screenshots & design reviews' },
+                      { id: 'audio' as LLMCategory, name: '🎙️ Audio & Meeting Transcription', desc: 'Voice memos & meeting audio' },
                     ].map((cat) => {
                       const isSelected = selectedGlobalCategory === cat.id;
                       const catSetting = company?.globalLLMConfig?.[cat.id];
@@ -1030,16 +1030,16 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                   return (
                     <div className="p-3 bg-[#fffdf9] rounded-xl border border-[#d6c5ad] space-y-1.5">
                       <div className="font-bold text-[#2c231c] flex items-center justify-between">
-                        <span>Detail Model Global Terpilih:</span>
+                        <span>Selected Global Model Details:</span>
                         <span className={`px-2 py-0.2 rounded text-[10px] font-bold ${setting?.isEnabled !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-700'}`}>
-                          {setting?.isEnabled !== false ? '● Siap Digunakan' : '⚪ Nonaktif'}
+                          {setting?.isEnabled !== false ? '● Ready to Use' : '⚪ Inactive'}
                         </span>
                       </div>
                       <div className="font-mono text-[11px] text-[#4f46e5] bg-[#eef2ff] px-2 py-1 rounded-md">
                         {setting?.provider?.toUpperCase() || 'OPENAI'} / {setting?.model || 'gpt-4o'}
                       </div>
                       <p className="text-[10px] text-[#786653]">
-                        {setting?.description || 'Model default terkonfigurasi pada tingkat organisasi kantor.'}
+                        {setting?.description || 'Default model configured at the company organization level.'}
                       </p>
                     </div>
                   );
@@ -1051,7 +1051,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                     type="button"
                     onClick={async () => {
                       const setting = company?.globalLLMConfig?.[selectedGlobalCategory];
-                      setTestState({ status: 'testing', message: 'Menguji model global...' });
+                      setTestState({ status: 'testing', message: 'Testing global model...' });
                       try {
                         const res = await fetch('/api/agent/chat', {
                           method: 'POST',
@@ -1069,12 +1069,12 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                         });
                         const data = await res.json();
                         if (data.success) {
-                          setTestState({ status: 'success', message: `Model global ${setting?.model} terhubung aktif!` });
+                          setTestState({ status: 'success', message: `Global model ${setting?.model} connected successfully!` });
                         } else {
-                          setTestState({ status: 'error', message: data.error || 'Gagal terhubung' });
+                          setTestState({ status: 'error', message: data.error || 'Failed to connect' });
                         }
                       } catch (err: any) {
-                        setTestState({ status: 'error', message: err.message || 'Error tes koneksi' });
+                        setTestState({ status: 'error', message: err.message || 'Connection test error' });
                       }
                     }}
                     disabled={testState.status === 'testing'}
@@ -1085,7 +1085,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                     ) : (
                       <Sparkles className="w-3.5 h-3.5 text-[#4f46e5]" />
                     )}
-                    <span>Tes Model Global</span>
+                    <span>Test Global Model</span>
                   </button>
 
                   <button
@@ -1103,17 +1103,17 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                     {isApplyingGlobal ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                        <span>Menerapkan...</span>
+                        <span>Applying...</span>
                       </>
                     ) : appliedGlobalMsg ? (
                       <>
                         <Check className="w-3.5 h-3.5 text-white" />
-                        <span>Tersimpan!</span>
+                        <span>Saved!</span>
                       </>
                     ) : (
                       <>
                         <Save className="w-3.5 h-3.5" />
-                        <span>Terapkan ke {agent.name.split(' ')[0]}</span>
+                        <span>Apply to {agent.name.split(' ')[0]}</span>
                       </>
                     )}
                   </button>
@@ -1122,11 +1122,11 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                     type="button"
                     onClick={() => handleApplyGlobalLLM(true)}
                     disabled={isApplyingGlobal}
-                    title={`Terapkan LLM global ini ke seluruh agen di kantor ${company?.name || ''}`}
+                    title={`Apply this global LLM to all agents in ${company?.name || 'the office'}`}
                     className="py-2 px-3 bg-[#f5efe6] hover:bg-[#ede2d1] border border-[#d6c5ad] text-[#2c231c] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all text-xs active:scale-[0.98] shrink-0"
                   >
                     <Users className="w-3.5 h-3.5 text-[#4f46e5]" />
-                    <span>Ke Semua Agen</span>
+                    <span>Apply to All</span>
                   </button>
                 </div>
 
@@ -1162,12 +1162,12 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                     )}
                     <div>
                       <div className="font-semibold text-[#2c231c]">
-                        {isLocked ? 'Provider Dikunci Kreator' : 'Kustom BYOK (Bawa Kunci Sendiri)'}
+                        {isLocked ? 'Provider Locked by Creator' : 'Custom BYOK (Bring Your Own Key)'}
                       </div>
                       <div className="text-[10px] text-[#786653]">
                         {isLocked
-                          ? 'Token ditanggung kreator agen via langganan'
-                          : 'Kustomisasi endpoint, model, dan API Key khusus untuk agent ini saja'}
+                          ? 'Tokens covered by agent creator via subscription'
+                          : 'Customize endpoint, model, and API Key specifically for this agent'}
                       </div>
                     </div>
                   </div>
@@ -1236,11 +1236,11 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[#615042] text-[11px] mb-1 font-medium">API Key Anda</label>
+                  <label className="block text-[#615042] text-[11px] mb-1 font-medium">Your API Key</label>
                   <input
                     type="password"
                     disabled={isLocked}
-                    placeholder={isLocked ? '••••••••••••••••' : 'sk-... (kunci pribadi Anda)'}
+                    placeholder={isLocked ? '••••••••••••••••' : 'sk-... (your private key)'}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     className="w-full bg-[#fffdf9] border border-[#d6c5ad] rounded-lg px-2.5 py-1.5 text-[#2c231c] font-mono text-[11px] disabled:opacity-60"
@@ -1261,7 +1261,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                       ) : (
                         <Sparkles className="w-3.5 h-3.5 text-[#c85a2b]" />
                       )}
-                      <span>Test Koneksi</span>
+                      <span>Test Connection</span>
                     </button>
 
                     {!isLocked && (
@@ -1279,17 +1279,17 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                         {isSavingManual ? (
                           <>
                             <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                            <span>Menyimpan...</span>
+                            <span>Saving...</span>
                           </>
                         ) : savedLLMMsg ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-white" />
-                            <span>Tersimpan!</span>
+                            <span>Saved!</span>
                           </>
                         ) : (
                           <>
                             <Save className="w-3.5 h-3.5" />
-                            <span>Simpan Manual</span>
+                            <span>Save Manual</span>
                           </>
                         )}
                       </button>
@@ -1299,7 +1299,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                   {savedLLMMsg && (
                     <div className="p-2.5 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] text-[#065f46] text-[11px] font-semibold flex items-center gap-2 animate-in fade-in">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>✓ Pengaturan LLM manual untuk {agent.name} berhasil disimpan dan aktif permanen!</span>
+                      <span>✓ Manual LLM settings for {agent.name} saved and permanently active!</span>
                     </div>
                   )}
 
@@ -1330,7 +1330,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 font-bold text-[#4338ca]">
                   <Clock className="w-4 h-4 text-[#6366f1]" />
-                  <span>Zona Waktu & Jam Kerja Real-Time</span>
+                  <span>Timezone & Real-Time Work Hours</span>
                 </div>
                 <span className="text-[10px] text-[#4338ca] font-mono font-bold bg-[#e0e7ff] px-2 py-0.5 rounded-md">
                   {liveTime.timeString} ({liveTime.dayPeriod})
@@ -1339,7 +1339,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
 
               <div>
                 <label className="text-[10px] uppercase font-bold text-[#4338ca] tracking-wider block mb-1">
-                  Pilih Zona Waktu Agent:
+                  Select Agent Timezone:
                 </label>
                 <select
                   value={agentTimezone}
@@ -1357,7 +1357,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                   ))}
                 </select>
                 <p className="text-[10px] text-[#4f46e5] mt-1.5 leading-relaxed font-sans">
-                  💡 <strong>Kesadaran Waktu Otomatis:</strong> Agen selalu mengetahui jam dan tanggal lokalnya saat ini (<span className="font-semibold text-[#1e1b4b]">{liveTime.fullFormatted}</span>). Saat ditanya jam berapa sekarang di obrolan atau Telegram, agen akan menjawab sesuai waktu ini.
+                  💡 <strong>Automatic Time Awareness:</strong> The agent always knows its current local time and date (<span className="font-semibold text-[#1e1b4b]">{liveTime.fullFormatted}</span>). When asked for current time in chat or Telegram, the agent responds according to this local timezone.
                 </p>
               </div>
             </div>
@@ -1377,7 +1377,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
 
                 <div>
                   <div className="text-[10px] uppercase font-bold text-[#be185d] tracking-wider mb-0.5">
-                    Gaya Bicara Unik
+                    Unique Speaking Style
                   </div>
                   <div className="text-[11px] text-[#4a3b32] italic bg-white/70 p-2 rounded-lg border border-[#fbcfe8]">
                     &ldquo;{agent.personality.speakingStyle}&rdquo;
@@ -1386,7 +1386,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
 
                 <div>
                   <div className="text-[10px] uppercase font-bold text-[#be185d] tracking-wider mb-1">
-                    Ciri Karakter & Nilai
+                    Character Traits & Values
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {agent.personality.traits.map((trait, idx) => (
@@ -1403,7 +1403,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                 {agent.personality.interests && agent.personality.interests.length > 0 && (
                   <div>
                     <div className="text-[10px] uppercase font-bold text-[#be185d] tracking-wider mb-1">
-                      Topik Favorit & Hobi
+                      Favorite Topics & Interests
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {agent.personality.interests.map((interest, idx) => (
@@ -1422,19 +1422,19 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
 
             <div>
               <div className="text-[10px] uppercase font-bold text-[#786653] tracking-wider mb-1">
-                Karakteristik Visual & Fisik
+                Visual & Physical Characteristics
               </div>
               <div className="grid grid-cols-2 gap-2 bg-[#fffdf9] p-2.5 rounded-lg border border-[#d6c5ad] text-xs">
                 <div>
                   <span className="text-[#6e5d4f] text-[10px] block">Gender:</span>
                   <span className="font-bold text-[#2c231c]">
                     {agent.gender === 'female' || ['Rei', 'Yuki', 'Maya', 'Elena', 'Chloe', 'Sarah', 'Aurora', 'Sofia', 'Aria'].some((fn) => agent.name.includes(fn))
-                      ? '♀ Perempuan'
-                      : '♂ Laki-laki'}
+                      ? '♀ Female'
+                      : '♂ Male'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#6e5d4f] text-[10px] block">Gaya Rambut:</span>
+                  <span className="text-[#6e5d4f] text-[10px] block">Hair Style:</span>
                   <span className="font-mono font-bold text-[#2c231c] capitalize">
                     {agent.hairStyle || (agent.gender === 'female' ? 'Twintails' : 'Undercut')}
                   </span>
@@ -1442,13 +1442,13 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded-full border border-black/20" style={{ backgroundColor: agent.hairColor || '#0f172a' }} />
                   <div>
-                    <span className="text-[#6e5d4f] text-[10px] block">Warna Rambut</span>
+                    <span className="text-[#6e5d4f] text-[10px] block">Hair Color</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded-full border border-black/20" style={{ backgroundColor: agent.eyeColor || (agent.gender === 'female' ? '#ec4899' : '#38bdf8') }} />
                   <div>
-                    <span className="text-[#6e5d4f] text-[10px] block">Warna Mata</span>
+                    <span className="text-[#6e5d4f] text-[10px] block">Eye Color</span>
                   </div>
                 </div>
               </div>
@@ -1465,7 +1465,7 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
 
             <div>
               <div className="text-[10px] uppercase font-bold text-[#786653] tracking-wider mb-1.5">
-                Keahlian & Kemampuan
+                Skills & Abilities
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {agent.skills.map((skill, i) => (
@@ -1481,24 +1481,24 @@ export const AgentInspector: React.FC<AgentInspectorProps> = ({
 
             <div className="pt-2 border-t border-[#d6c5ad]">
               <div className="text-[10px] uppercase font-bold text-[#786653] tracking-wider mb-2">
-                Statistik Kerja
+                Work Statistics
               </div>
               <div className="grid grid-cols-2 gap-2 text-center">
                 <div className="bg-[#fffdf9] p-2 rounded-lg border border-[#d6c5ad]">
                   <div className="text-base font-bold text-[#c85a2b]">{agent.stats.tasksCompleted}</div>
-                  <div className="text-[10px] text-[#786653]">Tugas Selesai</div>
+                  <div className="text-[10px] text-[#786653]">Tasks Completed</div>
                 </div>
                 <div className="bg-[#fffdf9] p-2 rounded-lg border border-[#d6c5ad]">
                   <div className="text-base font-bold text-[#288279]">{agent.stats.linesOfCode}</div>
-                  <div className="text-[10px] text-[#786653]">Baris Kode</div>
+                  <div className="text-[10px] text-[#786653]">Lines of Code</div>
                 </div>
                 <div className="bg-[#fffdf9] p-2 rounded-lg border border-[#d6c5ad]">
                   <div className="text-base font-bold text-[#ab7a1a]">{agent.stats.wordsWritten}</div>
-                  <div className="text-[10px] text-[#786653]">Kata Ditulis</div>
+                  <div className="text-[10px] text-[#786653]">Words Written</div>
                 </div>
                 <div className="bg-[#fffdf9] p-2 rounded-lg border border-[#d6c5ad]">
                   <div className="text-base font-bold text-[#7d3b8f]">{agent.stats.collabCount}</div>
-                  <div className="text-[10px] text-[#786653]">Kolaborasi Fisik</div>
+                  <div className="text-[10px] text-[#786653]">Physical Collabs</div>
                 </div>
               </div>
             </div>

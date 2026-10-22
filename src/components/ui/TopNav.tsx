@@ -109,7 +109,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         <button
           onClick={() => onOpenCompanyModal()}
           className="flex items-center gap-2 p-1 -ml-1 hover:bg-[#ede2d1] rounded-xl transition-colors group text-left"
-          title="CEO Virtual - Ganti Kantor Virtual atau Buat Kantor Baru"
+          title="CEO Virtual - Switch Virtual Office or Create New Company"
         >
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[#c85a2b] via-[#d97736] to-[#c68f23] flex items-center justify-center font-black text-white shadow-md border border-[#ad4b20] group-hover:scale-105 transition-transform tracking-wider text-xs">
             CV
@@ -120,7 +120,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                 {company.name}
               </span>
               <span className="hidden xs:inline-block text-[9px] px-1.5 py-0.2 bg-[#f0e3ce] text-[#784620] border border-[#dccab3] rounded-md font-mono">
-                Kantor ▾
+                Office ▾
               </span>
             </div>
             <div className="text-[10px] text-[#786653] truncate max-w-[100px] sm:max-w-[140px] md:max-w-[180px]">
@@ -144,7 +144,7 @@ export const TopNav: React.FC<TopNavProps> = ({
               ? 'bg-[#fdeed9] text-[#c85a2b] border border-[#e8ba8c]'
               : 'text-[#5c4939] hover:text-[#2c231c] hover:bg-[#ede2d1]'
           }`}
-          title={isPaused ? 'Lanjutkan Simulasi' : 'Jeda Simulasi'}
+          title={isPaused ? 'Resume Simulation' : 'Pause Simulation'}
         >
           {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
           <span>{isPaused ? 'Paused' : 'Live'}</span>
@@ -174,7 +174,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           <button
             onClick={onOpenDecisions}
             className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-[#fef3e7] hover:bg-[#fde9d2] text-[#c85a2b] border-2 border-[#c85a2b] text-xs font-bold rounded-xl animate-bounce shadow-md shrink-0"
-            title="Ada keputusan penting yang membutuhkan approval Boss"
+            title="Critical decision pending Boss approval"
           >
             <ShieldAlert className="w-3.5 h-3.5 text-[#c85a2b]" />
             <span className="hidden sm:inline">Approval</span>
@@ -188,7 +188,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         <button
           onClick={onOpenDevServers}
           className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-[#1f6860] hover:bg-[#164e48] text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-[#1f6860]/20 hover:scale-[1.02] border border-[#2ea395] shrink-0 group"
-          title="Buka Dev Server & Open Ports Manager (Docker Desktop Style) - Cek live web port :28483"
+          title="Open Dev Servers & Port Manager (Docker Desktop Style) - Port :28483"
         >
           <Radio className="w-3.5 h-3.5 text-emerald-300 animate-pulse shrink-0" />
           <span className="font-bold hidden sm:inline md:hidden">Dev</span>
@@ -202,7 +202,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         <button
           onClick={onOpenOfficeChat}
           className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-[#4338ca] hover:bg-[#3730a3] text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-[#4338ca]/20 shrink-0 group"
-          title="Buka Office Group Chat War Room (Bisa tag @ & terhubung bot Telegram)"
+          title="Open War Room Group Chat (Tag @agents & sync with Telegram bot)"
         >
           <MessagesSquare className="w-3.5 h-3.5 group-hover:scale-110 transition-transform shrink-0" />
           <span className="hidden lg:inline">War Room</span>
@@ -215,7 +215,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         <button
           onClick={onOpenTasksModal}
           className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#2c231c] text-xs font-medium rounded-xl transition-colors border border-[#d6c5ad] shrink-0"
-          title="Buka Kanban Task Management"
+          title="Open Kanban Task Management"
         >
           <Kanban className="w-3.5 h-3.5 text-[#c85a2b] shrink-0" />
           <span className="hidden sm:inline">Tasks</span>
@@ -230,12 +230,12 @@ export const TopNav: React.FC<TopNavProps> = ({
         <button
           onClick={onOpenWorldMap}
           className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#2c231c] text-xs font-semibold rounded-xl transition-all border border-[#d6c5ad] shrink-0 group"
-          title="Buka Peta Dunia Open World & Transit Antar-Regional"
+          title="Open World Map & Inter-Regional Transit"
         >
           <Globe className="w-3.5 h-3.5 text-[#c85a2b] group-hover:rotate-45 transition-transform shrink-0" />
-          <span className="hidden sm:inline">Peta Kota</span>
+          <span className="hidden sm:inline">City Map</span>
           <span className="text-[10px] font-mono px-1.5 py-0.2 bg-[#fdeed9] text-[#c85a2b] rounded font-bold border border-[#f0c8a5] hidden 2xl:inline">
-            5 Sektor
+            5 Shards
           </span>
         </button>
 
@@ -243,7 +243,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         <button
           onClick={onOpenWallet}
           className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 bg-[#fffdf9] hover:bg-[#fbf4e8] border border-[#d6c5ad] hover:border-[#c68f23] rounded-xl transition-all shadow-xs shrink-0"
-          title="Saldo Token & Topup Akun"
+          title="Token Points Balance & Account Top Up"
         >
           <Coins className="w-3.5 h-3.5 text-[#ab7a1a]" />
           <span className="font-mono font-bold text-xs text-[#ab7a1a]" suppressHydrationWarning>
@@ -260,9 +260,9 @@ export const TopNav: React.FC<TopNavProps> = ({
                 ? 'bg-[#c85a2b] text-white border-[#ad4b20] shadow-sm'
                 : 'bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#2c231c] border-[#d6c5ad]'
             }`}
-            title="Menu Alat & Fitur Kantor Lainnya"
+            title="More Office Tools & System Extensions"
           >
-            <span className="hidden sm:inline">Alat</span>
+            <span className="hidden sm:inline">Tools</span>
             <MoreHorizontal className="w-4 h-4" />
             <ChevronDown className={`w-3 h-3 transition-transform ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -271,7 +271,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           {isMoreMenuOpen && (
             <div className="absolute right-0 mt-2 w-56 bg-[#faf5eb] border-2 border-[#d6c5ad] rounded-2xl shadow-2xl p-1.5 z-50 text-xs animate-in fade-in slide-in-from-top-2">
               <div className="px-2.5 py-1.5 text-[10px] font-bold text-[#786653] uppercase tracking-wider border-b border-[#d6c5ad] mb-1 flex items-center justify-between">
-                <span>Alat Kantor CEO Virtual</span>
+                <span>CEO Virtual Office Tools</span>
                 <span className="font-mono text-[#c85a2b]">v1.0</span>
               </div>
 
@@ -285,10 +285,10 @@ export const TopNav: React.FC<TopNavProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-[#288279]" />
-                  <span className="font-medium">Tim & Karyawan</span>
+                  <span className="font-medium">Team & Employees</span>
                 </div>
                 <span className="text-[10px] font-bold font-mono px-1.5 py-0.2 bg-[#ede2d1] rounded text-[#4d3c2e]">
-                  {company.agents.length} Agent
+                  {company.agents.length} Agents
                 </span>
               </button>
 
@@ -299,14 +299,14 @@ export const TopNav: React.FC<TopNavProps> = ({
                   onOpenCompanyModal('global_llm');
                 }}
                 className="w-full text-left px-2.5 py-2 hover:bg-[#ede2d1] rounded-xl flex items-center justify-between text-[#2c231c] transition-colors"
-                title="Atur provider LLM global kantor untuk Teks, Gambar, Fast, Vision, Audio"
+                title="Configure office global LLM provider for Text, Image, Fast, Vision, Audio"
               >
                 <div className="flex items-center gap-2">
                   <Cpu className="w-4 h-4 text-[#4f46e5]" />
                   <span className="font-medium">Global LLM Provider</span>
                 </div>
                 <span className="text-[10px] font-bold font-mono px-1.5 py-0.2 bg-[#eef2ff] text-[#4f46e5] rounded border border-[#c7d2fe]">
-                  5 Kategori
+                  5 Categories
                 </span>
               </button>
 
@@ -319,7 +319,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                 className="w-full text-left px-2.5 py-2 hover:bg-[#ede2d1] rounded-xl flex items-center gap-2 text-[#2c231c] transition-colors"
               >
                 <ShoppingBag className="w-4 h-4 text-[#c85a2b]" />
-                <span className="font-medium">Pasar Agen (Hire/Create)</span>
+                <span className="font-medium">Agent Marketplace (Hire/Create)</span>
               </button>
 
               {/* Dedicated Workspace & CLI */}
@@ -332,7 +332,7 @@ export const TopNav: React.FC<TopNavProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Terminal className="w-4 h-4 text-[#2d4263]" />
-                  <span className="font-medium">Workspace CLI (~/.vigent)</span>
+                  <span className="font-medium">Workspace CLI (~/.ceo-virtual)</span>
                 </div>
                 <span className="text-[9px] font-mono px-1 bg-[#eef2f8] text-[#2d4263] rounded">
                   :28483
@@ -359,11 +359,11 @@ export const TopNav: React.FC<TopNavProps> = ({
                     onOpenNodeSetup();
                   }}
                   className="w-full text-left px-2.5 py-2 hover:bg-[#ede2d1] rounded-xl flex items-center justify-between text-[#2c231c] transition-colors"
-                  title="Buka Identitas Kriptografis Node P2P, Region Shard, & Unduh Kode Cadangan"
+                  title="Open P2P Node Cryptographic Identity, Regional Shard, & Download Backup"
                 >
                   <div className="flex items-center gap-2">
                     <Radio className="w-4 h-4 text-[#06b6d4]" />
-                    <span className="font-medium">Node P2P & Identitas Web3</span>
+                    <span className="font-medium">P2P Node & Web3 Identity</span>
                   </div>
                   <span className="text-[9px] font-mono px-1.5 py-0.2 bg-[#ecfeff] text-[#0891b2] rounded font-bold border border-[#a5f3fc]">
                     BIP-39
@@ -384,7 +384,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                   <span className="font-medium">Open World Map & Transit</span>
                 </div>
                 <span className="text-[9px] font-mono px-1.5 py-0.2 bg-[#fdeed9] text-[#c85a2b] rounded font-bold">
-                  Kereta & Mobil
+                  Trains & Transit
                 </span>
               </button>
 
@@ -398,7 +398,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                   className="w-full text-left px-2.5 py-2 hover:bg-[#ede2d1] rounded-xl flex items-center gap-2 text-[#2c231c] transition-colors border-t border-[#ede2d1] mt-1 pt-2"
                 >
                   <Coffee className="w-4 h-4 text-[#c85a2b]" />
-                  <span className="font-medium">Log Kegiatan Karyawan (Pantry, Game, dll)</span>
+                  <span className="font-medium">Activity Logs (Pantry, Gaming, etc.)</span>
                 </button>
               )}
 
@@ -411,7 +411,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                   className="w-full text-left px-2.5 py-2 hover:bg-[#ede2d1] rounded-xl flex items-center gap-2 text-[#2c231c] transition-colors"
                 >
                   <MessageSquare className="w-4 h-4 text-[#4338ca]" />
-                  <span className="font-medium">Log Diskusi Antar Agent</span>
+                  <span className="font-medium">Agent Collaboration & Dialogue Logs</span>
                 </button>
               )}
 
@@ -425,7 +425,7 @@ export const TopNav: React.FC<TopNavProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Coins className="w-4 h-4 text-[#ab7a1a]" />
-                  <span className="font-medium">Saldo Token Poin</span>
+                  <span className="font-medium">Token Points Balance</span>
                 </div>
                 <span className="font-mono text-[10px] font-bold text-[#ab7a1a]">
                   {formatNumber(userPoints)} PTS

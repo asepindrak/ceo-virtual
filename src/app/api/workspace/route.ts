@@ -286,7 +286,7 @@ export async function POST(req: Request) {
       const taskTicket = {
         id: newTask.id || `task-${Date.now()}`,
         title: newTask.title,
-        projectName: newTask.projectName || 'ShadowMove Landing Page',
+        projectName: newTask.projectName || 'Main Workspace',
         description: newTask.description || '',
         type: newTask.type || 'coding',
         departmentId: newTask.departmentId || 'dept-eng',

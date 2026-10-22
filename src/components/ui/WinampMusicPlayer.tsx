@@ -42,8 +42,8 @@ declare global {
 }
 
 export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
-  companyId = 'company-shadowmove',
-  companyName = 'ShadowMove',
+  companyId = 'company-default',
+  companyName = 'Office',
 }) => {
   // Drawer / Window visibility
   const [isOpen, setIsOpen] = useState(false);
@@ -269,11 +269,11 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
               const code = err?.data;
               console.warn('[YT Player Error]:', code, err);
               if (code === 101 || code === 150) {
-                setNoticeMessage('⚠️ Pemilik video membatasi pemutaran embed. Melewati ke lagu berikutnya...');
+                setNoticeMessage('⚠️ Video owner restricted embedded playback. Skipping to next track...');
               } else if (code === 100 || code === 2) {
-                setNoticeMessage('⚠️ Video tidak ditemukan. Melewati ke lagu berikutnya...');
+                setNoticeMessage('⚠️ Video not found. Skipping to next track...');
               } else {
-                setNoticeMessage('⚠️ Terjadi kendala pemutaran. Melewati ke lagu berikutnya...');
+                setNoticeMessage('⚠️ Playback issue encountered. Skipping to next track...');
               }
               setTimeout(() => setNoticeMessage(null), 4000);
               handleAutoNext();
@@ -517,7 +517,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
 
   // Clear playlist
   const handleClearPlaylist = async () => {
-    if (!confirm('Kosongkan semua lagu di playlist kantor?')) return;
+    if (!confirm('Clear all tracks from the office playlist?')) return;
     try {
       if (isPlayerReadyRef.current && playerRef.current) {
         playerRef.current.stopVideo();
@@ -578,7 +578,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
   const handleQuickPreset = async (genreQuery: string, stationTitle: string) => {
     setActivePreset(stationTitle);
     setIsSearching(true);
-    setNoticeMessage(`📻 Menghubungkan ke Stasiun "${stationTitle}"...`);
+    setNoticeMessage(`📻 Connecting to Station "${stationTitle}"...`);
     lastProcessedCmdTimeRef.current = Date.now();
 
     try {
@@ -589,7 +589,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
           action: 'create_playlist',
           query: genreQuery,
           companyId,
-          requestedBy: `Stasiun ${stationTitle}`,
+          requestedBy: `Station ${stationTitle}`,
           broadcastToChat: true,
           replaceExisting: true,
         }),
@@ -601,7 +601,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
         }
         setMusicState(data.state);
         setActiveTab('playlist');
-        setNoticeMessage(`📻 Stasiun ${stationTitle} aktif (${data.tracks?.length || 5} lagu dimuat)`);
+        setNoticeMessage(`📻 Station ${stationTitle} active (${data.tracks?.length || 5} tracks loaded)`);
         if (data.state.currentTrack) {
           safePlayTrack(data.state.currentTrack.videoId);
         }
@@ -610,7 +610,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
       }
     } catch (err) {
       console.error('[Preset Error]:', err);
-      setNoticeMessage('❌ Gagal memuat stasiun musik');
+      setNoticeMessage('❌ Failed to load music station');
     } finally {
       setIsSearching(false);
       setTimeout(() => setNoticeMessage(null), 5000);
@@ -621,10 +621,10 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
   const handleAddSearchResult = async (track: MusicTrack, playNow: boolean = false) => {
     try {
       if (playNow) {
-        setNoticeMessage(`🎶 Memutar: "${track.title}"`);
+        setNoticeMessage(`🎶 Playing: "${track.title}"`);
         safePlayTrack(track.videoId);
       } else {
-        setNoticeMessage(`✅ Ditambahkan ke antrean: "${track.title}"`);
+        setNoticeMessage(`✅ Added to queue: "${track.title}"`);
       }
       setTimeout(() => setNoticeMessage(null), 4000);
 
@@ -651,7 +651,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
       }
     } catch (err) {
       console.error(err);
-      setNoticeMessage('❌ Gagal menambahkan lagu ke antrean');
+      setNoticeMessage('❌ Failed to add track to queue');
       setTimeout(() => setNoticeMessage(null), 4000);
     }
   };
@@ -680,10 +680,10 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
           <Volume2 className="w-5 h-5 text-amber-200 animate-pulse flex-shrink-0" />
           <div className="flex flex-col text-left">
             <span className="font-extrabold text-white text-[13px]">
-              🎵 Lagu dari Telegram siap diputar!
+              🎵 Telegram track ready to play!
             </span>
             <span className="text-amber-100 text-[11px] font-normal">
-              Kebijakan browser membatasi audio otomatis: Klik di sini untuk mengaktifkan suara.
+              Browser policy restricts automatic audio: Click here to unmute.
             </span>
           </div>
         </div>
@@ -694,7 +694,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
         <button
           onClick={() => setIsOpen(true)}
           className="fixed right-4 bottom-24 z-40 group flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-[#181824]/95 via-[#1e293b]/95 to-[#0f172a]/95 text-white border-2 border-cyan-500/40 shadow-xl shadow-cyan-950/40 hover:border-cyan-400 hover:scale-105 active:scale-95 transition-all duration-200 backdrop-blur-md"
-          title="Buka Office SoundSystem (Winamp Player & Playlist)"
+          title="Open Office SoundSystem (Winamp Player & Playlist)"
         >
           {/* Animated Equalizer Wave when playing */}
           <div className="flex items-end gap-0.5 h-4 w-4 justify-center">
@@ -723,7 +723,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
               )}
             </span>
             <span className="text-xs font-semibold text-slate-200 truncate">
-              {currentTrack ? `${currentTrack.title} - ${currentTrack.artist}` : 'Putar Musik Kantor'}
+              {currentTrack ? `${currentTrack.title} - ${currentTrack.artist}` : 'Play Office Music'}
             </span>
           </div>
 
@@ -733,7 +733,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
               togglePlayPause();
             }}
             className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-300 border border-cyan-400/30 transition-colors ml-1"
-            title={musicState.isPlaying ? 'Jeda Musik' : 'Putar Musik'}
+            title={musicState.isPlaying ? 'Pause Music' : 'Play Music'}
           >
             {musicState.isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
           </div>
@@ -774,21 +774,21 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                     ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50'
                     : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
                 }`}
-                title={showVideo ? 'Sembunyikan Video' : 'Tampilkan Video YouTube'}
+                title={showVideo ? 'Hide Video' : 'Show YouTube Video'}
               >
                 <Tv className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 border border-slate-700/80 transition-colors"
-                title="Tutup ke Tombol Floating"
+                title="Minimize to Floating Button"
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/30 hover:text-rose-400 text-slate-400 border border-slate-700/80 transition-colors"
-                title="Tutup Drawer"
+                title="Close Drawer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -836,7 +836,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                   <span className="font-mono text-xs font-bold text-cyan-300 tracking-wide">
                     {currentTrack
                       ? `♫ ${currentTrack.title} — ${currentTrack.artist}`
-                      : '♫ Belum ada lagu yang diputar — Cari lagu atau pilih stasiun radio di bawah'}
+                      : '♫ No track playing — Search tracks or select a radio station below'}
                   </span>
                 </div>
               </div>
@@ -885,7 +885,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
             <div className="h-36 sm:h-40 border-b border-slate-800 relative w-full flex-shrink-0 bg-black flex items-center justify-center text-xs text-slate-500 font-mono select-none">
               <span className="text-[11px] text-cyan-400/80 animate-pulse flex items-center gap-1.5">
                 <Tv className="w-3.5 h-3.5" />
-                <span>Video Layar Winamp Aktif</span>
+                <span>Winamp Video Screen Active</span>
               </span>
             </div>
           )}
@@ -898,7 +898,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                 <button
                   onClick={handlePrev}
                   className="p-1.5 sm:p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/80 active:scale-95 transition-all"
-                  title="Lagu Sebelumnya"
+                  title="Previous Track"
                 >
                   <SkipBack className="w-4 h-4" />
                 </button>
@@ -909,21 +909,21 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                       ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-900/30'
                       : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-cyan-900/40'
                   }`}
-                  title={musicState.isPlaying ? 'Jeda' : 'Putar'}
+                  title={musicState.isPlaying ? 'Pause' : 'Play'}
                 >
                   {musicState.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
                 </button>
                 <button
                   onClick={handleStop}
                   className="p-1.5 sm:p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/80 active:scale-95 transition-all"
-                  title="Hentikan Musik"
+                  title="Stop Music"
                 >
                   <Square className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={handleNext}
                   className="p-1.5 sm:p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/80 active:scale-95 transition-all"
-                  title="Lagu Berikutnya"
+                  title="Next Track"
                 >
                   <SkipForward className="w-4 h-4" />
                 </button>
@@ -960,9 +960,9 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-cyan-400 font-mono font-bold flex items-center gap-1">
                   <Radio className="w-3 h-3 text-cyan-400" />
-                  <span>Stasiun Musik (Presets)</span>
+                  <span>Music Stations (Presets)</span>
                 </span>
-                <span className="text-[9px] text-slate-500">Pilih untuk putar radio baru</span>
+                <span className="text-[9px] text-slate-500">Select to stream preset</span>
               </div>
               <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-[10px] font-medium scrollbar-none">
                 <button
@@ -972,7 +972,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                       ? 'bg-cyan-500/30 text-cyan-200 border-cyan-400 font-bold shadow-sm shadow-cyan-900/50'
                       : 'bg-slate-800/80 hover:bg-cyan-500/20 text-cyan-300 border-slate-700 hover:border-cyan-500/50'
                   }`}
-                  title="Stasiun Lofi Chill untuk konsentrasi & kerja santai"
+                  title="Lofi Chill station for focus & deep work"
                 >
                   ☕ Lofi Chill
                 </button>
@@ -983,7 +983,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                       ? 'bg-fuchsia-500/30 text-fuchsia-200 border-fuchsia-400 font-bold shadow-sm shadow-fuchsia-900/50'
                       : 'bg-slate-800/80 hover:bg-fuchsia-500/20 text-fuchsia-300 border-slate-700 hover:border-fuchsia-500/50'
                   }`}
-                  title="Stasiun Retro Synthwave energi tinggi"
+                  title="High-energy retro Synthwave station"
                 >
                   🌆 Synthwave
                 </button>
@@ -994,7 +994,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                       ? 'bg-emerald-500/30 text-emerald-200 border-emerald-400 font-bold shadow-sm shadow-emerald-900/50'
                       : 'bg-slate-800/80 hover:bg-emerald-500/20 text-emerald-300 border-slate-700 hover:border-emerald-500/50'
                   }`}
-                  title="Stasiun J-Pop & Anime Acoustic"
+                  title="J-Pop & Anime Acoustic station"
                 >
                   ✨ J-Pop Anime
                 </button>
@@ -1005,7 +1005,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                       ? 'bg-amber-500/30 text-amber-200 border-amber-400 font-bold shadow-sm shadow-amber-900/50'
                       : 'bg-slate-800/80 hover:bg-amber-500/20 text-amber-300 border-slate-700 hover:border-amber-500/50'
                   }`}
-                  title="Stasiun Rock Klasik legendaris"
+                  title="Legendary Classic Rock station"
                 >
                   🎸 Classic Rock
                 </button>
@@ -1016,7 +1016,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                       ? 'bg-sky-500/30 text-sky-200 border-sky-400 font-bold shadow-sm shadow-sky-900/50'
                       : 'bg-slate-800/80 hover:bg-sky-500/20 text-sky-300 border-slate-700 hover:border-sky-500/50'
                   }`}
-                  title="Stasiun Akustik Kafe Santai"
+                  title="Relaxing Acoustic Cafe station"
                 >
                   🌿 Acoustic Cafe
                 </button>
@@ -1046,7 +1046,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
               }`}
             >
               <Search className="w-3.5 h-3.5" />
-              <span>Cari YouTube Music</span>
+              <span>Search YouTube Music</span>
             </button>
           </div>
 
@@ -1056,21 +1056,21 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
             {activeTab === 'playlist' && (
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between text-[10px] text-slate-500 px-1 pb-1">
-                  <span>Daftar Antrean Musik Kantor:</span>
+                  <span>Office Music Queue:</span>
                   {musicState.playlist.length > 0 && (
                     <button
                       onClick={handleClearPlaylist}
                       className="text-rose-400 hover:underline flex items-center gap-1"
                     >
                       <Trash2 className="w-2.5 h-2.5" />
-                      <span>Bersihkan</span>
+                      <span>Clear</span>
                     </button>
                   )}
                 </div>
 
                 {musicState.playlist.length === 0 ? (
                   <div className="text-center py-8 text-slate-500 text-xs italic">
-                    Playlist kosong. Cari lagu di tab &ldquo;Cari&rdquo; atau ketik <code className="text-cyan-400">/play</code> di chat kantor / Telegram!
+                    Playlist is empty. Search songs in &ldquo;Search&rdquo; tab or type <code className="text-cyan-400">/play</code> in office chat / Telegram!
                   </div>
                 ) : (
                   musicState.playlist.map((track, idx) => {
@@ -1118,7 +1118,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                           <button
                             onClick={(e) => handleRemoveTrack(track.id, e)}
                             className="p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                            title="Hapus dari Playlist"
+                            title="Remove from Playlist"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -1137,7 +1137,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                   <div className="relative flex-1">
                     <input
                       type="text"
-                      placeholder="Ketik judul lagu / artist..."
+                      placeholder="Type song title / artist..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
@@ -1149,7 +1149,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                     className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
                   >
                     {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                    <span>Cari</span>
+                    <span>Search</span>
                   </button>
                 </form>
 
@@ -1186,7 +1186,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                         <button
                           onClick={() => handleAddSearchResult(track, true)}
                           className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 text-[10px] font-bold flex items-center gap-1 transition-colors"
-                          title="Putar Sekarang"
+                          title="Play Now"
                         >
                           <Play className="w-2.5 h-2.5" />
                           <span>Play</span>
@@ -1194,7 +1194,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
                         <button
                           onClick={() => handleAddSearchResult(track, false)}
                           className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] transition-colors"
-                          title="Tambah ke Antrean"
+                          title="Add to Queue"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -1204,7 +1204,7 @@ export const WinampMusicPlayer: React.FC<WinampMusicPlayerProps> = ({
 
                   {searchResults.length === 0 && !isSearching && (
                     <div className="text-center py-6 text-slate-500 text-xs italic">
-                      Gunakan kotak pencarian di atas untuk menemukan jutaan lagu dari YouTube Music.
+                      Use the search box above to discover millions of tracks from YouTube Music.
                     </div>
                   )}
                 </div>

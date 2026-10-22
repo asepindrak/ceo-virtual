@@ -14,22 +14,22 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { CompanyMemoryItem, CompanyLevelProgress, MemoryType, TaskTicket, LLMConfig } from '@/types/office';
+import { VIGENT_HOME } from './workspaceManager';
 
 function getVigentDir(): string {
-  const dir = path.join(os.homedir(), '.vigent');
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(VIGENT_HOME)) {
+    fs.mkdirSync(VIGENT_HOME, { recursive: true });
   }
-  return dir;
+  return VIGENT_HOME;
 }
 
 function getMemoriesFilePath(companyId: string): string {
-  const safeId = (companyId || 'company-shadowmove').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  const safeId = (companyId || 'company-main').toLowerCase().replace(/[^a-z0-9_-]/g, '');
   return path.join(getVigentDir(), `memories_${safeId}.json`);
 }
 
 function getProgressionFilePath(companyId: string): string {
-  const safeId = (companyId || 'company-shadowmove').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  const safeId = (companyId || 'company-main').toLowerCase().replace(/[^a-z0-9_-]/g, '');
   return path.join(getVigentDir(), `progression_${safeId}.json`);
 }
 
@@ -163,11 +163,11 @@ function getDefaultSeedMemories(companyId: string): CompanyMemoryItem[] {
       companyId,
       type: 'lore',
       title: 'Company Culture & Core Manifesto',
-      content: 'Kita bergerak cepat, mengutamakan performa sub-detik, arsitektur modular, dan tampilan estetis dark-mode dengan sentuhan futuristik.',
-      categoryTag: '🏛️ Manifesto Perusahaan',
-      tags: ['budaya', 'visi', 'estetika', 'performa'],
+      content: 'We move fast, prioritizing sub-second performance, modular architecture, and aesthetic dark-mode UI with a sleek futuristic touch.',
+      categoryTag: '🏛️ Company Manifesto',
+      tags: ['culture', 'vision', 'aesthetics', 'performance'],
       importance: 5,
-      embedding: generateLocalSemanticEmbedding('Company Culture & Core Manifesto: Bergerak cepat sub-detik arsitektur modular dark mode futuristik'),
+      embedding: generateLocalSemanticEmbedding('Company Culture & Core Manifesto: Move fast sub-second modular architecture dark mode futuristic'),
       createdAt: now - 86400000,
       recallCount: 1,
     },
@@ -175,12 +175,12 @@ function getDefaultSeedMemories(companyId: string): CompanyMemoryItem[] {
       id: `mem-${companyId}-arch`,
       companyId,
       type: 'semantic',
-      title: 'Standar Arsitektur Software & API',
-      content: 'Semua endpoint backend harus memiliki penanganan error yang jelas, isolasi multi-tenant, dan caching layer untuk query yang sering diakses.',
-      categoryTag: '💻 Arsitektur & Koding',
-      tags: ['backend', 'api', 'caching', 'standar'],
+      title: 'Software Architecture & API Standards',
+      content: 'All backend endpoints must have clean error handling, multi-tenant isolation, and an intelligent caching layer for high-frequency queries.',
+      categoryTag: '💻 Architecture & Coding',
+      tags: ['backend', 'api', 'caching', 'standards'],
       importance: 4,
-      embedding: generateLocalSemanticEmbedding('Standar Arsitektur Software & API: Endpoint backend penanganan error isolasi multi-tenant caching layer'),
+      embedding: generateLocalSemanticEmbedding('Software Architecture & API Standards: Backend endpoints error handling multi-tenant caching layer'),
       createdAt: now - 43200000,
       recallCount: 2,
     },
@@ -188,12 +188,12 @@ function getDefaultSeedMemories(companyId: string): CompanyMemoryItem[] {
       id: `mem-${companyId}-mochi`,
       companyId,
       type: 'lore',
-      title: 'Maskot Keberuntungan Kantor: Mochi',
-      content: 'Mochi adalah kucing oranye maskot kantor yang suka tidur dekat server rack atau sofa pantry. Jangan lupa memberinya camilan salmon saat istirahat.',
-      categoryTag: '🐱 Maskot Kantor',
-      tags: ['mochi', 'kucing', 'pantry', 'maskot'],
+      title: 'Office Lucky Mascot: Mochi',
+      content: 'Mochi is an orange cat and office mascot who loves napping near server racks or on the pantry sofa. Remember to treat him with salmon snacks during breaks.',
+      categoryTag: '🐱 Office Mascot',
+      tags: ['mochi', 'cat', 'pantry', 'mascot'],
       importance: 3,
-      embedding: generateLocalSemanticEmbedding('Maskot Keberuntungan Kantor: Mochi kucing oranye sofa pantry snack salmon'),
+      embedding: generateLocalSemanticEmbedding('Office Lucky Mascot: Mochi orange cat pantry sofa salmon snacks'),
       createdAt: now - 21600000,
       recallCount: 3,
     },
@@ -237,7 +237,7 @@ export async function addCompanyMemory(
     type: item.type,
     title: item.title,
     content: item.content,
-    categoryTag: item.categoryTag || '💡 Pengalaman Tim',
+    categoryTag: item.categoryTag || '💡 Team Experience',
     tags: item.tags || [],
     agentId: item.agentId,
     agentName: item.agentName,
@@ -372,7 +372,7 @@ export function getCompanyProgress(companyId: string): CompanyLevelProgress {
     totalTasksCompleted: data?.totalTasksCompleted || 0,
     totalLinesOfCode: data?.totalLinesOfCode || 120,
     totalMemoriesCount: memories.length,
-    achievements: data?.achievements || ['🚀 Kantor Didirikan', '💡 Memori Kolektif Aktif'],
+    achievements: data?.achievements || ['🚀 Office Founded', '💡 Collective Memory Active'],
   };
 }
 
@@ -395,8 +395,8 @@ export async function recordTaskCompletionExperience(
   const addedLoc = Math.floor(Math.random() * 80) + 40;
 
   const achievements = [...currentProgress.achievements];
-  if (newTasksDone === 1 && !achievements.includes('⭐ Tiket Perdana Selesai')) {
-    achievements.push('⭐ Tiket Perdana Selesai');
+  if (newTasksDone === 1 && !achievements.includes('⭐ First Sprint Ticket Completed')) {
+    achievements.push('⭐ First Sprint Ticket Completed');
   }
   if (newTasksDone === 5 && !achievements.includes('🔥 Sprint Master')) {
     achievements.push('🔥 Sprint Master');
@@ -415,8 +415,8 @@ export async function recordTaskCompletionExperience(
   } catch {}
 
   // Auto-synthesize Episodic Memory from this completed task
-  const memoryTitle = `Pengalaman Selesai: "${task.title}"`;
-  const memoryContent = `Diselesaikan oleh ${agentName} (${task.type}). Artefak: ${task.artifacts.map((a) => a.fileName).join(', ') || 'Kode terverifikasi'}. Pembelajaran: Pengerjaan selesai 100% dan terintegrasi ke dalam branch utama.`;
+  const memoryTitle = `Completed Experience: "${task.title}"`;
+  const memoryContent = `Completed by ${agentName} (${task.type}). Artifacts: ${task.artifacts.map((a) => a.fileName).join(', ') || 'Verified codebase'}. Key Takeaway: Work completed 100% and merged into primary workspace branch.`;
 
   const newMemory = await addCompanyMemory(
     {
@@ -424,7 +424,7 @@ export async function recordTaskCompletionExperience(
       type: 'episodic',
       title: memoryTitle,
       content: memoryContent,
-      categoryTag: '📦 Hasil Sprint Selesai',
+      categoryTag: '📦 Sprint Delivery Completed',
       tags: [task.type, 'sprint', agentName.toLowerCase().replace(/\s+/g, '-')],
       agentName,
       sourceTaskId: task.id,
@@ -451,9 +451,9 @@ export function formatMemoriesForPrompt(memoriesWithScores: { memory: CompanyMem
     const mem = item.memory;
     text += `${idx + 1}. [${mem.categoryTag || mem.type.toUpperCase()}] **${mem.title}** (Relevance: ${Math.round(item.similarity * 100)}%)\n`;
     text += `   - Detail: ${mem.content}\n`;
-    if (mem.agentName) text += `   - Kontributor: ${mem.agentName}\n`;
+    if (mem.agentName) text += `   - Contributor: ${mem.agentName}\n`;
   });
-  text += `Gunakan pengetahuan masa lalu perusahaan di atas untuk memberikan jawaban atau rekomendasi yang konsisten dengan pengalaman kantor ini.\n`;
+  text += `Use the company's past knowledge above to provide responses and recommendations aligned with this office's established culture and architecture.\n`;
 
   return text;
 }

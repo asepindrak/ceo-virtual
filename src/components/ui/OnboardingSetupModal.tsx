@@ -146,11 +146,11 @@ export function OnboardingSetupModal({ isOpen, onComplete }: OnboardingSetupModa
 
   const detectLocation = async () => {
     setIsDetectingLocation(true);
-    setLocationStatus('Mendeteksi koordinat GPS perangkat...');
+    setLocationStatus('Detecting device GPS coordinates...');
 
     const applyCoords = (lat: number, lon: number, cityName: string) => {
       setUserCoords({ latitude: lat, longitude: lon, city: cityName });
-      setLocationStatus(`Lokasi terdeteksi: ${cityName} (${lat.toFixed(2)}, ${lon.toFixed(2)})`);
+      setLocationStatus(`Location detected: ${cityName} (${lat.toFixed(2)}, ${lon.toFixed(2)})`);
 
       setRegions((prev) => {
         const updated = prev.map((reg) => {
@@ -175,7 +175,7 @@ export function OnboardingSetupModal({ isOpen, onComplete }: OnboardingSetupModa
     if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          applyCoords(pos.coords.latitude, pos.coords.longitude, 'GPS Browser');
+          applyCoords(pos.coords.latitude, pos.coords.longitude, 'Browser GPS');
         },
         async () => {
           // Fallback to IP detection API
@@ -185,11 +185,11 @@ export function OnboardingSetupModal({ isOpen, onComplete }: OnboardingSetupModa
             if (data.success) {
               applyCoords(data.latitude, data.longitude, `${data.city}, ${data.countryCode}`);
             } else {
-              setLocationStatus('Deteksi otomatis tidak aktif, silakan pilih region manual.');
+              setLocationStatus('Automatic detection unavailable, please select region manually.');
               setIsDetectingLocation(false);
             }
           } catch {
-            setLocationStatus('Deteksi otomatis tidak aktif, silakan pilih region manual.');
+            setLocationStatus('Automatic detection unavailable, please select region manually.');
             setIsDetectingLocation(false);
           }
         },
@@ -261,24 +261,24 @@ export function OnboardingSetupModal({ isOpen, onComplete }: OnboardingSetupModa
     const words = mode === 'create' ? mnemonic : restoreText;
     const addr = address || 'Pending Creation';
     const content = `======================================================================
-👑 CEO VIRTUAL - KODE CADANGAN PEMULIHAN KANTOR (PRIVATE RECOVERY)
+👑 CEO VIRTUAL - OFFICE RECOVERY BACKUP KEY (PRIVATE RECOVERY)
 ======================================================================
-Perusahaan    : ${companyName || 'My Virtual Company'}
+Company       : ${companyName || 'My Virtual Company'}
 Node Address  : ${addr}
-Tanggal Dibuat: ${new Date().toLocaleString('id-ID')}
-Industri      : ${industry}
+Created At    : ${new Date().toLocaleString('en-US')}
+Industry      : ${industry}
 
-12 KATA KUNCI PEMULIHAN (SEED PHRASE):
+12 RECOVERY SEED WORDS (BIP-39 SEED PHRASE):
 ${words}
 
 ======================================================================
-PENTING & RAHASIA:
-1. Jangan bagikan file ini atau 12 kata ini kepada siapapun!
-2. Simpan file ini di tempat aman (Flashdisk, Password Manager, dsb).
-3. Jika PC Anda di-install ulang atau Anda berganti komputer:
-   - Buka CEO Virtual di browser
-   - Pilih menu "Pulihkan Kantor"
-   - Cukup upload file ini atau paste 12 kata di atas.
+IMPORTANT & CONFIDENTIAL:
+1. Never share this file or these 12 words with anyone!
+2. Store this file in a safe place (Flash drive, Password Manager, etc.).
+3. If you reinstall your OS or switch to another computer:
+   - Open CEO Virtual in your browser
+   - Select "Restore Office"
+   - Simply upload this file or paste the 12 words above.
 ======================================================================
 `;
 
@@ -320,7 +320,7 @@ PENTING & RAHASIA:
       if (wordsList.length >= 12) {
         setRestoreText(wordsList.slice(0, 12).join(' '));
       } else {
-        setRestoreError('File tidak berisi 12 kata pemulihan yang valid. Silakan periksa kembali file cadangan Anda.');
+        setRestoreError('File does not contain 12 valid recovery words. Please verify your backup file.');
       }
     };
     reader.readAsText(file);
@@ -358,13 +358,13 @@ PENTING & RAHASIA:
 
   const handleGenerateAICompany = async () => {
     if (!businessPrompt.trim() && !companyName.trim()) {
-      setGenerationError('Silakan masukkan ide bisnis atau nama perusahaan Anda.');
+      setGenerationError('Please enter your business idea or company name.');
       return;
     }
 
     setIsGeneratingCompany(true);
     setGenerationError('');
-    setGenerationStatus('Menghubungi LLM Engine & Merancang Struktur...');
+    setGenerationStatus('Connecting to LLM Engine & architecting structure...');
 
     try {
       const payload = {
@@ -389,7 +389,7 @@ PENTING & RAHASIA:
 
       const data = await res.json();
       if (!data.success) {
-        setGenerationError(data.error || 'Gagal menghasilkan struktur perusahaan.');
+        setGenerationError(data.error || 'Failed to generate company structure.');
         setIsGeneratingCompany(false);
         return;
       }
@@ -397,9 +397,9 @@ PENTING & RAHASIA:
       setGeneratedCompany(data.company);
       if (data.company.name) setCompanyName(data.company.name);
       if (data.company.industry) setIndustry(data.company.industry);
-      setGenerationStatus('Struktur perusahaan, tim AI, dan tiket tugas berhasil dirancang!');
+      setGenerationStatus('Company structure, AI team, and sprint tasks successfully generated!');
     } catch (err: any) {
-      setGenerationError(err.message || 'Terjadi kesalahan sistem saat memanggil AI generator.');
+      setGenerationError(err.message || 'A system error occurred while contacting AI generator.');
     } finally {
       setIsGeneratingCompany(false);
     }
@@ -413,7 +413,7 @@ PENTING & RAHASIA:
     const activeMnemonic = mode === 'create' ? mnemonic : restoreText.trim();
     const words = activeMnemonic.split(/\s+/).filter(Boolean);
     if (words.length !== 12) {
-      setSubmitError('Seed phrase harus tepat 12 kata.');
+      setSubmitError('Seed phrase must contain exactly 12 words.');
       setIsSubmitting(false);
       return;
     }
@@ -437,7 +437,7 @@ PENTING & RAHASIA:
 
       const data = await res.json();
       if (!data.success) {
-        setSubmitError(data.error || 'Gagal menyimpan konfigurasi node.');
+        setSubmitError(data.error || 'Failed to save node configuration.');
         setIsSubmitting(false);
         return;
       }
@@ -458,7 +458,7 @@ PENTING & RAHASIA:
           baseUrl: llmBaseUrl.trim() || undefined,
           model: llmModel.trim(),
           isEnabled: true,
-          description: `Global LLM Provider (${llmProvider} - ${llmModel}) disetup saat onboarding awal.`,
+          description: `Global LLM Provider (${llmProvider} - ${llmModel}) configured during initial onboarding.`,
         };
         finalGlobalLLM = generatedCompany?.globalLLMConfig || {
           text: textSetting,
@@ -479,7 +479,7 @@ PENTING & RAHASIA:
         tasks: creationMethod === 'ai' ? (generatedCompany?.tasks || []) : [],
       });
     } catch (err: any) {
-      setSubmitError(err.message || 'Terjadi kesalahan sistem saat peluncuran node.');
+      setSubmitError(err.message || 'A system error occurred during node launch.');
     } finally {
       setIsSubmitting(false);
     }
@@ -510,7 +510,7 @@ PENTING & RAHASIA:
                 </h2>
               </div>
               <p className="text-xs text-gray-400 mt-0.5">
-                Inisialisasi identitas kriptografis, cluster region, dan kantor virtual Anda
+                Initialize your cryptographic identity, regional cluster, and virtual office
               </p>
             </div>
           </div>
@@ -521,7 +521,7 @@ PENTING & RAHASIA:
               step === 1 ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-gray-800/40 border-gray-700 text-gray-400'
             }`}>
               <Key className="w-3.5 h-3.5" />
-              <span>1. Identitas</span>
+              <span>1. Identity</span>
             </div>
             <div className="w-4 h-0.5 bg-gray-800" />
             <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${
@@ -535,7 +535,7 @@ PENTING & RAHASIA:
               step === 3 ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-gray-800/40 border-gray-700 text-gray-400'
             }`}>
               <Building2 className="w-3.5 h-3.5" />
-              <span>3. Kantor</span>
+              <span>3. Office</span>
             </div>
           </div>
         </div>
@@ -565,8 +565,8 @@ PENTING & RAHASIA:
                       <Sparkles className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white text-sm">Buat Kantor Baru</h3>
-                      <p className="text-xs text-gray-400 mt-0.5">Generate wallet, 12 kata seed, & identitas node baru</p>
+                      <h3 className="font-semibold text-white text-sm">Create New Office</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Generate wallet, 12 seed words, & fresh node identity</p>
                     </div>
                   </div>
                 </button>
@@ -585,8 +585,8 @@ PENTING & RAHASIA:
                       <Upload className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white text-sm">Pulihkan Kantor</h3>
-                      <p className="text-xs text-gray-400 mt-0.5">Pindah PC / Install ulang lewat file atau 12 kata</p>
+                      <h3 className="font-semibold text-white text-sm">Restore Office</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Migrate PC / Reinstall via backup file or 12 words</p>
                     </div>
                   </div>
                 </button>
@@ -597,18 +597,18 @@ PENTING & RAHASIA:
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Kunci Pemulihan Cadangan (BIP-39 Mnemonic)</span>
-                      <p className="text-xs text-gray-400 mt-0.5">Catat atau unduh 12 kata ini. Jangan sampai hilang jika ingin memulihkan kantor Anda di PC lain.</p>
+                      <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Backup Recovery Key (BIP-39 Mnemonic)</span>
+                      <p className="text-xs text-gray-400 mt-0.5">Write down or download these 12 words. Keep them safe to restore your office on any computer.</p>
                     </div>
                     <button
                       type="button"
                       onClick={generateFreshIdentity}
                       disabled={isGenerating}
                       className="text-xs text-gray-400 hover:text-cyan-400 flex items-center gap-1 transition-colors px-2.5 py-1 rounded-md bg-gray-800/60 border border-gray-700/60"
-                      title="Generate ulang 12 kata baru"
+                      title="Generate new 12 words"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin text-cyan-400' : ''}`} />
-                      <span>Acak Baru</span>
+                      <span>Roll New</span>
                     </button>
                   </div>
 
@@ -646,12 +646,12 @@ PENTING & RAHASIA:
                       {hasCopied ? (
                         <>
                           <Check className="w-4 h-4 text-emerald-400" />
-                          <span className="text-emerald-400 font-semibold">Tersalin ke Clipboard!</span>
+                          <span className="text-emerald-400 font-semibold">Copied to Clipboard!</span>
                         </>
                       ) : (
                         <>
                           <Copy className="w-4 h-4 text-gray-400" />
-                          <span>Salin 12 Kata</span>
+                          <span>Copy 12 Words</span>
                         </>
                       )}
                     </button>
@@ -662,7 +662,7 @@ PENTING & RAHASIA:
                       className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-700/80 text-sm font-semibold text-cyan-300 transition-all shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-95"
                     >
                       <Download className="w-4 h-4 text-cyan-400" />
-                      <span>Unduh File Cadangan (.txt)</span>
+                      <span>Download Backup (.txt)</span>
                     </button>
                   </div>
 
@@ -675,7 +675,7 @@ PENTING & RAHASIA:
                       className="mt-0.5 rounded border-gray-700 bg-gray-900 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-gray-900"
                     />
                     <span className="text-xs text-gray-300 leading-relaxed group-hover:text-white transition-colors">
-                      Saya telah menyimpan 12 kata kode pemulihan ini di tempat yang aman (atau mengunduh file <span className="font-mono text-cyan-400">.txt</span> cadangan).
+                      I have safely saved these 12 recovery words in a secure location (or downloaded the backup <span className="font-mono text-cyan-400">.txt</span> file).
                     </span>
                   </label>
                 </div>
@@ -685,8 +685,8 @@ PENTING & RAHASIA:
               {mode === 'restore' && (
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <span className="text-xs font-semibold text-purple-400 uppercase tracking-wider">Pemulihan Kantor Lama</span>
-                    <p className="text-xs text-gray-400">Upload file backup <span className="font-mono text-purple-300">.txt</span> yang pernah Anda unduh, atau paste 12 kata pemulihan secara manual.</p>
+                    <span className="text-xs font-semibold text-purple-400 uppercase tracking-wider">Restore Existing Office</span>
+                    <p className="text-xs text-gray-400">Upload your backup <span className="font-mono text-purple-300">.txt</span> file, or paste your 12 recovery words manually.</p>
                   </div>
 
                   {/* Drag & Drop File Upload Area */}
@@ -717,22 +717,22 @@ PENTING & RAHASIA:
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
                     <FileText className="w-8 h-8 text-purple-400 mx-auto mb-2 opacity-80" />
-                    <p className="text-sm font-medium text-white">Tarik & Letakkan file cadangan (.txt) ke sini</p>
-                    <p className="text-xs text-gray-400 mt-1">atau klik untuk memilih file dari komputer Anda</p>
+                    <p className="text-sm font-medium text-white">Drag & Drop backup file (.txt) here</p>
+                    <p className="text-xs text-gray-400 mt-1">or click to select a file from your computer</p>
                   </div>
 
                   {/* Manual Textarea Input */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <label className="text-gray-400">Atau Paste 12 Kata Pemulihan:</label>
+                      <label className="text-gray-400">Or Paste 12 Recovery Words:</label>
                       <span className={`font-mono ${restoreWordsCount === 12 ? 'text-emerald-400 font-bold' : 'text-gray-500'}`}>
-                        {restoreWordsCount} / 12 kata
+                        {restoreWordsCount} / 12 words
                       </span>
                     </div>
                     <textarea
                       value={restoreText}
                       onChange={(e) => { setRestoreText(e.target.value); setRestoreError(''); }}
-                      placeholder="Contoh: matrix dynamic ocean quantum timber harvest rocket velvet whisper orbit shield alpha"
+                      placeholder="e.g. matrix dynamic ocean quantum timber harvest rocket velvet whisper orbit shield alpha"
                       rows={3}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-gray-950 border border-gray-800 text-sm font-mono text-purple-200 placeholder:text-gray-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none"
                     />
@@ -756,9 +756,9 @@ PENTING & RAHASIA:
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Pilih Klaster Region Node P2P</span>
+                <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Select P2P Node Region Cluster</span>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Region menentukan klaster sinkronisasi state terdekat untuk komunikasi real-time berlatensi rendah antar agen & node.
+                  Region determines the closest state synchronization cluster for ultra low-latency real-time P2P agent communication.
                 </p>
               </div>
 
@@ -770,13 +770,13 @@ PENTING & RAHASIA:
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-white">Deteksi Lokasi GPS & Nearby Office</span>
+                      <span className="text-xs font-bold text-white">GPS Location Detection & Nearby Office</span>
                       <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">
                         Spatial P2P
                       </span>
                     </div>
                     <p className="text-[11px] text-gray-300 mt-0.5">
-                      {locationStatus || 'Deteksi koordinat GPS otomatis untuk merekomendasikan shard terdekat & mengaktifkan fitur Kantor Tetangga.'}
+                      {locationStatus || 'Automatic GPS detection to recommend the closest shard and enable Nearby Office discovery.'}
                     </p>
                   </div>
                 </div>
@@ -788,7 +788,7 @@ PENTING & RAHASIA:
                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold transition-all shrink-0 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   <Compass className={`w-3.5 h-3.5 ${isDetectingLocation ? 'animate-spin' : ''}`} />
-                  <span>{isDetectingLocation ? 'Mendeteksi...' : '📍 Cek GPS Ulang'}</span>
+                  <span>{isDetectingLocation ? 'Detecting...' : '📍 Re-check GPS'}</span>
                 </button>
               </div>
 
@@ -798,7 +798,7 @@ PENTING & RAHASIA:
                 <div className="space-y-0.5">
                   <span className="font-semibold text-cyan-300 text-[11px]">Dynamic Auto-Sharding Protocol:</span>
                   <p className="text-gray-400 text-[11px] leading-relaxed">
-                    Jika sebuah region mencapai kapasitas $\ge 90\%$, protokol konsensus node akan otomatis men-spawn shard region baru (misal: <span className="font-mono text-cyan-300">APAC Jakarta Shard-2</span>).
+                    If a region reaches capacity $\ge 90\%$, the consensus protocol automatically spawns a new region shard (e.g., <span className="font-mono text-cyan-300">APAC Jakarta Shard-2</span>).
                   </p>
                 </div>
               </div>
@@ -834,7 +834,7 @@ PENTING & RAHASIA:
                               )}
                               {region.distanceKm !== undefined && region.distanceKm < 200 && (
                                 <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-950/90 border border-emerald-700 text-emerald-300 font-semibold font-mono">
-                                  ★ Terdekat
+                                  ★ Closest
                                 </span>
                               )}
                             </div>
@@ -860,9 +860,9 @@ PENTING & RAHASIA:
                       {/* Capacity Progress Bar */}
                       <div className="space-y-1.5 mt-3">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-gray-400">Node P2P Aktif di Shard</span>
+                          <span className="text-gray-400">Active P2P Nodes in Shard</span>
                           <span className={`font-mono font-medium ${isHighLoad ? 'text-amber-400' : 'text-cyan-400'}`}>
-                            {region.currentSlots} Node Aktif (Kapasitas Maks: {region.maxSlots})
+                            {region.currentSlots} Active Nodes (Max Capacity: {region.maxSlots})
                           </span>
                         </div>
                         <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
@@ -889,9 +889,9 @@ PENTING & RAHASIA:
           {step === 3 && (
             <div className="space-y-5">
               <div>
-                <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Profil Kantor & Genesis Block</span>
+                <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Office Profile & Genesis Block</span>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Tentukan profil perusahaan. Anda dapat menggunakan AI Generator untuk merancang tim otomatis dengan LLM Global, atau mulai dari nol.
+                  Configure your company profile. Use AI Generator to architect an autonomous team with a Global LLM, or start from clean slate.
                 </p>
               </div>
 
@@ -909,7 +909,7 @@ PENTING & RAHASIA:
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                   <span>✨ AI Company Generator</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
-                    Rekomendasi
+                    Recommended
                   </span>
                 </button>
 
@@ -923,7 +923,7 @@ PENTING & RAHASIA:
                   }`}
                 >
                   <ShoppingBag className="w-3.5 h-3.5 text-purple-400" />
-                  <span>🛠️ Mulai dari Nol / Marketplace</span>
+                  <span>🛠️ Clean Slate / Marketplace</span>
                 </button>
               </div>
 
@@ -937,13 +937,13 @@ PENTING & RAHASIA:
                     <Bot className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-xs">Setup LLM Global Perusahaan</span>
+                        <span className="font-bold text-white text-xs">Global Company LLM Setup</span>
                         <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 font-mono">
                           Universal Auto-Inherit
                         </span>
                       </div>
                       <p className="text-gray-300 text-[11px] mt-0.5 leading-relaxed">
-                        Provider LLM yang Anda atur di sini akan langsung menjadi <strong className="text-cyan-300">Global LLM Provider</strong> seluruh agen di kantor. Setiap karyawan baru otomatis memakai model ini tanpa perlu konfigurasi berulang!
+                        The LLM provider you configure here becomes the <strong className="text-cyan-300">Global LLM Provider</strong> across all office agents. Every new agent automatically inherits this model!
                       </p>
                     </div>
                   </div>
@@ -951,17 +951,17 @@ PENTING & RAHASIA:
                   {/* Provider Selector Grid */}
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-gray-300 flex items-center justify-between">
-                      <span>Pilih Provider LLM Global:</span>
-                      <span className="text-[11px] text-gray-500">Mendukung OpenAI, Gemini, Groq, DeepSeek, Claude, & Ollama</span>
+                      <span>Select Global LLM Provider:</span>
+                      <span className="text-[11px] text-gray-500">Supports OpenAI, Gemini, Groq, DeepSeek, Claude, & Ollama</span>
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {[
-                        { id: 'groq', name: '⚡ Groq Cloud', desc: 'Llama 3.3 70B (Ultra Cepat)', color: 'border-orange-500/40 text-orange-400' },
-                        { id: 'gemini', name: '🌐 Google Gemini', desc: 'Gemini 1.5 Flash (Kapasitas Besar)', color: 'border-blue-500/40 text-blue-400' },
-                        { id: 'deepseek', name: '🧠 DeepSeek', desc: 'DeepSeek-V3 / Chat (Hemat & Cerdas)', color: 'border-cyan-500/40 text-cyan-400' },
+                        { id: 'groq', name: '⚡ Groq Cloud', desc: 'Llama 3.3 70B (Ultra Fast)', color: 'border-orange-500/40 text-orange-400' },
+                        { id: 'gemini', name: '🌐 Google Gemini', desc: 'Gemini 1.5 Flash (Large Context)', color: 'border-blue-500/40 text-blue-400' },
+                        { id: 'deepseek', name: '🧠 DeepSeek', desc: 'DeepSeek-V3 / Chat (Cost-Effective)', color: 'border-cyan-500/40 text-cyan-400' },
                         { id: 'openai', name: '🟢 OpenAI', desc: 'GPT-4o Mini / GPT-4o', color: 'border-emerald-500/40 text-emerald-400' },
                         { id: 'anthropic', name: '🟣 Anthropic', desc: 'Claude 3.5 Sonnet', color: 'border-purple-500/40 text-purple-400' },
-                        { id: 'custom', name: '🖥️ Ollama / Custom', desc: 'Local host:11434 atau Proxy', color: 'border-gray-500/40 text-gray-300' },
+                        { id: 'custom', name: '🖥️ Ollama / Custom', desc: 'Local host:11434 or Proxy', color: 'border-gray-500/40 text-gray-300' },
                       ].map((p) => {
                         const isSelected = llmProvider === p.id;
                         return (
@@ -994,7 +994,7 @@ PENTING & RAHASIA:
                         type="text"
                         value={llmModel}
                         onChange={(e) => setLlmModel(e.target.value)}
-                        placeholder="Contoh: llama-3.3-70b-versatile"
+                        placeholder="e.g. llama-3.3-70b-versatile"
                         className="w-full px-3.5 py-2 rounded-xl bg-gray-950 border border-gray-800 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
                       />
                     </div>
@@ -1008,14 +1008,14 @@ PENTING & RAHASIA:
                           className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
                         >
                           {showApiKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                          <span>{showApiKey ? 'Sembunyikan' : 'Lihat'}</span>
+                          <span>{showApiKey ? 'Hide' : 'Show'}</span>
                         </button>
                       </div>
                       <input
                         type={showApiKey ? 'text' : 'password'}
                         value={llmApiKey}
                         onChange={(e) => setLlmApiKey(e.target.value)}
-                        placeholder={llmProvider === 'custom' ? 'Opsional untuk Ollama lokal' : 'gsk_... / AIzaSy... / sk-...'}
+                        placeholder={llmProvider === 'custom' ? 'Optional for local Ollama' : 'gsk_... / AIzaSy... / sk-...'}
                         className="w-full px-3.5 py-2 rounded-xl bg-gray-950 border border-gray-800 text-xs text-white font-mono focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
                       />
                     </div>
@@ -1040,16 +1040,16 @@ PENTING & RAHASIA:
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-semibold text-cyan-300 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>Preferensi & Ide Bisnis Kantor:</span>
+                        <span>Business Preferences & Office Concept:</span>
                       </label>
-                      <span className="text-[11px] text-gray-500">AI merancang nama, divisi, karyawan & tugas</span>
+                      <span className="text-[11px] text-gray-500">AI designs name, departments, agents & tasks</span>
                     </div>
 
                     <textarea
                       rows={3}
                       value={businessPrompt}
                       onChange={(e) => setBusinessPrompt(e.target.value)}
-                      placeholder="Contoh: Platform SaaS CRM & kasir cloud untuk UMKM kuliner di Indonesia dengan fitur loyalty point dan audit inventori otomatis..."
+                      placeholder="e.g. SaaS CRM and cloud POS platform for culinary businesses with automated loyalty points and inventory reconciliation..."
                       className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 resize-none leading-relaxed"
                     />
 
@@ -1059,7 +1059,7 @@ PENTING & RAHASIA:
                           type="text"
                           value={companyName}
                           onChange={(e) => setCompanyName(e.target.value)}
-                          placeholder="Nama Perusahaan (opsional)"
+                          placeholder="Company Name (optional)"
                           className="px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-xs text-white focus:outline-none focus:border-cyan-500 w-48"
                         />
                         <select
@@ -1085,12 +1085,12 @@ PENTING & RAHASIA:
                         {isGeneratingCompany ? (
                           <>
                             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>{generationStatus || 'Merancang...'}</span>
+                            <span>{generationStatus || 'Generating...'}</span>
                           </>
                         ) : (
                           <>
                             <Sparkles className="w-3.5 h-3.5" />
-                            <span>{generatedCompany ? '✨ Regenerate Tim AI' : '✨ Generate Tim AI Otomatis'}</span>
+                            <span>{generatedCompany ? '✨ Regenerate AI Team' : '✨ Generate Autonomous AI Team'}</span>
                           </>
                         )}
                       </button>
@@ -1125,14 +1125,14 @@ PENTING & RAHASIA:
 
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-800 text-[11px] text-emerald-300 shrink-0">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Siap Meluncur</span>
+                          <span>Ready to Launch</span>
                         </div>
                       </div>
 
                       {/* Generated Agents Row */}
                       <div className="space-y-1.5">
                         <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                          Tim Karyawan Awal ({generatedCompany.agents.length} Orang):
+                          Initial Staff ({generatedCompany.agents.length} Agents):
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {generatedCompany.agents.map((ag) => (
@@ -1171,7 +1171,7 @@ PENTING & RAHASIA:
                       <div className="flex items-center gap-2 p-2 rounded-lg bg-cyan-950/60 border border-cyan-800/60 text-[11px] text-cyan-300">
                         <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                         <span>
-                          <strong>Global LLM Aktif:</strong> Tim ini otomatis terhubung ke <strong>{llmProvider.toUpperCase()}</strong> ({llmModel}) untuk ngobrol, task backlog, & live coding.
+                          <strong>Global LLM Active:</strong> This team is automatically connected to <strong>{llmProvider.toUpperCase()}</strong> ({llmModel}) for office chat, sprints, & code execution.
                         </span>
                       </div>
                     </div>
@@ -1187,28 +1187,28 @@ PENTING & RAHASIA:
                   <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold text-purple-300">
                       <ShoppingBag className="w-4 h-4 text-purple-400" />
-                      <span>Mulai dari Nol (Kavling Bersih & Marketplace)</span>
+                      <span>Clean Slate Genesis (Empty Lot & Marketplace)</span>
                     </div>
                     <p className="text-xs text-gray-300 leading-relaxed">
-                      Kantor akan diinisialisasi dalam kondisi bersih tanpa data dummy (0 karyawan). Anda dapat membuat agen sendiri secara manual atau menyewa/membeli agen spesialis dari <strong>Marketplace P2P</strong> setelah masuk ke kantor virtual.
+                      The office will be initialized clean with zero dummy data (0 employees). You can build custom agents manually or hire specialist agents from the <strong>P2P Marketplace</strong> once inside your virtual office.
                     </p>
                   </div>
 
                   {/* Company Name */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-gray-300">Nama Perusahaan / Kantor Virtual:</label>
+                    <label className="text-xs font-medium text-gray-300">Company / Virtual Office Name:</label>
                     <input
                       type="text"
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="Contoh: Nusantara AI Dynamics"
+                      placeholder="e.g. Apex Dynamics Labs"
                       className="w-full px-4 py-2.5 rounded-xl bg-gray-950 border border-gray-800 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
                     />
                   </div>
 
                   {/* Industry Dropdown */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-gray-300">Bidang Industri:</label>
+                    <label className="text-xs font-medium text-gray-300">Industry Field:</label>
                     <select
                       value={industry}
                       onChange={(e) => setIndustry(e.target.value)}
@@ -1237,11 +1237,11 @@ PENTING & RAHASIA:
                   <div className="flex items-center gap-2">
                     <Zap className="w-3.5 h-3.5 text-cyan-400" />
                     <span className="text-xs font-semibold text-white group-hover:text-cyan-300 transition-colors">
-                      Jalankan Otomatis Saat Komputer Dinyalakan (Autorun at Startup)
+                      Start Automatically on Computer Boot (Autorun at Startup)
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-400 mt-0.5">
-                    Server kantor virtual otomatis aktif di background pada port :28483 saat PC booting.
+                    Virtual office server runs automatically in the background on port :28483 on system boot.
                   </p>
                 </div>
               </label>
@@ -1249,26 +1249,26 @@ PENTING & RAHASIA:
               {/* Summary Card */}
               <div className="p-4 rounded-xl bg-gray-950/80 border border-gray-800 space-y-2 text-xs">
                 <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
-                  <span className="text-gray-400">Mode Inisialisasi:</span>
+                  <span className="text-gray-400">Initialization Mode:</span>
                   <span className="font-semibold text-white">
-                    {creationMethod === 'ai' ? '✨ AI Generated Company' : '🛠️ Manual Genesis (Kavling Bersih)'}
+                    {creationMethod === 'ai' ? '✨ AI Generated Company' : '🛠️ Clean Slate Genesis (0 Dummy)'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
-                  <span className="text-gray-400">LLM Provider Global:</span>
+                  <span className="text-gray-400">Global LLM Provider:</span>
                   <span className="font-mono text-cyan-400 font-semibold">
                     {creationMethod === 'ai' && (llmApiKey.trim() || llmProvider === 'custom')
                       ? `${llmProvider.toUpperCase()} (${llmModel})`
-                      : 'Belum Diatur (Manual BYOK)'}
+                      : 'Not Configured (Manual BYOK)'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
-                  <span className="text-gray-400">Region Klaster:</span>
+                  <span className="text-gray-400">Cluster Region:</span>
                   <span className="font-mono text-cyan-400 font-semibold">{selectedRegionId}</span>
                 </div>
                 {userCoords && (
                   <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
-                    <span className="text-gray-400">Koordinat Nearby Office:</span>
+                    <span className="text-gray-400">Nearby Office Coordinates:</span>
                     <span className="font-mono text-emerald-400 font-semibold">
                       {userCoords.city || 'GPS'} ({userCoords.latitude.toFixed(2)}, {userCoords.longitude.toFixed(2)})
                     </span>
@@ -1279,7 +1279,7 @@ PENTING & RAHASIA:
                   <span className="font-mono text-purple-300">BIP-39 Asymmetric Signature</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
-                  <span className="text-gray-400">Lokasi Keystore:</span>
+                  <span className="text-gray-400">Keystore Location:</span>
                   <span className="font-mono text-gray-300">~/.ceo-virtual/keystore.json</span>
                 </div>
               </div>
@@ -1304,7 +1304,7 @@ PENTING & RAHASIA:
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 border border-gray-800 text-xs font-semibold text-gray-300 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Kembali</span>
+              <span>Back</span>
             </button>
           ) : (
             <div />
@@ -1320,7 +1320,7 @@ PENTING & RAHASIA:
               onClick={() => setStep(step + 1)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-xs font-bold text-black transition-all shadow-[0_0_20px_rgba(6,182,212,0.25)] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
             >
-              <span>Lanjut ke {step === 1 ? 'Pilih Region' : 'Profil Kantor'}</span>
+              <span>Continue to {step === 1 ? 'Select Region' : 'Office Profile'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           ) : (
@@ -1333,12 +1333,12 @@ PENTING & RAHASIA:
               {isSubmitting ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Menandatangani Genesis Block...</span>
+                  <span>Signing Genesis Block...</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>🚀 Luncurkan Kantor Virtual</span>
+                  <span>🚀 Launch Virtual Office</span>
                 </>
               )}
             </button>

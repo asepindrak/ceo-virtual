@@ -12,7 +12,7 @@ Write-Host "`n* Installing CEO Virtual CLI and Dashboard...`n" -ForegroundColor 
 
 # 1. Check Node.js
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Host "Node.js tidak ditemukan! Silakan install Node.js (v18+) dari: https://nodejs.org" -ForegroundColor Red
+    Write-Host "Node.js not found! Please install Node.js (v18+) from: https://nodejs.org" -ForegroundColor Red
     exit 1
 }
 
@@ -22,7 +22,7 @@ $LegacyHome = Join-Path $HOME ".vigent"
 
 # Auto-migrate from ~/.vigent if present
 if ((Test-Path $LegacyHome) -and -not (Test-Path $CeoHome)) {
-    Write-Host "> Migrasi data dari ~/.vigent ke ~/.ceo-virtual..." -ForegroundColor Cyan
+    Write-Host "> Migrating data from ~/.vigent to ~/.ceo-virtual..." -ForegroundColor Cyan
     Copy-Item -Path $LegacyHome -Destination $CeoHome -Recurse -Force
 }
 
@@ -31,7 +31,7 @@ $LogsDir = Join-Path $CeoHome "logs"
 $RepoUrl = "https://github.com/asepindrak/ceo-virtual.git"
 $Port = 28483
 
-Write-Host "> Menyiapkan folder kerja di: $CeoHome" -ForegroundColor Cyan
+Write-Host "> Preparing workspace directory at: $CeoHome" -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $CeoHome | Out-Null
 New-Item -ItemType Directory -Force -Path $WorkspacesDir | Out-Null
 New-Item -ItemType Directory -Force -Path $LogsDir | Out-Null
@@ -55,17 +55,17 @@ foreach ($cand in $PossibleRoots) {
 if (-not $ProjectRoot) {
     $TargetApp = Join-Path $CeoHome "app"
     if (-not (Test-Path $TargetApp)) {
-        Write-Host "> Mengunduh CEO Virtual dari GitHub: $RepoUrl..." -ForegroundColor Cyan
+        Write-Host "> Downloading CEO Virtual from GitHub: $RepoUrl..." -ForegroundColor Cyan
         git clone $RepoUrl $TargetApp
     }
     $ProjectRoot = $TargetApp
 }
 
-Write-Host "> Mengaitkan project root: $ProjectRoot" -ForegroundColor Yellow
+Write-Host "> Linking project root: $ProjectRoot" -ForegroundColor Yellow
 
 # Ensure node_modules exists
 if (-not (Test-Path (Join-Path $ProjectRoot "node_modules"))) {
-    Write-Host "> Menginstall dependensi proyek (npm install)..." -ForegroundColor Cyan
+    Write-Host "> Installing project dependencies (npm install)..." -ForegroundColor Cyan
     Push-Location $ProjectRoot
     npm install
     Pop-Location
@@ -86,13 +86,13 @@ $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if ($UserPath -notlike "*$UserBin*") {
     [Environment]::SetEnvironmentVariable("Path", "$UserPath;$UserBin", "User")
     $env:Path = "$env:Path;$UserBin"
-    Write-Host "> Menambahkan $UserBin ke System PATH pengguna." -ForegroundColor Green
+    Write-Host "> Added $UserBin to user system PATH." -ForegroundColor Green
 }
 
 # 5. Setup Windows Startup Autorun Shortcut
 $EnableAutorun = $true
 try {
-    $Choice = Read-Host "`n> Jalankan CEO Virtual otomatis saat Windows booting (Autorun at Startup)? [Y/n] (Default: Y)"
+    $Choice = Read-Host "`n> Launch CEO Virtual automatically on Windows startup (Autorun at Startup)? [Y/n] (Default: Y)"
     if ($Choice -match "^[nN]") {
         $EnableAutorun = $false
     }
@@ -105,9 +105,9 @@ if ($EnableAutorun) {
     $StartupBat = Join-Path $StartupFolder "CEOVirtual.bat"
     $StartupContent = "@echo off`r`ncd /d `"$ProjectRoot`"`r`nstart /b npm run dev -- -p $Port"
     Set-Content -Path $StartupBat -Value $StartupContent -Force
-    Write-Host "> Autorun saat Windows boot AKTIF di: $StartupBat" -ForegroundColor Green
+    Write-Host "> Autorun on Windows boot ENABLED at: $StartupBat" -ForegroundColor Green
 } else {
-    Write-Host "> Autorun dilewati (dapat diaktifkan nanti lewat CLI atau Web Setup)." -ForegroundColor Yellow
+    Write-Host "> Autorun skipped (can be enabled later via CLI or Web Setup)." -ForegroundColor Yellow
 }
 
 # 6. Global npm link
@@ -118,19 +118,19 @@ try {
 Pop-Location
 
 # 7. Initialize Company Memory Engine & Vector DB
-Write-Host "> Inisialisasi Company Memory Engine & Zero-Setup Vector DB..." -ForegroundColor Cyan
+Write-Host "> Initializing Company Memory Engine & Zero-Setup Vector DB..." -ForegroundColor Cyan
 node "$ProjectRoot\bin\ceo-virtual.js" memory init
 
-Write-Host "`n[OK] CEO VIRTUAL Berhasil Terinstall!" -ForegroundColor Green
+Write-Host "`n[OK] CEO VIRTUAL Successfully Installed!" -ForegroundColor Green
 Write-Host "========================================================" -ForegroundColor Gray
 Write-Host "  Dedicated Port:   http://localhost:$Port" -ForegroundColor Cyan
 Write-Host "  Workspaces Home:  $WorkspacesDir" -ForegroundColor Cyan
 Write-Host "  Vector Memory:    Zero-Setup Dual Mode (Local + Custom LLM)" -ForegroundColor Green
-Write-Host "  Perintah CLI:     ceo-virtual start (atau vigent start)" -ForegroundColor Cyan
-Write-Host "  Autorun Boot:     AKTIF" -ForegroundColor Green
+Write-Host "  CLI Command:      ceo-virtual start (or vigent start)" -ForegroundColor Cyan
+Write-Host "  Autorun Boot:     $(if ($EnableAutorun) { 'ENABLED' } else { 'DISABLED' })" -ForegroundColor Green
 Write-Host "  GitHub Repo:      $RepoUrl" -ForegroundColor Cyan
 Write-Host "========================================================`n" -ForegroundColor Gray
 
 # 8. Start server now
-Write-Host "Menjalankan CEO Virtual di background (Daemon Mode)..." -ForegroundColor Yellow
+Write-Host "Launching CEO Virtual in background (Daemon Mode)..." -ForegroundColor Yellow
 node "$ProjectRoot\bin\ceo-virtual.js" start --daemon

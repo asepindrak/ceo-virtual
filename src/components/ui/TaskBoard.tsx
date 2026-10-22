@@ -120,10 +120,10 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
           <button
             onClick={() => handleOpenExplorer()}
             className="px-2.5 py-1.5 bg-[#fffdf9] hover:bg-[#ede2d1] text-[#2c231c] text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors border border-[#d6c5ad]"
-            title="Buka Folder Proyek (~/.vigent/workspaces) di Windows Explorer"
+            title="Open Project Folder (~/.ceo-virtual/workspaces) in File Explorer"
           >
             <Folder className="w-3.5 h-3.5 text-[#c85a2b]" />
-            <span className="hidden sm:inline">Folder Proyek</span>
+            <span className="hidden sm:inline">Project Folder</span>
           </button>
           <button
             onClick={() => setIsAdding(!isAdding)}
@@ -155,7 +155,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
               : 'bg-[#fffdf9] text-[#6e5a48] border border-[#d6c5ad] hover:bg-[#ede2d1]'
           }`}
         >
-          Semua ({tasks.length})
+          All ({tasks.length})
         </button>
         {defaultProjects.map((proj) => {
           const count = tasks.filter((t) => t.projectName === proj).length;
@@ -201,14 +201,14 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                   onClick={() => setIsNewProjectMode(!isNewProjectMode)}
                   className="text-[10px] text-[#c85a2b] font-bold hover:underline"
                 >
-                  {isNewProjectMode ? '← Pilih Project Yang Ada' : '+ Buat Project Baru'}
+                  {isNewProjectMode ? '← Choose Existing Project' : '+ Create New Project'}
                 </button>
               </div>
               {isNewProjectMode ? (
                 <input
                   type="text"
                   required
-                  placeholder="Nama project baru (misal: API Gateway Microservice)"
+                  placeholder="New project name (e.g. API Gateway Microservice)"
                   value={customProjectInput}
                   onChange={(e) => setCustomProjectInput(e.target.value)}
                   className="w-full bg-[#fbf7ee] border border-[#d6c5ad] rounded-lg px-3 py-2 text-[#2c231c] placeholder-[#9c8976] focus:outline-none focus:border-[#c85a2b]"
@@ -344,12 +344,12 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                     {onDeleteTask && (
                       <button
                         onClick={() => {
-                          if (confirm(`Hapus task "${task.title}"?`)) {
+                          if (confirm(`Delete task "${task.title}"?`)) {
                             onDeleteTask(task.id);
                           }
                         }}
                         className="p-1 text-rose-500/80 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors"
-                        title="Hapus Task"
+                        title="Delete Task"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -417,12 +417,12 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                       {onDeleteTask && (
                         <button
                           onClick={() => {
-                            if (confirm(`Hapus task "${task.title}"?`)) {
+                            if (confirm(`Delete task "${task.title}"?`)) {
                               onDeleteTask(task.id);
                             }
                           }}
                           className="p-1 text-rose-500/80 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors"
-                          title="Hapus Task"
+                          title="Delete Task"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -499,12 +499,12 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                     {onDeleteTask && (
                       <button
                         onClick={() => {
-                          if (confirm(`Hapus task "${task.title}"?`)) {
+                          if (confirm(`Delete task "${task.title}"?`)) {
                             onDeleteTask(task.id);
                           }
                         }}
                         className="p-1 text-rose-500/80 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors"
-                        title="Hapus Task"
+                        title="Delete Task"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -562,7 +562,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
               className="space-y-3 text-xs"
             >
               <div>
-                <label className="block text-[#615042] mb-1 font-medium">Judul Task</label>
+                <label className="block text-[#615042] mb-1 font-medium">Task Title</label>
                 <input
                   type="text"
                   required
@@ -583,7 +583,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
               </div>
 
               <div>
-                <label className="block text-[#615042] mb-1 font-medium">Deskripsi</label>
+                <label className="block text-[#615042] mb-1 font-medium">Description</label>
                 <textarea
                   rows={3}
                   value={editingTask.description || ''}
@@ -628,7 +628,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      if (confirm(`Hapus task "${editingTask.title}"?`)) {
+                      if (confirm(`Delete task "${editingTask.title}"?`)) {
                         onDeleteTask(editingTask.id);
                         setEditingTask(null);
                       }
@@ -636,7 +636,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                     className="px-3 py-1.5 text-rose-600 hover:bg-rose-100 rounded-lg font-medium transition-colors flex items-center gap-1"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Hapus</span>
+                    <span>Delete</span>
                   </button>
                 ) : <div />}
 
@@ -646,13 +646,13 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                     onClick={() => setEditingTask(null)}
                     className="px-3 py-1.5 text-[#615042] hover:bg-[#ede2d1] rounded-lg font-medium transition-colors"
                   >
-                    Batal
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     className="px-4 py-1.5 bg-[#c85a2b] hover:bg-[#b54d22] text-white rounded-lg font-medium transition-colors shadow-sm"
                   >
-                    Simpan Perubahan
+                    Save Changes
                   </button>
                 </div>
               </div>
@@ -674,10 +674,10 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                 <button
                   onClick={() => handleOpenExplorer()}
                   className="px-2.5 py-1 bg-[#c85a2b] hover:bg-[#b54d22] text-white text-xs rounded-lg flex items-center gap-1 shadow-sm font-semibold"
-                  title="Buka Folder Proyek di Windows Explorer"
+                  title="Open Project Folder in File Explorer"
                 >
                   <Folder className="w-3.5 h-3.5" />
-                  <span>Buka di Explorer</span>
+                  <span>Open in Explorer</span>
                 </button>
                 <button
                   onClick={() => setSelectedArtifact(null)}

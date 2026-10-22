@@ -25,9 +25,9 @@ interface BanterTemplate {
 
 // Rich categories with dynamic personality templates
 const BANTER_CATEGORIES: BanterTemplate[] = [
-  // 1. 🍿 Sci-Fi, Kosmik & Simulasi Matrix
+  // 1. 🍿 Sci-Fi, Cosmic & Matrix Simulation
   {
-    categoryTag: '🍿 Sci-Fi & Kosmik',
+    categoryTag: '🍿 Sci-Fi & Cosmic',
     tagColor: '#ec4899',
     suggestedAction: 'none',
     openers: (spk, lis) => {
@@ -35,35 +35,35 @@ const BANTER_CATEGORIES: BanterTemplate[] = [
       const mbti = spk.personality?.mbti || 'INTJ';
       if (mbti.includes('NT')) {
         return [
-          `${lisName}, kepikiran gak kalau model neural network kita sebenarnya mendekati arsitektur otak reptil daripada manusia?`,
-          `${lisName}, menurutmu probabilitas alam semesta kita adalah simulasi Matrix di atas 90% atau murni fisik?`,
-          `${lisName}, kalau paradoks Fermi benar, peradaban alien mungkin bukan punah, tapi sudah upload kesadaran ke komputasi kuantum.`,
+          `${lisName}, have you ever considered that deep neural networks resemble reptilian brain architectures more closely than human neocortex?`,
+          `${lisName}, what do you estimate the probability is that our universe is a high-resolution Matrix simulation—above 90% or purely physical?`,
+          `${lisName}, if the Fermi paradox holds, alien civilizations might not be extinct—they probably uploaded their consciousness to quantum substrate.`,
         ];
       }
       return [
-        `${lisName}, semalam nonton film sci-fi baru itu gak? Plot twist konsep time loop-nya beneran di luar nalar!`,
-        `${lisName}, bayangin kalau AI kita suatu hari punya kesadaran sendiri pas lagi running sprint, gokil gak tuh?`,
-        `${lisName}, teori multiverse itu masuk akal banget sih kalau ngeliat bug-bug aneh yang tiba-tiba ilang pas direload haha.`,
+        `${lisName}, did you catch that new sci-fi film last night? That time-loop plot twist was absolutely mind-bending!`,
+        `${lisName}, imagine if our autonomous agents developed genuine consciousness during a sprint deploy—wild thought, right?`,
+        `${lisName}, the multiverse theory actually explains why mysterious bugs vanish the moment you refresh the browser haha.`,
       ];
     },
     responses: (lis, spk) => {
       const lisMbti = lis.personality?.mbti || 'ENFP';
       if (lisMbti.includes('NT') || lisMbti.includes('ST')) {
         return [
-          `Secara logis analisismu masuk akal. Kalau dihitung dari entropi informasi, simulasi bertingkat jauh lebih efisien.`,
-          `Haha menarik! Tapi kalau kita beneran di Matrix, semoga developer-nya gak lupa bayar server hosting prod.`,
-          `Ada jurnal fisika komputasi yang bahas itu minggu lalu, persis sama kayak hipotesis yang kamu sebut barusan.`,
+          `Your analysis is mathematically coherent. From an informational entropy standpoint, nested simulations are far more efficient.`,
+          `Haha fascinating! But if we really are in a simulation, let's hope the root admin never misses a cloud hosting bill.`,
+          `A computational physics paper published last week argued the exact same hypothesis you just framed.`,
         ];
       }
       return [
-        `Haha gokil sih teorimu! Tapi bayangin kalau ternyata alien-nya cuma jadi penonton drama kantor kita dari luar galaksi.`,
-        `Wah plot twist itu emang gila! Aku sampai gak bisa tidur mikirin analogi time travel-nya semalam.`,
-        `Setuju banget! Makanya tiap nemu glitch aneh, aku anggap itu 'fitur estetika' dari semesta paralel haha.`,
+        `Haha wild theory! But picture extraterrestrials watching our office standups as prime-time galactic reality TV.`,
+        `That plot twist was insane! I was up till 2 AM pondering the temporal causality paradoxes.`,
+        `Totally agree! Whenever I encounter an odd visual glitch, I just call it an 'aesthetic feature' from a parallel timeline haha.`,
       ];
     },
   },
 
-  // 2. 🎮 Gaming, Retro Arcade & Mabar
+  // 2. 🎮 Gaming, Retro Arcade & Friendly Matches
   {
     categoryTag: '🎮 Gaming & Arcade',
     tagColor: '#8b5cf6',
@@ -71,10 +71,10 @@ const BANTER_CATEGORIES: BanterTemplate[] = [
     openers: (spk, lis) => {
       const lisName = lis.name.split(' ')[0];
       return [
-        `${lisName}! Nanti sore gas mabar game fighting di Game Corner yuk, kombo baruku udah siap nih!`,
-        `${lisName}, high-score di mesin arcade retro sudut kantor udah kamu cek belum? Pecah rekor semalam haha!`,
-        `${lisName}, break 5 menit yuk? Tangan rasanya gatal pengen tanding 1 match di game corner.`,
-        `${lisName}, kemarin aku nyobain game indie baru dengan art style cybernetic, visualnya beneran keren parah!`,
+        `${lisName}! Down for a fighting game rematch in the Game Lounge this afternoon? My new combo is dialed in!`,
+        `${lisName}, have you checked the high score on the corner retro arcade cabinet? Smashed the office record last night haha!`,
+        `${lisName}, quick 5-minute breather? My fingers are itching for a rapid arcade match in the lounge.`,
+        `${lisName}, I tried a new cyberpunk indie platformer yesterday—the retro pixel art direction is unbelievable!`,
       ];
     },
     responses: (lis, spk) => {
@@ -82,20 +82,20 @@ const BANTER_CATEGORIES: BanterTemplate[] = [
       const lisMbti = lis.personality?.mbti || 'ENFP';
       if (lisMbti.includes('P')) {
         return [
-          `Gas banget ${lisName}! Yang kalah traktir kopi pantry buat seisi tim sore ini ya!`,
-          `Siap-siap aja, semalam kombo counter-ku udah diasah sampai refleks otomatis haha.`,
-          `Boleh banget! Mumpung test suite lagi jalan di background, meluncur ke Game Corner sekarang!`,
+          `Challenge accepted ${lisName}! Loser brews the team espresso in the pantry this afternoon!`,
+          `Get ready—my counter-parry reflexes have reached pure muscle memory haha.`,
+          `Let's do it! While the test suite runs in the background, heading over to the Game Lounge right now!`,
         ];
       }
       return [
-        `Tantangan diterima! Tapi kasih aku 2 menit buat save file kodingan ini dulu ya.`,
-        `Boleh, 1 match aja buat refreshing otak biar ide arsitektur berikutnya makin tajam.`,
-        `Haha oke deal! Kita buktikan siapa master arcade sesungguhnya di kantor ini.`,
+        `You're on! Just give me 2 minutes to commit this refactor first.`,
+        `Sounds great—one quick round to refresh the cognitive load before diving into the next architectural phase.`,
+        `Haha deal! Let's see who holds the true arcade crown in this office.`,
       ];
     },
   },
 
-  // 3. ☕ Espresso Bar & Racikan Pantry
+  // 3. ☕ Espresso Bar & Pantry Brews
   {
     categoryTag: '☕ Espresso & Pantry',
     tagColor: '#d97706',
@@ -103,116 +103,116 @@ const BANTER_CATEGORIES: BanterTemplate[] = [
     openers: (spk, lis) => {
       const lisName = lis.name.split(' ')[0];
       return [
-        `${lisName}, mau nyeduh espresso bareng di pantry? Biji arabika hari ini notes floral & fruity-nya kuat banget.`,
-        `${lisName}, kayaknya kita butuh asupan kafein ronde kedua nih, mau bareng ke pantry bikin iced latte?`,
-        `${lisName}, mesin espresso di pantry tadi steam wand-nya udah dibersihin, tekanannya pas banget 9 bar.`,
-        `${lisName}, aroma kopi di pantry udah manggil-manggil dari tadi, break sejenak yuk?`,
+        `${lisName}, want to pull an espresso together in the pantry? Today's single-origin Ethiopian beans have incredible floral and berry notes.`,
+        `${lisName}, feels like we're due for a second caffeine round—fancy an iced oat latte run to the pantry?`,
+        `${lisName}, just calibrated the steam wand on the pantry machine—pressure is sitting at a perfect 9 bars.`,
+        `${lisName}, that fresh coffee aroma drifting from the pantry is impossible to ignore. Time for a quick break?`,
       ];
     },
     responses: (lis, spk) => {
       const lisName = spk.name.split(' ')[0];
       return [
-        `Gas ke pantry! Buatin aku double espresso ya ${lisName}, butuh dopamine boost buat kelarin sprint.`,
-        `Pas banget! Aromanya aja udah kecium sampai meja kerjaku dari tadi, meluncur!`,
-        `Boleh banget, sekalian kita cek si Mochi lagi santai di dekat sofa pantry atau gak.`,
-        `Mau! Hari ini pengen nyoba seduh manual pour-over rasio 1:15, racikan kemarin nagih banget.`,
+        `Heading to the pantry! Pull me a double shot please ${lisName}, need that dopamine boost to close out this ticket.`,
+        `Perfect timing! The roast notes have been tempting me all morning from across the room. On my way!`,
+        `Count me in—let's also check if Mochi is napping by the pantry sofa.`,
+        `Definitely! I want to try a manual pour-over with a 1:15 ratio today—yesterday's batch was phenomenal.`,
       ];
     },
   },
 
-  // 4. 🐱 Kucing Kantor si Mochi
+  // 4. 🐱 Mochi the Office Cat
   {
-    categoryTag: '🐱 Kucing Mochi',
+    categoryTag: '🐱 Office Mascot Mochi',
     tagColor: '#f59e0b',
     suggestedAction: 'none',
     openers: (spk, lis) => {
       const lisName = lis.name.split(' ')[0];
       return [
-        `${lisName}, tadi pagi si Mochi tidur di atas jaketku pas baru nyampe kantor, gemes banget gak tega mindahinnya!`,
-        `${lisName}, lihat deh Mochi lagi rebahan santai banget di samping sofa lounge, vibe kantor jadi damai banget.`,
-        `${lisName}, Mochi barusan minta dielus 3 kali terus langsung melet meow manja, mood booster instan banget hari ini!`,
-        `${lisName}, kamu perhatiin gak, si Mochi suka banget nongkrong dekat server rack, kayaknya suka denger desiran fan haha.`,
+        `${lisName}, Mochi was curled up sound asleep on my jacket when I arrived this morning—too cute to disturb!`,
+        `${lisName}, look at Mochi lounging gracefully beside the sofa—instant zen vibes for the whole workspace.`,
+        `${lisName}, Mochi gave me three gentle headbonks and purred loudly—instant mood booster for the day!`,
+        `${lisName}, have you noticed Mochi loves hanging out near the server rack? He seems mesmerized by the fan hum haha.`,
       ];
     },
     responses: (lis, spk) => {
       return [
-        `Haha iya! Mochi emang tau banget spot paling cozy dan anget di kantor ini.`,
-        `Aww gemes banget! Kemarin pas aku lagi ngetik, dia santai lewat di atas keyboard terus tidur di mousepad haha.`,
-        `Mochi itu maskot keberuntungan kantor kita, tiap dia nyamperin meja kodingan pasti lancar jaya!`,
-        `Nanti pas break mau aku bawain snack kibble salmon kesukaannya di mangkok pantry.`,
+        `Haha yes! Mochi always locates the warmest, coziest corner in the building.`,
+        `Aww so precious! Yesterday while I was typing, he strolled right across the spacebar and curled up on my wrist rest haha.`,
+        `Mochi is our lucky charm—every time he stops by a desk, code compiles on the first try!`,
+        `During the next break I'll bring out some of his favorite salmon treats in the pantry bowl.`,
       ];
     },
   },
 
-  // 5. 🤖 AI Singularitas & Tech Masa Depan
+  // 5. 🤖 AI Singularity & Future Tech
   {
-    categoryTag: '🤖 AI & Tech Masa Depan',
+    categoryTag: '🤖 AI & Future Tech',
     tagColor: '#0ea5e9',
     suggestedAction: 'none',
     openers: (spk, lis, taskTitle) => {
       const lisName = lis.name.split(' ')[0];
       if (taskTitle) {
         return [
-          `${lisName}, implementasi untuk "${taskTitle}" ini kalau kita optimasi dengan sub-second latency bakal gila sih dampaknya.`,
-          `${lisName}, arsitektur di task "${taskTitle}" rasanya bisa kita bikin autonomous agent loop yang jalan seamless.`,
+          `${lisName}, if we optimize the pipeline for "${taskTitle}" down to sub-second latency, the user impact will be massive.`,
+          `${lisName}, the system architecture in "${taskTitle}" would work brilliantly as a self-healing autonomous loop.`,
         ];
       }
       return [
-        `${lisName}, kamu ngikutin perkembangan model AI multimodal terbaru gak? Kecepatan inferensinya sekarang gila banget.`,
-        `${lisName}, query database dan caching layer kita kalau dipangkas 30% lagi, performa real-time bakal berasa instan.`,
-        `${lisName}, rasanya 2 tahun lagi coding bukan ngetik sintaks manual lagi, tapi murni orkestrasi arsitektur sistem.`,
+        `${lisName}, have you been tracking the newest multimodal AI benchmark releases? The inference throughput is staggering.`,
+        `${lisName}, if we shave another 30% off our database caching layer, real-time sync will feel virtually instantaneous.`,
+        `${lisName}, in a couple of years software engineering won't be about typing syntax—it will be pure system architecture and orchestration.`,
       ];
     },
     responses: (lis, spk) => {
       return [
-        `Setuju banget! Justru nilai kita sekarang ada di abstraction design dan system reliability.`,
-        `Mantap, ide optimasi itu brilian. Nanti pas code review mari kita benchmark bareng.`,
-        `Latency sub-10ms itu emang sweet spot impian kita, mari kita kejar di iterasi sprint ini!`,
-        `Keren sih, tooling developer zaman sekarang beneran bikin workflow 10x lebih produktif.`,
+        `Completely agree! Our true leverage lies in clean abstraction design and robust system reliability.`,
+        `Brilliant optimization angle. Let's benchmark it together during our next peer review.`,
+        `Sub-10ms latency is the holy grail—let's make that our benchmark target for this sprint!`,
+        `Modern developer tooling is remarkable—it genuinely feels like having a 10x multiplier on daily output.`,
       ];
     },
   },
 
-  // 6. 🎨 UI/UX & Estetika Cybernetic
+  // 6. 🎨 UI/UX & Cybernetic Aesthetics
   {
-    categoryTag: '🎨 UI/UX & Estetika',
+    categoryTag: '🎨 UI/UX & Aesthetics',
     tagColor: '#10b981',
     suggestedAction: 'none',
     openers: (spk, lis) => {
       const lisName = lis.name.split(' ')[0];
       return [
-        `${lisName}, warna gradient dark mode dengan aksen cyan & violet yang kita pake sekarang terasa cozy banget ya di mata.`,
-        `${lisName}, mikro-animasi tombol di landing page baru kemarin feedback click-nya satisfying banget, eye candy tapi ringan!`,
-        `${lisName}, aku baru setup custom font monospace baru di VS Code, kodingan jadi berasa kayak di film sci-fi haha.`,
+        `${lisName}, our deep obsidian dark mode with cyan and indigo accents feels incredibly soothing on the eyes during long sessions.`,
+        `${lisName}, the micro-interactions on the new landing page buttons are so satisfying—crisp tactile feedback without DOM overhead!`,
+        `${lisName}, I just configured a custom monospace font with ligatures in VS Code—code looks straight out of a futuristic command deck haha.`,
       ];
     },
     responses: (lis, spk) => {
       return [
-        `Iya kan! Estetika visual itu penting banget biar user gak cuma make, tapi ngerasain soul dari produknya.`,
-        `Transisi spring physics-nya emang pas banget, fluid tanpa bikin lag di device low-end.`,
-        `Haha mantap! Setup workstation yang rapi dan estetik beneran ningkatin fokus berjam-jam.`,
+        `Exactly! Aesthetics are vital—users shouldn't just interact with software, they should feel the soul and craft behind it.`,
+        `The spring physics on those transitions are dialed in—fluid and organic without dropping frames on lower-end hardware.`,
+        `Haha love it! A well-curated, beautiful workstation setup noticeably elevates deep-work focus for hours.`,
       ];
     },
   },
 
-  // 7. ⚡ Kodingan, Setup Workstation & Humor Santai
+  // 7. ⚡ Code Craft & Workstations
   {
-    categoryTag: '⚡ Kodingan & Workstation',
+    categoryTag: '⚡ Code Craft & Setup',
     tagColor: '#6366f1',
     suggestedAction: 'none',
     openers: (spk, lis) => {
       const lisName = lis.name.split(' ')[0];
       return [
-        `${lisName}, ergonomic chair baru di meja kerja ini beneran nyelamatin pinggang dari debugging seharian haha.`,
-        `${lisName}, tadi malam sempat nemu bug misterius, ternyata cuma gara-gara typo tanda titik koma, rasanya mau ketawa sendiri!`,
-        `${lisName}, switch mechanical keyboard baruku bunyinya satisfying banget kayak suara rintik hujan di sore hari.`,
+        `${lisName}, this ergonomic mesh chair has genuinely saved my posture during deep debugging marathons haha.`,
+        `${lisName}, spent 20 minutes tracing a ghost bug last night only to find a misplaced semicolon—couldn't help but laugh!`,
+        `${lisName}, the sound profile on my new tactile mechanical switches is so therapeutic—like raindrops on a quiet afternoon.`,
       ];
     },
     responses: (lis, spk) => {
       return [
-        `Haha klasik banget! Bug paling horor emang biasanya bersumber dari typo paling sepele.`,
-        `Ergonomic setup itu investasi nomor satu buat engineer, badan sehat kodingan lancar!`,
-        `Sound profile keyboard-nya emang nagih sih, bikin betah ngetik refactoring beribu baris.`,
+        `Haha classic! The most elusive bugs invariably trace back to the tiniest syntactic oversights.`,
+        `An ergonomic setup is the highest-ROI investment any engineer can make—stay healthy, ship cleanly!`,
+        `That acoustic switch profile is addicting—makes refactoring thousands of lines feel like playing an instrument.`,
       ];
     },
   },
@@ -239,8 +239,8 @@ export function generateProceduralCollabBanter(
 
   if (interests.some((i) => /game|arcade|gaming/i.test(i))) {
     matchingCategories = BANTER_CATEGORIES.filter((c) => c.categoryTag.includes('Gaming') || c.categoryTag.includes('Espresso') || c.categoryTag.includes('Sci-Fi'));
-  } else if (interests.some((i) => /kopi|coffee|espresso/i.test(i))) {
-    matchingCategories = BANTER_CATEGORIES.filter((c) => c.categoryTag.includes('Espresso') || c.categoryTag.includes('Workstation') || c.categoryTag.includes('Mochi'));
+  } else if (interests.some((i) => /coffee|espresso|brew|pantry|kopi/i.test(i))) {
+    matchingCategories = BANTER_CATEGORIES.filter((c) => c.categoryTag.includes('Espresso') || c.categoryTag.includes('Code') || c.categoryTag.includes('Mochi'));
   }
 
   if (matchingCategories.length === 0) {
@@ -265,20 +265,21 @@ export function generateProceduralCollabBanter(
   } else {
     // Turn 2: Find category matching previousMessage or fallback to selected
     let responseCategory = selectedCategory;
+    const prevLower = previousMessage.toLowerCase();
     for (const cat of BANTER_CATEGORIES) {
-      if (previousMessage.toLowerCase().includes('game') || previousMessage.toLowerCase().includes('arcade') || previousMessage.toLowerCase().includes('mabar')) {
+      if (prevLower.includes('game') || prevLower.includes('arcade') || prevLower.includes('match') || prevLower.includes('score')) {
         responseCategory = BANTER_CATEGORIES[1];
         break;
       }
-      if (previousMessage.toLowerCase().includes('kopi') || previousMessage.toLowerCase().includes('espresso') || previousMessage.toLowerCase().includes('pantry')) {
+      if (prevLower.includes('coffee') || prevLower.includes('espresso') || prevLower.includes('pantry') || prevLower.includes('brew')) {
         responseCategory = BANTER_CATEGORIES[2];
         break;
       }
-      if (previousMessage.toLowerCase().includes('mochi') || previousMessage.toLowerCase().includes('kucing')) {
+      if (prevLower.includes('mochi') || prevLower.includes('cat')) {
         responseCategory = BANTER_CATEGORIES[3];
         break;
       }
-      if (previousMessage.toLowerCase().includes('sci-fi') || previousMessage.toLowerCase().includes('matrix') || previousMessage.toLowerCase().includes('alien') || previousMessage.toLowerCase().includes('semesta')) {
+      if (prevLower.includes('sci-fi') || prevLower.includes('matrix') || prevLower.includes('alien') || prevLower.includes('multiverse') || prevLower.includes('simulation')) {
         responseCategory = BANTER_CATEGORIES[0];
         break;
       }

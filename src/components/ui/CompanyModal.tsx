@@ -54,42 +54,42 @@ const CATEGORY_META: Record<
   }
 > = {
   text: {
-    name: 'Teks, Coding & Arsitektur',
+    name: 'Text, Code & Architecture',
     icon: Cpu,
     color: '#4f46e5',
-    description: 'Model utama untuk penalaran logis, refactoring kode, arsitektur sistem, dan dialog sprint.',
+    description: 'Core model for logical reasoning, code refactoring, system architecture, and sprint dialogues.',
     modelSuggestions: ['gpt-4o', 'claude-3-5-sonnet-20241022', 'gemini-1.5-pro', 'deepseek-chat'],
     defaultModel: 'gpt-4o',
   },
   image: {
-    name: 'Generasi Gambar & Desain UI',
+    name: 'Image Generation & UI Design',
     icon: ImageIcon,
     color: '#ec4899',
-    description: 'Model generasi visual untuk aset grafis, mockup antarmuka, moodboard, dan ilustrasi.',
+    description: 'Visual generative model for graphic assets, interface mockups, moodboards, and illustrations.',
     modelSuggestions: ['dall-e-3', 'stable-diffusion-xl', 'midjourney-v6'],
     defaultModel: 'dall-e-3',
   },
   fast: {
-    name: 'Eksekusi Cepat & Triage Task',
+    name: 'Fast Execution & Task Triage',
     icon: Zap,
     color: '#eab308',
-    description: 'Model ultra-cepat berlatensi rendah untuk triage tiket instan, audit kilat, dan perutean aksi.',
+    description: 'Ultra-fast low-latency model for instant ticket triage, rapid audits, and action routing.',
     modelSuggestions: ['llama-3.3-70b-versatile', 'gemini-1.5-flash', 'gpt-4o-mini'],
     defaultModel: 'llama-3.3-70b-versatile',
   },
   vision: {
-    name: 'Vision & Inspeksi UI/UX',
+    name: 'Vision & UI/UX Inspection',
     icon: Eye,
     color: '#06b6d4',
-    description: 'Model multimodal untuk audit visual layout mobile/desktop dan inspeksi screenshot UI.',
+    description: 'Multimodal model for visual auditing of mobile/desktop layouts and screenshot analysis.',
     modelSuggestions: ['claude-3-5-sonnet-20241022', 'gpt-4o', 'gemini-1.5-pro'],
     defaultModel: 'claude-3-5-sonnet-20241022',
   },
   audio: {
-    name: 'Audio & Transkripsi Rapat',
+    name: 'Audio & Meeting Transcription',
     icon: Mic,
     color: '#10b981',
-    description: 'Transkripsi audio rapat sprint, percakapan suara war room, dan voice memo tim.',
+    description: 'Audio transcription for sprint standups, war room voice chats, and audio memos.',
     modelSuggestions: ['whisper-1', 'elevenlabs-multilingual'],
     defaultModel: 'whisper-1',
   },
@@ -207,7 +207,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       if (data.success) {
         setNewLoreTitle('');
         setNewLoreContent('');
-        setMemoryNotice('✨ Memori berhasil diindeks ke Vector DB perusahaan!');
+        setMemoryNotice('✨ Memory indexed to company Vector DB!');
         setTimeout(() => setMemoryNotice(''), 3000);
         fetchCompanyMemories();
       }
@@ -219,7 +219,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   };
 
   const handleDeleteMemory = async (memoryId: string) => {
-    if (!confirm('Hapus entri memori ini dari arsip perusahaan?')) return;
+    if (!confirm('Delete this memory entry from company archives?')) return;
     try {
       const res = await fetch(`/api/company/memory?companyId=${currentCompany.id}&memoryId=${memoryId}`, {
         method: 'DELETE',
@@ -239,7 +239,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     if (!customName.trim() || !customIndustry.trim()) return;
 
     setIsGenerating(true);
-    setGenStatusMsg('Menghubungi AI untuk merancang struktur kantor...');
+    setGenStatusMsg('Contacting AI to architect office structure...');
 
     let selectedConfig: LLMConfig | undefined = undefined;
     if (llmSourceOption === 'global') {
@@ -264,7 +264,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     }
 
     try {
-      setGenStatusMsg('Menyusun departemen, persona karyawan & tiket sprint...');
+      setGenStatusMsg('Composing departments, employee personas & sprint tickets...');
       const res = await fetch('/api/company/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -339,7 +339,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       setIsSavingLLM(false);
-      setSaveSuccessMsg(`Pengaturan LLM Global kantor "${currentCompany.name}" berhasil disimpan & diterapkan ke seluruh agen!`);
+      setSaveSuccessMsg(`Global LLM settings for "${currentCompany.name}" successfully saved and applied to all agents!`);
 
       setTimeout(() => {
         setSaveSuccessMsg(null);
@@ -354,7 +354,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     const setting = currentCategorySetting;
     setTestStatus((prev) => ({
       ...prev,
-      [activeCategory]: { loading: true, msg: 'Menguji koneksi...' },
+      [activeCategory]: { loading: true, msg: 'Testing connection...' },
     }));
 
     try {
@@ -382,7 +382,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           [activeCategory]: {
             loading: false,
             success: true,
-            msg: `Berhasil terhubung ke ${data.provider} (${data.model})!`,
+            msg: `Successfully connected to ${data.provider} (${data.model})!`,
           },
         }));
       } else {
@@ -391,7 +391,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           [activeCategory]: {
             loading: false,
             success: false,
-            msg: data.error || 'Gagal menghubungi endpoint model',
+            msg: data.error || 'Failed to reach model endpoint',
           },
         }));
       }
@@ -401,7 +401,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         [activeCategory]: {
           loading: false,
           success: false,
-          msg: err.message || 'Error jaringan koneksi',
+          msg: err.message || 'Network connection error',
         },
       }));
     }
@@ -426,7 +426,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-[#786653]">
-                Kelola preset kantor, buat perusahaan baru, atur Provider LLM, atau pantau memori & progres tim
+                Manage office presets, create new companies, configure Global LLM providers, or review team memory & leveling.
               </p>
             </div>
           </div>
@@ -449,7 +449,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             }`}
           >
             <Building2 className="w-4 h-4" />
-            <span>Preset Kantor</span>
+            <span>Office Presets</span>
           </button>
           <button
             onClick={() => setActiveTab('custom')}
@@ -460,7 +460,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             }`}
           >
             <Wand2 className="w-4 h-4 text-[#ab7a1a]" />
-            <span>Buat Perusahaan</span>
+            <span>Create Company</span>
           </button>
           <button
             onClick={() => setActiveTab('layout')}
@@ -471,7 +471,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             }`}
           >
             <LayoutGrid className="w-4 h-4 text-[#c85a2b]" />
-            <span>Layout Kantor</span>
+            <span>Office Layout</span>
           </button>
           <button
             onClick={() => setActiveTab('global_llm')}
@@ -493,7 +493,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             }`}
           >
             <Brain className="w-4 h-4 text-[#059669]" />
-            <span>🧠 Memori & XP</span>
+            <span>🧠 Memory & Leveling</span>
           </button>
         </div>
 
@@ -502,7 +502,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           {activeTab === 'presets' ? (
             <div className="space-y-3.5">
               <div className="text-xs text-[#786653] mb-2 font-medium">
-                Pilih template organisasi yang sudah dikurasi untuk langsung mengoperasikan struktur divisi & kantor:
+                Select a curated organization template to deploy departments, team members, and sprint workflows:
               </div>
               {PRESET_COMPANIES.map((preset) => {
                 const isSelected = preset.id === currentCompany.id;
@@ -524,16 +524,16 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                         <span className="font-bold text-[#2c231c] text-sm">{preset.name}</span>
                         {isSelected && (
                           <span className="px-2 py-0.5 rounded-full bg-[#fdeed9] text-[#c85a2b] border border-[#f0c8a5] text-[10px] flex items-center gap-1 font-bold">
-                            <Check className="w-3 h-3" /> Aktif
+                            <Check className="w-3 h-3" /> Active
                           </span>
                         )}
                       </div>
                       <div className="text-xs text-[#c85a2b] font-semibold">{preset.industry}</div>
                       <p className="text-xs text-[#615042]">{preset.description}</p>
                       <div className="flex items-center gap-3 pt-2 text-[11px] text-[#786653] font-medium">
-                        <span>👥 {preset.agents.length} Agent</span>
-                        <span>🏢 {preset.departments.length} Divisi</span>
-                        <span>📋 {preset.tasks.length} Tiket Sprint</span>
+                        <span>👥 {preset.agents.length} Agents</span>
+                        <span>🏢 {preset.departments.length} Departments</span>
+                        <span>📋 {preset.tasks.length} Sprint Tickets</span>
                       </div>
                     </div>
                     <ArrowRight className="w-4 h-4 text-[#786653] mt-2 shrink-0" />
@@ -546,17 +546,17 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               <div className="p-3 bg-[#fef8e7] border border-[#fae4a8] rounded-xl text-[#784620] flex items-start gap-2.5 font-medium">
                 <Sparkles className="w-4 h-4 text-[#ab7a1a] shrink-0 mt-0.5" />
                 <p>
-                  AI akan secara otomatis merancang departemen spesifik, kepribadian karyawan (MBTI, bio, skill), tata letak meja 3D, dan backlog tiket sprint perdana sesuai industrimu.
+                  AI will automatically architect departments, employee personas (MBTI, bio, skills), 3D desk layout, and initial sprint backlog tailored to your industry.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[#615042] font-semibold mb-1.5">Nama Perusahaan</label>
+                  <label className="block text-[#615042] font-semibold mb-1.5">Company Name</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: DentalCare AI, Apex Cyberlabs"
+                    placeholder="e.g. DentalCare AI, Apex Cyberlabs"
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
                     className="w-full bg-[#fffdf9] border border-[#d6c5ad] rounded-xl px-3.5 py-2.5 text-[#2c231c] placeholder-[#9c8976] focus:outline-none focus:border-[#c85a2b]"
@@ -564,7 +564,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[#615042] font-semibold mb-1.5">Jumlah Karyawan / Agen</label>
+                  <label className="block text-[#615042] font-semibold mb-1.5">Number of Employees / Agents</label>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[3, 4, 5, 6].map((num) => (
                       <button
@@ -577,7 +577,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                             : 'bg-[#fffdf9] text-[#615042] border-[#d6c5ad] hover:border-[#c85a2b]'
                         }`}
                       >
-                        {num} Orang
+                        {num} Agents
                       </button>
                     ))}
                   </div>
@@ -585,11 +585,11 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-[#615042] font-semibold mb-1.5">Bidang Industri & Spesialisasi</label>
+                <label className="block text-[#615042] font-semibold mb-1.5">Industry & Specialization</label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Klinik Gigi Digital, Autonomous Robotics, E-commerce Logistics"
+                  placeholder="e.g. Digital Dental Clinic, Autonomous Robotics, E-commerce Logistics"
                   value={customIndustry}
                   onChange={(e) => setCustomIndustry(e.target.value)}
                   className="w-full bg-[#fffdf9] border border-[#d6c5ad] rounded-xl px-3.5 py-2.5 text-[#2c231c] placeholder-[#9c8976] focus:outline-none focus:border-[#c85a2b]"
@@ -599,7 +599,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               {/* LLM Engine Selection */}
               <div className="border border-[#e7dacb] rounded-2xl p-3 bg-[#f8f1e7] space-y-3">
                 <label className="block text-[#615042] font-bold">
-                  Pilih Mesin LLM untuk Merancang Kantor:
+                  Select LLM Engine to Architect Office:
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
@@ -612,7 +612,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                     }`}
                   >
                     <div className="font-bold text-[#2c231c] flex items-center gap-1.5">
-                      <Cpu className="w-3.5 h-3.5 text-[#c85a2b]" /> LLM Global
+                      <Cpu className="w-3.5 h-3.5 text-[#c85a2b]" /> Global LLM
                     </div>
                     <div className="text-[10px] text-[#786653] mt-0.5">
                       {globalLLM.text?.provider || 'openai'} ({globalLLM.text?.model || 'gpt-4o'})
@@ -629,10 +629,10 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                     }`}
                   >
                     <div className="font-bold text-[#2c231c] flex items-center gap-1.5">
-                      <Key className="w-3.5 h-3.5 text-[#4f46e5]" /> BYOK Baru
+                      <Key className="w-3.5 h-3.5 text-[#4f46e5]" /> Custom BYOK
                     </div>
                     <div className="text-[10px] text-[#786653] mt-0.5">
-                      Input API Key / Provider langsung
+                      Direct API Key / Provider input
                     </div>
                   </button>
 
@@ -646,10 +646,10 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                     }`}
                   >
                     <div className="font-bold text-[#2c231c] flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-[#d97706]" /> Cepat Instan
+                      <Zap className="w-3.5 h-3.5 text-[#d97706]" /> Instant Template
                     </div>
                     <div className="text-[10px] text-[#786653] mt-0.5">
-                      Generator cerdas tanpa kuota
+                      Intelligent generator without API quotas
                     </div>
                   </button>
                 </div>
@@ -715,7 +715,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               {/* Template Layout Selection for Custom Company */}
               <div className="border border-[#e7dacb] rounded-2xl p-3 bg-[#f8f1e7] space-y-2.5">
                 <label className="block text-[#615042] font-bold">
-                  Pilih Template Tata Letak / Arsitektur Interior:
+                  Select Interior Architectural Layout Template:
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {OFFICE_LAYOUT_TEMPLATES.map((tmpl) => (
@@ -749,12 +749,12 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{genStatusMsg || 'Membangun Kantor & Tim Agent...'}</span>
+                    <span>{genStatusMsg || 'Building Office & Agent Team...'}</span>
                   </>
                 ) : (
                   <>
                     <Wand2 className="w-4 h-4" />
-                    <span>Generate & Spawn Kantor Baru</span>
+                    <span>Generate & Launch New Office</span>
                   </>
                 )}
               </button>
@@ -767,10 +767,10 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                   <LayoutGrid className="w-4 h-4 text-[#c85a2b] shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold text-sm text-[#2c231c]">
-                      Pilih Arsitektur & Layout Kantor: {currentCompany.name}
+                      Select Office Layout & Architecture: {currentCompany.name}
                     </p>
                     <p className="text-[11px] text-[#786653] mt-0.5">
-                      Setiap perusahaan memiliki identitas dan kebutuhan tata ruang unik. Pilih template interior spesifik untuk langsung diterapkan pada kantor 2.5D Anda.
+                      Every company possesses a distinct identity and operational flow. Select a specialized interior template to apply instantly to your 2.5D office.
                     </p>
                   </div>
                 </div>
@@ -838,17 +838,17 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                         {isCurrent ? (
                           <span className="text-xs font-bold text-[#c85a2b] flex items-center gap-1.5">
                             <CheckCircle2 className="w-4 h-4 text-[#c85a2b]" />
-                            Sedang Digunakan
+                            Currently Active
                           </span>
                         ) : (
                           <button
                             type="button"
                             className="text-xs font-semibold text-[#786653] hover:text-[#c85a2b] flex items-center gap-1 transition-colors"
                           >
-                            Gunakan Layout Ini &rarr;
+                            Apply This Layout &rarr;
                           </button>
                         )}
-                        <span className="text-[10px] text-[#a8947e] font-mono">33x24 Kavling Standar</span>
+                        <span className="text-[10px] text-[#a8947e] font-mono">33x24 Standard Parcel</span>
                       </div>
                     </div>
                   );
@@ -864,16 +864,16 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                   <Cpu className="w-4 h-4 text-[#4f46e5] shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold">
-                      Pengaturan Provider LLM Global Kantor: {currentCompany.name}
+                      Global Office LLM Provider Setup: {currentCompany.name}
                     </p>
                     <p className="text-[11px] text-[#4338ca] mt-0.5">
-                      Atur model AI default untuk tiap kategori kemampuan. Setiap agent di kantor ini dapat mewarisi pengaturan ini secara otomatis atau memilih input manual sendiri.
+                      Configure the default AI model for each capability category. Every agent in this company can automatically inherit these settings or override them individually.
                     </p>
                   </div>
                 </div>
                 {saveSuccessMsg && (
                   <span className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 shadow-sm animate-in fade-in">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Tersimpan & Diterapkan!
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Saved & Applied!
                   </span>
                 )}
               </div>
@@ -908,11 +908,11 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                       </div>
                       <div className="font-bold text-[11px] truncate text-[#2c231c]">
                         {cat === 'text'
-                          ? '📝 Teks & Kode'
+                          ? '📝 Text & Code'
                           : cat === 'image'
-                          ? '🎨 Gambar'
+                          ? '🎨 Images'
                           : cat === 'fast'
-                          ? '⚡ Cepat/Triage'
+                          ? '⚡ Fast/Triage'
                           : cat === 'vision'
                           ? '👁️ Vision UI'
                           : '🎙️ Audio'}
@@ -935,7 +935,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                     })}
                     <div>
                       <h4 className="font-bold text-[#2c231c] text-xs">
-                        Kategori: {CATEGORY_META[activeCategory].name}
+                        Category: {CATEGORY_META[activeCategory].name}
                       </h4>
                       <p className="text-[10px] text-[#786653]">
                         {CATEGORY_META[activeCategory].description}
@@ -945,7 +945,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
 
                   <label className="flex items-center gap-2 cursor-pointer">
                     <span className="text-[11px] font-semibold text-[#5c4939]">
-                      {currentCategorySetting.isEnabled ? 'Aktif' : 'Nonaktif'}
+                      {currentCategorySetting.isEnabled ? 'Active' : 'Inactive'}
                     </span>
                     <input
                       type="checkbox"
@@ -997,7 +997,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
 
                   <div>
                     <label className="block text-[#615042] font-semibold mb-1">
-                      Nama Model
+                      Model Name
                     </label>
                     <input
                       type="text"
@@ -1012,7 +1012,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 {/* Quick Model Recommendation Chips */}
                 <div>
                   <span className="text-[10px] text-[#786653] font-medium block mb-1">
-                    Saran Model Populer:
+                    Popular Model Recommendations:
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {CATEGORY_META[activeCategory].modelSuggestions.map((m) => (
@@ -1035,14 +1035,14 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 {/* Base URL (Optional) */}
                 <div>
                   <label className="block text-[#615042] font-semibold mb-1 flex items-center justify-between">
-                    <span>Base URL (Opsional)</span>
+                    <span>Base URL (Optional)</span>
                     <span className="text-[10px] text-[#786653] font-normal">
-                      Kosongkan untuk default provider resmi
+                      Leave blank for official provider endpoint
                     </span>
                   </label>
                   <input
                     type="text"
-                    placeholder="Contoh: https://api.openai.com/v1 atau http://localhost:11434/v1"
+                    placeholder="e.g. https://api.openai.com/v1 or http://localhost:11434/v1"
                     value={currentCategorySetting.baseUrl || ''}
                     onChange={(e) => updateActiveCategorySetting({ baseUrl: e.target.value || undefined })}
                     className="w-full bg-white border border-[#d6c5ad] rounded-xl px-3 py-2 text-[#2c231c] font-mono text-[11px] focus:outline-none focus:border-[#4f46e5]"
@@ -1052,9 +1052,9 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 {/* API Key */}
                 <div>
                   <label className="block text-[#615042] font-semibold mb-1 flex items-center justify-between">
-                    <span>API Key Pribadi / Perusahaan</span>
+                    <span>Private / Company API Key</span>
                     <span className="text-[10px] text-[#786653] font-normal">
-                      Tersimpan aman di per-company profile
+                      Stored securely in per-company profile
                     </span>
                   </label>
                   <div className="relative">
@@ -1101,7 +1101,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                     ) : (
                       <Sparkles className="w-3.5 h-3.5 text-[#4f46e5]" />
                     )}
-                    <span>Tes Koneksi {CATEGORY_META[activeCategory].name.split(' ')[0]}</span>
+                    <span>Test Connection: {CATEGORY_META[activeCategory].name.split(' ')[0]}</span>
                   </button>
                 </div>
               </div>
@@ -1114,7 +1114,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                     onClick={onClose}
                     className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#5c4939] hover:bg-[#ede2d1] transition-colors"
                   >
-                    Tutup
+                    Close
                   </button>
                   {saveSuccessMsg && (
                     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] text-[#065f46] text-xs font-semibold animate-in fade-in">
@@ -1137,17 +1137,17 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                   {isSavingLLM ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span>Menyimpan Pengaturan...</span>
+                      <span>Saving Settings...</span>
                     </>
                   ) : saveSuccessMsg ? (
                     <>
                       <CheckCircle2 className="w-4 h-4 text-white" />
-                      <span>Tersimpan & Diterapkan!</span>
+                      <span>Saved & Applied!</span>
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      <span>Simpan Semua Pengaturan LLM Global</span>
+                      <span>Save All Global LLM Settings</span>
                     </>
                   )}
                 </button>
@@ -1180,12 +1180,12 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                         </span>
                       </div>
                       <h3 className="text-sm sm:text-base font-extrabold text-[#fdf6e2]">
-                        {memoryProgress?.levelTitle || 'Startup Visioner'}
+                        {memoryProgress?.levelTitle || 'Visionary Startup'}
                       </h3>
                     </div>
                   </div>
                   <div className="text-left sm:text-right">
-                    <div className="text-xs text-[#c5b29f]">Total Pengalaman (XP)</div>
+                    <div className="text-xs text-[#c5b29f]">Total Experience (XP)</div>
                     <div className="text-base sm:text-lg font-black text-[#fbbf24]">
                       {memoryProgress?.xp || 0}{' '}
                       <span className="text-xs font-normal text-[#9e8b78]">
@@ -1213,7 +1213,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                   />
                 </div>
                 <div className="flex justify-between text-[10px] text-[#9e8b78] mt-1.5 font-mono">
-                  <span>Progres Menuju Level Selanjutnya</span>
+                  <span>Progress to Next Level</span>
                   <span>
                     {Math.round(
                       ((memoryProgress?.xp || 0) / (memoryProgress?.nextLevelXp || 1000)) * 100
@@ -1226,18 +1226,18 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3.5 pt-3.5 border-t border-[#3d3126]/80 text-xs">
                   <div className="bg-[#241c15] p-2.5 rounded-xl border border-[#3d3126]">
                     <div className="text-[10px] text-[#9e8b78] flex items-center gap-1">
-                      <Brain className="w-3 h-3 text-[#10b981]" /> Memori Tersimpan
+                      <Brain className="w-3 h-3 text-[#10b981]" /> Indexed Memories
                     </div>
                     <div className="text-sm font-bold text-[#fdf6e2] mt-0.5">
-                      {memoryProgress?.totalMemoriesCount || memories.length} Item
+                      {memoryProgress?.totalMemoriesCount || memories.length} Items
                     </div>
                   </div>
                   <div className="bg-[#241c15] p-2.5 rounded-xl border border-[#3d3126]">
                     <div className="text-[10px] text-[#9e8b78] flex items-center gap-1">
-                      <Award className="w-3 h-3 text-[#f59e0b]" /> Tugas Selesai
+                      <Award className="w-3 h-3 text-[#f59e0b]" /> Completed Tasks
                     </div>
                     <div className="text-sm font-bold text-[#fdf6e2] mt-0.5">
-                      {memoryProgress?.totalTasksCompleted || 0} Tiket
+                      {memoryProgress?.totalTasksCompleted || 0} Tickets
                     </div>
                   </div>
                   <div className="bg-[#241c15] p-2.5 rounded-xl border border-[#3d3126]">
@@ -1245,12 +1245,12 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                       <Database className="w-3 h-3 text-[#06b6d4]" /> Vector Engine
                     </div>
                     <div className="text-xs font-semibold text-[#34d399] mt-0.5">
-                      Dual-Mode Aktif
+                      Dual-Mode Active
                     </div>
                   </div>
                   <div className="bg-[#241c15] p-2.5 rounded-xl border border-[#3d3126]">
                     <div className="text-[10px] text-[#9e8b78] flex items-center gap-1">
-                      <Layers className="w-3 h-3 text-[#a855f7]" /> Isolasi Tenant
+                      <Layers className="w-3 h-3 text-[#a855f7]" /> Tenant Isolation
                     </div>
                     <div className="text-xs font-semibold text-[#fdf6e2] mt-0.5 truncate">
                       {currentCompany.id}
@@ -1268,7 +1268,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                     <label className="text-xs font-bold text-[#2c231c] flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <Search className="w-3.5 h-3.5 text-[#059669]" />
-                        Pencarian Semantik & Recall Memori (Cosine Similarity)
+                        Semantic Vector Search & Memory Recall (Cosine Similarity)
                       </span>
                       {memorySearchQuery && (
                         <button
@@ -1294,7 +1294,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                               fetchCompanyMemories(memorySearchQuery);
                             }
                           }}
-                          placeholder="Cari lore, SOP, arsitektur, bug, dll..."
+                          placeholder="Search lore, SOPs, architecture, bugs, etc..."
                           className="w-full pl-9 pr-3 py-2 bg-[#fffdf9] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#059669]"
                         />
                         <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#a89887]" />
@@ -1309,7 +1309,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                         ) : (
                           <Search className="w-3.5 h-3.5" />
                         )}
-                        <span>Cari Vector</span>
+                        <span>Vector Search</span>
                       </button>
                     </div>
                   </div>
@@ -1318,7 +1318,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                   <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
                     <div className="font-bold text-xs text-[#2c231c] flex items-center gap-1.5">
                       <BookOpen className="w-3.5 h-3.5 text-[#059669]" />
-                      <span>Arsip Memori ({memories.length})</span>
+                      <span>Memory Archives ({memories.length})</span>
                     </div>
                     <div className="flex gap-1 text-[10px] overflow-x-auto">
                       {['all', 'task_experience', 'lore', 'rule', 'milestone'].map((t) => (
@@ -1332,14 +1332,14 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                           }`}
                         >
                           {t === 'all'
-                            ? 'Semua'
+                            ? 'All'
                             : t === 'task_experience'
-                            ? 'Tugas Selesai'
+                            ? 'Completed Tasks'
                             : t === 'lore'
                             ? 'Lore'
                             : t === 'rule'
-                            ? 'Aturan'
-                            : 'Milestone'}
+                            ? 'Rules'
+                            : 'Milestones'}
                         </button>
                       ))}
                     </div>
@@ -1349,11 +1349,11 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                   {isLoadingMemories ? (
                     <div className="p-8 text-center text-xs text-[#786653] flex flex-col items-center gap-2">
                       <Loader2 className="w-6 h-6 animate-spin text-[#059669]" />
-                      <span>Memuat arsip memori vektor...</span>
+                      <span>Loading vector memory archives...</span>
                     </div>
                   ) : memories.length === 0 ? (
                     <div className="p-6 rounded-xl bg-[#faf5eb] border border-dashed border-[#d6c5ad] text-center text-xs text-[#786653]">
-                      Belum ada memori untuk kategori ini. Tambahkan aturan baru atau selesaikan tugas sprint untuk mengakumulasi pengalaman kantor!
+                      No memories recorded yet. Add guidelines or complete sprint tasks to accumulate office experience!
                     </div>
                   ) : (
                     <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
@@ -1389,7 +1389,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                                 </div>
                                 <button
                                   onClick={() => handleDeleteMemory(mem.id)}
-                                  title="Hapus memori"
+                                  title="Delete memory"
                                   className="text-[#a89887] hover:text-[#dc2626] p-1 rounded transition-colors opacity-60 group-hover:opacity-100 shrink-0"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -1403,11 +1403,11 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                               <div className="flex items-center justify-between text-[10px] text-[#9e8b78] pt-1 flex-wrap gap-1">
                                 <div className="flex items-center gap-2">
                                   <span>
-                                    Diarsipkan: <strong>{mem.authorAgent || 'Sistem'}</strong>
+                                    Archived by: <strong>{mem.authorAgent || 'System'}</strong>
                                   </span>
                                   <span>•</span>
                                   <span>
-                                    {new Date(mem.createdAt).toLocaleDateString('id-ID', {
+                                    {new Date(mem.createdAt).toLocaleDateString('en-US', {
                                       day: 'numeric',
                                       month: 'short',
                                       hour: '2-digit',
@@ -1433,9 +1433,9 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                   )}
                 </div>
 
-                {/* Right Column (5 cols): Tambah Memori & Architecture Info */}
+                {/* Right Column (5 cols): Add Memory & Architecture Info */}
                 <div className="lg:col-span-5 space-y-4">
-                  {/* Form Tambah Lore / Aturan Kantor */}
+                  {/* Form Add Lore / Office Rule */}
                   <form
                     onSubmit={handleAddMemory}
                     className="p-4 rounded-xl border border-[#d6c5ad] bg-[#fffdf9] space-y-3 shadow-xs"
@@ -1443,50 +1443,50 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                     <div className="flex items-center justify-between">
                       <div className="font-bold text-xs text-[#2c231c] flex items-center gap-1.5">
                         <Plus className="w-3.5 h-3.5 text-[#c85a2b]" />
-                        <span>Tambah Nilai / Aturan Baru</span>
+                        <span>Add New Culture / Rule</span>
                       </div>
                       <span className="text-[10px] text-[#786653]">
-                        Indeks otomatis
+                        Auto-indexed
                       </span>
                     </div>
 
                     <div className="space-y-2">
                       <div>
                         <label className="text-[11px] font-semibold text-[#786653] block mb-1">
-                          Judul Memori
+                          Memory Title
                         </label>
                         <input
                           type="text"
                           value={newLoreTitle}
                           onChange={(e) => setNewLoreTitle(e.target.value)}
-                          placeholder="Misal: Standar Kode TypeScript..."
+                          placeholder="e.g. TypeScript Code Style Guidelines..."
                           className="w-full px-3 py-2 bg-[#faf5eb] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#c85a2b]"
                           required
                         />
                       </div>
                       <div>
                         <label className="text-[11px] font-semibold text-[#786653] block mb-1">
-                          Tipe Pengetahuan
+                          Knowledge Type
                         </label>
                         <select
                           value={newLoreType}
                           onChange={(e) => setNewLoreType(e.target.value as MemoryType)}
                           className="w-full px-3 py-2 bg-[#faf5eb] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#c85a2b]"
                         >
-                          <option value="lore">Lore & Budaya</option>
-                          <option value="rule">Aturan Kerja</option>
-                          <option value="milestone">Milestone Kantor</option>
-                          <option value="knowledge">Pengetahuan Umum</option>
+                          <option value="lore">Culture & Lore</option>
+                          <option value="rule">Working Guidelines</option>
+                          <option value="milestone">Company Milestones</option>
+                          <option value="knowledge">General Knowledge</option>
                         </select>
                       </div>
                       <div>
                         <label className="text-[11px] font-semibold text-[#786653] block mb-1">
-                          Detail Memori
+                          Memory Content
                         </label>
                         <textarea
                           value={newLoreContent}
                           onChange={(e) => setNewLoreContent(e.target.value)}
-                          placeholder="Tuliskan pengetahuan yang harus dipatuhi agen saat berdiskusi dan mengerjakan tugas..."
+                          placeholder="Provide guidelines and context that agents must adhere to when discussing and executing tasks..."
                           rows={3}
                           className="w-full px-3 py-2 bg-[#faf5eb] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#c85a2b]"
                           required
@@ -1505,7 +1505,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                         ) : (
                           <Save className="w-3.5 h-3.5" />
                         )}
-                        <span>Simpan ke Memori Kantor</span>
+                        <span>Save to Office Memory</span>
                       </button>
                     </div>
                   </form>
@@ -1514,14 +1514,14 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                   <div className="p-3.5 rounded-xl bg-[#f5efe4] border border-[#d6c5ad] text-xs text-[#5c4939] space-y-1.5">
                     <div className="font-bold text-[#2c231c] flex items-center gap-1.5">
                       <Database className="w-4 h-4 text-[#059669]" />
-                      <span>Vector DB & Embedding Zero-Setup</span>
+                      <span>Zero-Setup Vector DB & Embeddings</span>
                     </div>
                     <p className="text-[11px] leading-relaxed">
-                      Memori disimpan terisolasi di{' '}
+                      Memories are isolated per-tenant in{' '}
                       <code className="px-1 py-0.5 bg-[#e8dece] rounded text-[#2c231c] font-mono font-semibold text-[10px]">
-                        ~/.vigent/memories_{currentCompany.id}.json
+                        ~/.ceo-virtual/memories_{currentCompany.id}.json
                       </code>
-                      . Menggunakan Dual Vector Engine (API embedding otomatis atau 64-dim local vector) sehingga tidak butuh Docker atau database eksternal terpisah.
+                      . Powered by a Dual Vector Engine (automatic embedding API or 64-dim local cosine index) requiring zero external Docker or database dependencies.
                     </p>
                   </div>
                 </div>

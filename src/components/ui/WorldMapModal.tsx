@@ -106,11 +106,11 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
         fetchP2pData();
         setTimeout(() => setP2pNotice(''), 4000);
       } else {
-        setP2pNotice(`❌ ${data.message || 'Gagal sinkronisasi relay'}`);
+        setP2pNotice(`❌ ${data.message || 'Relay synchronization failed'}`);
         setTimeout(() => setP2pNotice(''), 4000);
       }
     } catch (err: any) {
-      setP2pNotice(`❌ Gagal sinkronisasi: ${err.message}`);
+      setP2pNotice(`❌ Synchronization failed: ${err.message}`);
       setTimeout(() => setP2pNotice(''), 4000);
     } finally {
       setIsSyncingRelay(false);
@@ -130,16 +130,16 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        setP2pNotice(data.message || 'Berhasil terhubung ke node peer!');
+        setP2pNotice(data.message || 'Successfully connected to peer node!');
         setManualPeerUrl('');
         fetchP2pData();
         setTimeout(() => setP2pNotice(''), 4000);
       } else {
-        setP2pNotice(`❌ ${data.message || 'Gagal terhubung ke peer'}`);
+        setP2pNotice(`❌ ${data.message || 'Failed to connect to peer'}`);
         setTimeout(() => setP2pNotice(''), 4000);
       }
     } catch (err: any) {
-      setP2pNotice(`❌ Gagal koneksi: ${err.message}`);
+      setP2pNotice(`❌ Connection failed: ${err.message}`);
       setTimeout(() => setP2pNotice(''), 4000);
     } finally {
       setIsConnectingPeer(false);
@@ -154,7 +154,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
         body: JSON.stringify({ action: 'broadcast' }),
       });
       const data = await res.json();
-      setP2pNotice('📡 UDP Beacon dikirim ke jaringan lokal (LAN)!');
+      setP2pNotice('📡 UDP Beacon broadcast to local area network (LAN)!');
       fetchP2pData();
       setTimeout(() => setP2pNotice(''), 3000);
     } catch {}
@@ -247,7 +247,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        setDispatchNotice(data.message || 'Misi perjalanan berhasil dimulai!');
+        setDispatchNotice(data.message || 'Travel mission started successfully!');
         if (data.mission) {
           onDispatchMission?.(data.mission);
         }
@@ -279,11 +279,11 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                   Open World Atlas & Decentralized Regional Transit
                 </h2>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] border border-[#c7d2fe] font-bold font-mono">
-                  🌐 5 Sektor Kota
+                  🌐 5 City Sectors
                 </span>
               </div>
               <p className="text-xs text-[#786653]">
-                Jelajahi distrik regional, pantau kantor tetangga, dan tugaskan karyawan naik kereta atau mobil untuk diplomasi B2B & trading.
+                Explore regional districts, monitor neighboring offices, and dispatch employees by train or car for B2B diplomacy & trading.
               </p>
             </div>
           </div>
@@ -306,7 +306,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
             }`}
           >
             <Compass className="w-4 h-4 text-[#c85a2b]" />
-            <span>Peta Makro Dunia ({districts.length} Distrik)</span>
+            <span>Macro World Map ({districts.length} Districts)</span>
           </button>
           <button
             onClick={() => setActiveTab('dispatch')}
@@ -317,7 +317,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
             }`}
           >
             <Send className="w-4 h-4 text-[#059669]" />
-            <span>🚀 Tugaskan Karyawan Bepergian</span>
+            <span>🚀 Dispatch Employee Travel</span>
           </button>
           <button
             onClick={() => setActiveTab('missions')}
@@ -328,7 +328,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
             }`}
           >
             <Train className="w-4 h-4 text-[#4f46e5]" />
-            <span>Transit & Misi Perjalanan ({missions.length})</span>
+            <span>Transit & Missions ({missions.length})</span>
             {activeMissionsCount > 0 && (
               <span className="w-2 h-2 rounded-full bg-[#10b981] animate-ping" />
             )}
@@ -342,7 +342,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
             }`}
           >
             <Radio className="w-4 h-4 text-[#0284c7]" />
-            <span>📡 Node P2P Mesh ({p2pStatus?.onlinePeersCount || 0} Peer)</span>
+            <span>📡 P2P Mesh Node ({p2pStatus?.onlinePeersCount || 0} Peers)</span>
           </button>
         </div>
 
@@ -369,7 +369,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                     </span>
                   </div>
                   <div className="text-[11px] font-mono text-[#784620] bg-[#f0e3ce] px-2.5 py-1 rounded-lg border border-[#dccab3]">
-                    Kantor Anda: <strong>{currentCompany.name} (Neo-Jakarta)</strong>
+                    Your Office: <strong>{currentCompany.name} (Neo-Jakarta)</strong>
                   </div>
                 </div>
 
@@ -470,7 +470,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                       <div className="font-bold text-xs text-[#2c231c] truncate mt-0.5">{d.name}</div>
                       <div className="text-[10px] text-[#786653] flex items-center gap-1 mt-1">
                         <Building2 className="w-3 h-3" />
-                        <span>{d.companies.length} Kantor</span>
+                        <span>{d.companies.length} Offices</span>
                       </div>
                     </button>
                   );
@@ -514,11 +514,11 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                             {activeDistrict.transitHubName}
                           </span>
                           <span className="text-[9px] px-1.5 py-0.2 bg-[#dcfce7] text-[#15803d] font-bold rounded-full border border-[#bbf7d0]">
-                            🟢 Jalur Aktif 350 km/h
+                            🟢 Active Track 350 km/h
                           </span>
                         </div>
                         <p className="text-[11px] text-[#786653] mt-0.5">
-                          Layanan Kereta Cepat Aerorail (~{activeDistrict.trainTravelSeconds}s) • Karyawan wajib mengunjungi stasiun ini sebelum berangkat.
+                          Aerorail Bullet Train Service (~{activeDistrict.trainTravelSeconds}s) • Employees board at this station before departing.
                         </p>
                       </div>
                     </div>
@@ -530,10 +530,10 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                             onViewCityScale();
                           }}
                           className="px-3.5 py-2 rounded-xl bg-[#c85a2b] hover:bg-[#b04d22] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm shrink-0"
-                          title="Tutup modal dan zoom out kanvas utama untuk melihat skala gedung kota"
+                          title="Close modal and zoom out main canvas to view city building scale"
                         >
                           <Building2 className="w-3.5 h-3.5" />
-                          <span>Lihat Skala Kota di Canvas Utama</span>
+                          <span>View City Scale on Main Canvas</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                       )}
@@ -546,7 +546,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         className="px-3.5 py-2 rounded-xl bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm shrink-0"
                       >
                         <Train className="w-3.5 h-3.5" />
-                        <span>Tugaskan via Kereta Ini</span>
+                        <span>Dispatch via This Train</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -556,7 +556,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                   <div className="space-y-3">
                     <div className="text-xs font-bold text-[#2c231c] flex items-center gap-1.5">
                       <Building2 className="w-3.5 h-3.5 text-[#c85a2b]" />
-                      <span>Daftar Kantor & Perusahaan di {activeDistrict.name}</span>
+                      <span>List of Offices & Companies in {activeDistrict.name}</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -580,7 +580,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                                   </span>
                                   {isMyCompany && (
                                     <span className="text-[10px] px-1.5 py-0.2 bg-[#c85a2b] text-white rounded font-bold">
-                                      Kantor Anda
+                                      Your Office
                                     </span>
                                   )}
                                 </div>
@@ -601,7 +601,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                                   }}
                                   className="px-2.5 py-1.5 bg-[#059669] hover:bg-[#047857] text-white text-[10px] font-bold rounded-lg flex items-center gap-1 transition-colors shrink-0 shadow-xs"
                                 >
-                                  <span>Kirim Karyawan</span>
+                                  <span>Send Employee</span>
                                   <ArrowRight className="w-3 h-3" />
                                 </button>
                               )}
@@ -616,7 +616,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <ShoppingBag className="w-3 h-3 text-[#4f46e5]" />
-                                  <span>Produk Pasar ({comp.marketOffers.length})</span>
+                                  <span>Market Products ({comp.marketOffers.length})</span>
                                 </span>
                               </div>
 
@@ -644,24 +644,24 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
             </div>
           )}
 
-          {/* TAB 2: TUGASKAN KARYAWAN BEPERGIAN */}
+          {/* TAB 2: DISPATCH EMPLOYEE TRAVEL */}
           {activeTab === 'dispatch' && (
             <form onSubmit={handleStartDispatch} className="space-y-4 max-w-2xl mx-auto">
               <div className="p-4 bg-[#fef8e7] border border-[#fae4a8] rounded-2xl text-xs text-[#784620] space-y-1">
                 <div className="font-bold flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-[#ab7a1a]" />
-                  <span>Kirim Karyawan Menembus Batas Regional Virtual</span>
+                  <span>Dispatch Employees Across Virtual Regional Borders</span>
                 </div>
                 <p className="leading-relaxed">
-                  Karyawan Anda akan keluar dari meja kantor, bepergian menggunakan kereta aerorail atau mobil kantor, lalu check-in di lobi perusahaan tujuan untuk melakukan negosiasi B2B, membeli modul skill, atau membangun aliansi dagang.
+                  Your employees will leave their desk, commute via aerorail train or company car, and check in at the destination office lobby for B2B negotiations, purchasing skill modules, or forming trade alliances.
                 </p>
               </div>
 
-              {/* 1. Pilih Karyawan */}
+              {/* 1. Select Employee */}
               <div className="p-4 rounded-2xl bg-[#fffdf9] border border-[#d6c5ad] space-y-2">
                 <label className="text-xs font-bold text-[#2c231c] flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5 text-[#c85a2b]" />
-                  <span>1. Pilih Karyawan yang Ditugaskan</span>
+                  <span>1. Select Employee to Dispatch</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {agents.map((ag) => {
@@ -689,17 +689,17 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                 </div>
               </div>
 
-              {/* 2. Destinasi Regional & Perusahaan */}
+              {/* 2. Destination Region & Company */}
               <div className="p-4 rounded-2xl bg-[#fffdf9] border border-[#d6c5ad] space-y-3">
                 <label className="text-xs font-bold text-[#2c231c] flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#059669]" />
-                  <span>2. Pilih Destinasi Kota & Kantor Tujuan</span>
+                  <span>2. Select Destination City & Target Office</span>
                 </label>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div>
                     <label className="text-[11px] font-semibold text-[#786653] block mb-1">
-                      Distrik / Regional Tujuan:
+                      Target District / Region:
                     </label>
                     <select
                       value={targetRegionId}
@@ -716,7 +716,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
 
                   <div>
                     <label className="text-[11px] font-semibold text-[#786653] block mb-1">
-                      Perusahaan yang Dikunjungi:
+                      Company to Visit:
                     </label>
                     <select
                       value={targetCompanyId}
@@ -733,13 +733,13 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                 </div>
               </div>
 
-              {/* 3. Moda Transportasi & Tujuan Misi */}
+              {/* 3. Commute Mode & Mission Purpose */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 {/* Commute Mode */}
                 <div className="p-4 rounded-2xl bg-[#fffdf9] border border-[#d6c5ad] space-y-2">
                   <label className="font-bold text-[#2c231c] flex items-center gap-1.5">
                     <Train className="w-3.5 h-3.5 text-[#4f46e5]" />
-                    <span>3. Moda Transportasi</span>
+                    <span>3. Commute Mode</span>
                   </label>
                   <div className="space-y-2">
                     <button
@@ -756,11 +756,11 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         <div className="font-bold text-xs flex items-center gap-1.5">
                           <span>Express Bullet Train</span>
                           <span className="text-[9px] px-1.5 py-0.2 bg-[#dbeafe] text-[#1e40af] font-mono rounded font-bold">
-                            Via Stasiun Kereta
+                            Via Train Station
                           </span>
                         </div>
                         <div className="text-[10px] text-[#786653]">
-                          Karyawan wajib mengunjungi Stasiun Kereta Sentral terlebih dahulu untuk boarding tiket sebelum berangkat.
+                          Employee visits Central Train Station first to board tickets before departing.
                         </div>
                       </div>
                     </button>
@@ -778,7 +778,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                       <div>
                         <div className="font-bold text-xs">Company Cyber-Car</div>
                         <div className="text-[10px] text-[#786653]">
-                          Mobil operasional kantor di area parkir depan, rute highway cepat.
+                          Office operational vehicle from front parking lot, rapid highway route.
                         </div>
                       </div>
                     </button>
@@ -788,7 +788,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                     <div className="p-2.5 rounded-xl bg-[#eef2ff] border border-[#c7d2fe] text-[11px] text-[#3730a3] flex items-center gap-2">
                       <Train className="w-4 h-4 shrink-0 text-[#4f46e5]" />
                       <span>
-                        <strong>Alur Perjalanan:</strong> Karyawan akan berdiri dari mejanya, berjalan menuju <strong>Stasiun Kereta Sentral</strong> di depan kantor, lalu menaiki Express Bullet Train menuju <strong>{targetDistrict?.name}</strong>.
+                        <strong>Commute Flow:</strong> Employee leaves workstation, walks to the <strong>Central Train Station</strong> in front of the office, and boards Express Bullet Train toward <strong>{targetDistrict?.name}</strong>.
                       </span>
                     </div>
                   )}
@@ -798,21 +798,21 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                 <div className="p-4 rounded-2xl bg-[#fffdf9] border border-[#d6c5ad] space-y-2">
                   <label className="font-bold text-[#2c231c] flex items-center gap-1.5">
                     <Briefcase className="w-3.5 h-3.5 text-[#c85a2b]" />
-                    <span>4. Tujuan Kunjungan</span>
+                    <span>4. Mission Objective</span>
                   </label>
                   <select
                     value={missionType}
                     onChange={(e) => setMissionType(e.target.value as TravelMissionType)}
                     className="w-full px-3 py-2.5 bg-[#faf5eb] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#c85a2b]"
                   >
-                    <option value="b2b_pitch">🤝 B2B Partnership Pitch (Tawarkan Jasa/Proyek)</option>
-                    <option value="buy_trade">🛒 Beli Skill/Lisensi Template dari Pasar Mereka</option>
-                    <option value="market_research">🔍 Riset Tren Industri & Benchmark</option>
-                    <option value="friendly_visit">☕ Kunjungan Silaturahmi & Pererat Aliansi</option>
+                    <option value="b2b_pitch">🤝 B2B Partnership Pitch (Offer Services/Projects)</option>
+                    <option value="buy_trade">🛒 Purchase Skill/Template License from Their Market</option>
+                    <option value="market_research">🔍 Industry Trend Research & Benchmarking</option>
+                    <option value="friendly_visit">☕ Friendly Visit & Strengthen Alliance</option>
                   </select>
 
                   <div className="p-2.5 rounded-xl bg-[#faf5eb] border border-[#ede2d1] text-[10px] text-[#786653]">
-                    💡 Menyelesaikan misi perjalanan akan memberikan bonus <strong>+150 hingga +350 XP</strong> dan Koin Kantor untuk perusahaan Anda!
+                    💡 Completing travel missions awards <strong>+150 to +350 XP</strong> and Office Coins to your company!
                   </div>
                 </div>
               </div>
@@ -826,7 +826,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                 >
                   <Send className="w-4 h-4" />
                   <span>
-                    {isDispatching ? 'Menyiapkan Keberangkatan...' : 'Berangkatkan Karyawan Sekarang'}
+                    {isDispatching ? 'Preparing Departure...' : 'Dispatch Employee Now'}
                   </span>
                 </button>
               </div>
@@ -839,7 +839,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
               <div className="flex items-center justify-between">
                 <div className="text-xs font-bold text-[#2c231c] flex items-center gap-1.5">
                   <Train className="w-4 h-4 text-[#4f46e5]" />
-                  <span>Status Perjalanan & Misi Karyawan ({missions.length})</span>
+                  <span>Employee Travel Status & Missions ({missions.length})</span>
                 </div>
                 <button
                   onClick={fetchWorldData}
@@ -852,7 +852,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
 
               {missions.length === 0 ? (
                 <div className="p-8 text-center text-xs text-[#786653] bg-[#fffdf9] border border-dashed border-[#d6c5ad] rounded-2xl">
-                  Belum ada karyawan yang ditugaskan bepergian. Buka tab <strong>"Tugaskan Karyawan Bepergian"</strong> untuk memulai ekspedisi antar-regional perdana!
+                  No employees dispatched on travel yet. Open the <strong>"Dispatch Employee Travel"</strong> tab to start your first inter-regional expedition!
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -893,14 +893,14 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                                 </span>
                               </div>
                               <div className="text-[10px] text-[#786653]">
-                                Dari <strong>{mission.originCompanyName}</strong> ➔ Ke{' '}
+                                From <strong>{mission.originCompanyName}</strong> ➔ To{' '}
                                 <strong>{mission.targetCompanyName}</strong>
                               </div>
                             </div>
                           </div>
 
                           <div className="text-right text-[10px] text-[#786653] font-mono">
-                            {new Date(mission.departedAt).toLocaleTimeString('id-ID', {
+                            {new Date(mission.departedAt).toLocaleTimeString('en-US', {
                               hour: '2-digit',
                               minute: '2-digit',
                             })}
@@ -924,7 +924,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         {/* Travel Logs & Dialogs */}
                         <div className="p-2.5 rounded-xl bg-[#f5efe4] border border-[#ede2d1] space-y-1.5 text-xs">
                           <div className="text-[10px] font-bold text-[#786653] uppercase tracking-wider">
-                            Catatan Log Perjalanan:
+                            Travel Activity Logs:
                           </div>
                           {mission.dialogLogs.map((log, idx) => (
                             <div key={idx} className="text-[11px] flex items-start gap-1.5">
@@ -943,7 +943,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         {mission.outcome && (
                           <div className="p-2.5 rounded-xl bg-[#e6f4ea] border border-[#34a853] text-[#137333] text-xs flex items-center justify-between">
                             <div>
-                              <strong>Hasil Misi:</strong> {mission.outcome.summary}
+                              <strong>Mission Outcome:</strong> {mission.outcome.summary}
                             </div>
                             <div className="flex items-center gap-2 font-mono font-bold shrink-0">
                               <span className="text-[#137333]">+{mission.outcome.earnedXp} XP</span>
@@ -987,7 +987,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         </span>
                       </div>
                       <h3 className="text-base font-extrabold text-[#2c231c] mt-0.5">
-                        Identitas Node Desentralisasi PC Anda
+                        Your PC Decentralized Node Identity
                       </h3>
                     </div>
                   </div>
@@ -995,7 +995,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#e0f2fe] border border-[#bae6fd] text-xs font-semibold text-[#0369a1]">
                       <Wifi className="w-3.5 h-3.5 text-[#0284c7] animate-pulse" />
-                      <span>Auto-Beacon Aktif (Tiap 12s)</span>
+                      <span>Auto-Beacon Active (Every 12s)</span>
                     </div>
                   </div>
                 </div>
@@ -1003,7 +1003,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                 {/* Node Metrics Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
                   <div className="bg-[#faf5eb] p-3 rounded-xl border border-[#d6c5ad]">
-                    <div className="text-[10px] text-[#786653] font-medium">Node ID Kriptografis</div>
+                    <div className="text-[10px] text-[#786653] font-medium">Cryptographic Node ID</div>
                     <div className="font-mono text-xs font-bold text-[#0284c7] mt-1 flex items-center justify-between">
                       <span className="truncate">{p2pStatus?.nodeId || 'vigent-node-local'}</span>
                       <button
@@ -1015,7 +1015,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                           }
                         }}
                         className="text-[#786653] hover:text-[#2c231c] ml-1 shrink-0"
-                        title="Salin Node ID"
+                        title="Copy Node ID"
                       >
                         {copiedNodeId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
@@ -1023,21 +1023,21 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                   </div>
 
                   <div className="bg-[#faf5eb] p-3 rounded-xl border border-[#d6c5ad]">
-                    <div className="text-[10px] text-[#786653] font-medium">Port HTTP / Discovery</div>
+                    <div className="text-[10px] text-[#786653] font-medium">HTTP / Discovery Port</div>
                     <div className="font-mono text-xs font-bold text-[#2c231c] mt-1">
                       :{p2pStatus?.httpPort || 28483} • UDP:{p2pStatus?.udpPort || 28484}
                     </div>
                   </div>
 
                   <div className="bg-[#faf5eb] p-3 rounded-xl border border-[#d6c5ad]">
-                    <div className="text-[10px] text-[#786653] font-medium">Peer Terkoneksi (Mesh)</div>
+                    <div className="text-[10px] text-[#786653] font-medium">Connected Peers (Mesh)</div>
                     <div className="font-mono text-sm font-bold text-[#059669] mt-0.5">
-                      {p2pStatus?.onlinePeersCount || 0} Peer Online
+                      {p2pStatus?.onlinePeersCount || 0} Peers Online
                     </div>
                   </div>
 
                   <div className="bg-[#faf5eb] p-3 rounded-xl border border-[#d6c5ad]">
-                    <div className="text-[10px] text-[#786653] font-medium">Regional Sektor Lokal</div>
+                    <div className="text-[10px] text-[#786653] font-medium">Local Regional Sector</div>
                     <div className="font-mono text-xs font-bold text-[#b45309] mt-1 truncate">
                       {p2pStatus?.regionalSector || 'region-jakarta'}
                     </div>
@@ -1054,13 +1054,13 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-xs tracking-wide text-[#2c231c]">🌐 Jaringan Komunitas Global CEO Virtual</h3>
+                        <h3 className="font-bold text-xs tracking-wide text-[#2c231c]">🌐 CEO Virtual Global Community Network</h3>
                         <span className="text-[9px] px-2 py-0.5 rounded-full font-mono font-semibold bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]">
                           Auto-Connected
                         </span>
                       </div>
                       <p className="text-[11px] text-[#786653] mt-0.5">
-                        Node Anda otomatis terhubung ke bursa komunitas publik. Seluruh kantor rekan di berbagai regional terdeteksi realtime.
+                        Your node automatically connects to the public community network. Peer offices across all regions are detected in real-time.
                       </p>
                     </div>
                   </div>
@@ -1068,7 +1068,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]">
                       <span className="w-2 h-2 rounded-full bg-[#059669] animate-ping" />
-                      Komunitas Global Online
+                      Global Community Online
                     </span>
 
                     <button
@@ -1076,31 +1076,31 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                       onClick={handleSyncRelay}
                       disabled={isSyncingRelay}
                       className="px-3 py-1.5 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-40"
-                      title="Tarik pembaruan node komunitas terbaru"
+                      title="Pull latest community node updates"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isSyncingRelay ? 'animate-spin' : ''}`} />
-                      <span>{isSyncingRelay ? 'Menyinkronkan...' : 'Refresh Jaringan'}</span>
+                      <span>{isSyncingRelay ? 'Syncing...' : 'Refresh Network'}</span>
                     </button>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between text-[10px] text-[#786653] pt-2 border-t border-[#e8decb]">
                   <span>
-                    🔒 <strong>100% Zero-Knowledge:</strong> Hanya status presensi publik yang disinkronkan. Dokumen & LLM lokal tetap privat.
+                    🔒 <strong>100% Zero-Knowledge:</strong> Only public presence status is synchronized. Local documents & LLMs remain private.
                   </span>
-                  <span>Otomatis sinkron setiap 20 detik</span>
+                  <span>Auto-syncs every 20 seconds</span>
                 </div>
               </div>
 
-              {/* Form Manual Peering (Lintas IP / Tailscale / WAN) */}
+              {/* Form Manual Peering (Across IP / Tailscale / WAN) */}
               <div className="p-4 rounded-2xl bg-[#fffdf9] border border-[#d6c5ad] space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="font-bold text-xs text-[#2c231c] flex items-center gap-1.5">
                     <Server className="w-4 h-4 text-[#0284c7]" />
-                    <span>Hubungkan Manual ke Node Teman / PC Lain (IP / Tailscale)</span>
+                    <span>Manually Connect to Peer / Remote PC (IP / Tailscale)</span>
                   </div>
                   <span className="text-[10px] text-[#786653]">
-                    Port default :28483
+                    Default port :28483
                   </span>
                 </div>
 
@@ -1109,7 +1109,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                     type="text"
                     value={manualPeerUrl}
                     onChange={(e) => setManualPeerUrl(e.target.value)}
-                    placeholder="Masukkan IP atau host peer (contoh: 192.168.1.50:28483 atau 100.x.x.x Tailscale)..."
+                    placeholder="Enter peer IP or host (e.g., 192.168.1.50:28483 or 100.x.x.x Tailscale)..."
                     className="flex-1 px-3 py-2 bg-[#faf5eb] border border-[#d6c5ad] rounded-xl text-xs focus:outline-none focus:border-[#0284c7] font-mono"
                   />
                   <button
@@ -1118,20 +1118,20 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                     className="px-4 py-2 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-colors disabled:opacity-50 shrink-0"
                   >
                     <Network className="w-3.5 h-3.5" />
-                    <span>{isConnectingPeer ? 'Menghubungkan...' : 'Kirim Handshake'}</span>
+                    <span>{isConnectingPeer ? 'Connecting...' : 'Send Handshake'}</span>
                   </button>
                 </form>
               </div>
 
-              {/* Daftar Peer yang Terhubung (Peer Table) */}
+              {/* Connected Peer List (Peer Table) */}
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="font-bold text-xs text-[#2c231c] flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5 text-[#059669]" />
-                    <span>Daftar Node Peer yang Dikenal ({p2pStatus?.peers?.length || 0})</span>
+                    <span>Known Peer Node List ({p2pStatus?.peers?.length || 0})</span>
                   </div>
                   <span className="text-[10px] text-[#786653]">
-                    Otomatis diperbarui via UDP broadcast
+                    Automatically updated via UDP broadcast
                   </span>
                 </div>
 
@@ -1139,10 +1139,10 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                   <div className="p-8 text-center text-xs text-[#786653] bg-[#fffdf9] border border-dashed border-[#d6c5ad] rounded-2xl space-y-2">
                     <Radio className="w-8 h-8 text-[#9e8b78] mx-auto animate-pulse" />
                     <div className="font-semibold text-[#2c231c]">
-                      Menunggu Deteksi Peer di Jaringan Anda...
+                      Waiting to Discover Peers on Your Network...
                     </div>
                     <p className="max-w-md mx-auto text-[11px] leading-relaxed">
-                      Daemon UDP sedang memancarkan beacon di port 28484. Begitu ada PC lain yang menjalankan CEO Virtual di Wi-Fi/LAN yang sama, node tersebut akan otomatis muncul di sini! Anda juga bisa menghubungkan PC rekan secara manual melalui form IP di atas.
+                      UDP daemon is broadcasting beacons on port 28484. As soon as another PC runs CEO Virtual on the same Wi-Fi/LAN, that node will appear here automatically! You can also connect peer PCs manually using the IP form above.
                     </p>
                   </div>
                 ) : (
@@ -1187,7 +1187,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                           <button
                             onClick={() => handleRemovePeer(peer.nodeId)}
                             className="p-1 text-[#9e8b78] hover:text-red-500 rounded transition-colors"
-                            title="Hapus peer dari daftar"
+                            title="Remove peer from list"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1202,10 +1202,10 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
               <div className="p-4 rounded-2xl bg-[#f5efe4] border border-[#d6c5ad] text-xs text-[#5c4939] space-y-2">
                 <div className="font-bold text-[#2c231c] flex items-center gap-1.5">
                   <Shield className="w-4 h-4 text-[#059669]" />
-                  <span>Prinsip Keamanan & Desentralisasi Multi-Tenant CEO Virtual</span>
+                  <span>CEO Virtual Multi-Tenant Security & Decentralization Principles</span>
                 </div>
                 <p className="leading-relaxed text-[11px]">
-                  <strong>100% Zero-Knowledge untuk Dokumen Privat:</strong> Komunikasi P2P antar-node hanya membagikan paket telemetri publik (nama kantor, avatar di lobi, ketersediaan bursa bounty). Seluruh obrolan LLM internal, kode proyek di <code>~/.vigent/projects</code>, artefak tugas, dan API key rahasia Anda <strong>TIDAK PERNAH dikirimkan ke node rekan</strong> dan tetap terisolasi di disk PC lokal Anda.
+                  <strong>100% Zero-Knowledge for Private Documents:</strong> Inter-node P2P communication only shares public telemetry packets (office name, lobby presence, open bounty marketplace availability). All internal LLM chats, project code in <code>~/.ceo-virtual/projects</code>, task artifacts, and private API keys <strong>are NEVER transmitted to peer nodes</strong> and remain strictly isolated on your local disk.
                 </p>
               </div>
             </div>

@@ -172,21 +172,21 @@ export function buildRegionalKavlings(peerNodes?: any[]): ExternalCompanyKavling
         carpetColor: '#0369a1',
         pantryColor: '#bae6fd',
         accentColor: '#0284c7',
-        specialtyText: `Node P2P Aktif (${peer.endpointUrl || peer.ip})`,
+        specialtyText: `Active P2P Node (${peer.endpointUrl || peer.ip})`,
         employees,
         isEmptyLot: employees.length === 0,
         plotLabel: plot.label,
       };
     }
 
-    // Default: Clean Empty Kavling (Kavling Kosong / Tersedia)
+    // Default: Clean Empty Kavling (Vacant Lot / Available)
     return {
       id: `empty-${plot.id}`,
-      name: `${plot.label} (Tersedia)`,
+      name: `${plot.label} (Available)`,
       shortName: plot.label,
-      ownerName: 'Tersedia',
+      ownerName: 'Available',
       level: 1,
-      industry: 'Kavling Kosong (Menunggu Node P2P Terhubung)',
+      industry: 'Vacant Lot (Awaiting P2P Peer Connection)',
       badgeIcon: '📍',
       layoutTemplate: 'tech_startup',
       cx: plot.cx,
@@ -200,7 +200,7 @@ export function buildRegionalKavlings(peerNodes?: any[]): ExternalCompanyKavling
       carpetColor: '#047857',
       pantryColor: '#d1fae5',
       accentColor: '#059669',
-      specialtyText: 'Kavling kosong tersedia untuk node rekan baru di jaringan P2P.',
+      specialtyText: 'Vacant lot ready for new peer nodes on the P2P network.',
       employees: [],
       isEmptyLot: true,
       plotLabel: plot.label,
@@ -213,9 +213,9 @@ export const OTHER_REGIONAL_COMPANIES: ExternalCompanyKavling[] = buildRegionalK
 export const CITY_LANDMARKS = [
   {
     id: 'company-main-hq',
-    name: 'Kantor Pusat Utama (HQ Anda)',
-    type: 'Kantor Pusat Aktif',
-    desc: 'Kantor utama aktif milik Anda dengan operasional penuh, percakapan agent terbuka, dan task board.',
+    name: 'Main Headquarters (Your HQ)',
+    type: 'Active Headquarters',
+    desc: 'Your active primary operational headquarters with full capabilities, open agent discussions, and task board.',
     icon: '🏢',
     wx: 0.0,
     wz: 0.0,
@@ -223,9 +223,9 @@ export const CITY_LANDMARKS = [
   },
   {
     id: 'landmark-train-station',
-    name: 'Stasiun Kereta Cepat Sentral',
-    type: 'Terminal Transit Regional & Dispatch Antarkota',
-    desc: 'Kavling stasiun megah dengan peron kereta Shinkansen cepat, gate tiket RFID, dan papan jadwal digital ke Cyber-Bandung.',
+    name: 'Central Aerorail Station',
+    type: 'Regional Transit & Intercity Dispatch Hub',
+    desc: 'Grand station terminal featuring high-speed platforms, RFID ticket turnstiles, and digital departure schedule.',
     icon: '🚄',
     wx: 80.0,
     wz: 19.0,
@@ -233,9 +233,9 @@ export const CITY_LANDMARKS = [
   },
   {
     id: 'landmark-supermart',
-    name: 'SuperMart 24/7 Sentral',
-    type: 'Kavling Ritel & Pusat Pasokan Kantor',
-    desc: 'Kavling supermarket serba ada 24 jam dengan lorong rak makanan, kulkas pendingin minuman, dan meja kasir scanner POS.',
+    name: 'SuperMart 24/7 Central',
+    type: 'Retail Facility & Office Supply Center',
+    desc: 'All-in-one 24-hour supermarket featuring food and grocery aisles, beverage chillers, and POS checkout counters.',
     icon: '🏪',
     wx: -80.0,
     wz: 19.0,
@@ -243,9 +243,9 @@ export const CITY_LANDMARKS = [
   },
   {
     id: 'landmark-pujasera',
-    name: 'Cyber Pujasera 24 Jam',
-    type: 'Sentra Kuliner Regional',
-    desc: 'Pujasera komunitas tech tempat favorit agent dan developer istirahat makan siang dan ngopi.',
+    name: 'Cyber Food Court 24/7',
+    type: 'Regional Dining Hub',
+    desc: 'Tech community food court where agents and developers relax for lunch and coffee breaks.',
     icon: '🍜',
     wx: 0.0,
     wz: 19.0,
@@ -4635,42 +4635,42 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
                     <button
                       onClick={() => handleFocusZone(-11.8, 6.0)}
                       className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#fdeed9] text-[#78350f] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Fokus ke Pantry & Mesin Kopi"
+                      title="Focus on Pantry & Coffee Bar"
                     >
                       ☕ Pantry
                     </button>
                     <button
                       onClick={() => handleFocusZone(-11, -7)}
                       className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#ede2d1] text-[#4c1d95] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Fokus ke Lounge & Arcade"
+                      title="Focus on Lounge & Arcade"
                     >
                       🎮 Lounge
                     </button>
                     <button
                       onClick={() => handleFocusZone(0, -1)}
                       className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#ede2d1] text-[#065f46] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Fokus ke Workstation Pods"
+                      title="Focus on Workstation Pods"
                     >
                       💻 Pods
                     </button>
                     <button
                       onClick={() => handleFocusZone(11, 7)}
                       className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#ede2d1] text-[#0e7490] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Fokus ke Sprint & QA"
+                      title="Focus on Sprint & QA"
                     >
                       📊 Sprint
                     </button>
                     <button
                       onClick={() => handleFocusZone(11.5, 6.0)}
                       className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#fdeed9] text-[#4f46e5] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Fokus ke Ruang Rapat (Conference Table)"
+                      title="Focus on Conference Room"
                     >
-                      📅 Rapat
+                      📅 Meeting
                     </button>
                     <button
                       onClick={() => handleFocusZone(11, -7)}
                       className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#ede2d1] text-[#4338ca] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Fokus ke Lead Suite"
+                      title="Focus on Lead Suite"
                     >
                       👑 Lead
                     </button>
@@ -4678,7 +4678,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
                   <button
                     onClick={handleResetCamera}
                     className="p-1 rounded-lg bg-[#fffdf9] hover:bg-[#ede2d1] text-[#786653] hover:text-[#2c231c] border border-[#d6c5ad] transition-colors shrink-0"
-                    title="Reset Kamera ke Posisi Semula"
+                    title="Reset Camera to Origin"
                   >
                     <RotateCcw className="w-3 h-3" />
                   </button>
@@ -4703,12 +4703,12 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
                 ? 'bg-gradient-to-r from-amber-500 to-indigo-600 text-white border-amber-300 animate-pulse'
                 : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white border-indigo-400/40 shadow-indigo-500/20'
             }`}
-            title="Adakan Daily Standup di Ruang Rapat: Kumpulkan seluruh agen untuk update progres & kirim ringkasan ke Telegram"
+            title="Hold Daily Standup in Conference Room: Gather all agents for progress updates & push summary to Telegram"
           >
             <Calendar className="w-3.5 h-3.5 text-white group-hover:scale-110 transition-transform" />
-            <span>{standupSessionInfo.active ? 'Standup Aktif' : 'Daily Standup'}</span>
+            <span>{standupSessionInfo.active ? 'Standup Active' : 'Daily Standup'}</span>
             <span className="px-1.5 py-0.2 bg-white/20 rounded font-mono text-[9px] text-white font-bold hidden sm:inline">
-              Rapat
+              Meeting
             </span>
           </button>
 
@@ -4716,7 +4716,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             <button
               onClick={onOpenChat}
               className="px-3.5 py-1.5 rounded-xl bg-[#4338ca] hover:bg-[#3730a3] text-white shadow-md shadow-[#4338ca]/20 border border-indigo-400/40 flex items-center gap-1.5 transition-all text-xs font-semibold group hover:scale-[1.02]"
-              title="Buka Office War Room Chat & Diskusi Agent (@tag didukung)"
+              title="Open Office War Room Chat & Agent Discussions (@tag supported)"
             >
               <MessagesSquare className="w-3.5 h-3.5 text-white group-hover:scale-110 transition-transform" />
               <span>War Room</span>
@@ -4741,7 +4741,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             <button
               onClick={onOpenSettings}
               className="px-2.5 py-1.5 rounded-xl bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#2c231c] border border-[#d6c5ad] flex items-center gap-1.5 text-xs font-medium transition-colors shadow-2xs"
-              title="Workspace Disk & Pengaturan"
+              title="Workspace Disk & Settings"
             >
               <Settings className="w-3.5 h-3.5 text-[#786653]" />
               <span className="text-[11px]">Settings</span>
@@ -4771,10 +4771,10 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
                 setPan({ x: 0, y: -38 });
               }}
               className="px-2.5 py-1.5 rounded-xl border border-[#d6c5ad] bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#6e5a48] hover:text-[#c85a2b] flex items-center gap-1.5 transition-colors text-xs font-semibold shadow-2xs"
-              title="Lihat Full 1 Distrik Regional (6 Kantor Perusahaan Terbuka)"
+              title="View Regional District (6 Open Company Offices)"
             >
               <span>🏙️</span>
-              <span className="text-[11px] hidden sm:inline">Region (6 Kantor)</span>
+              <span className="text-[11px] hidden sm:inline">Region (6 Offices)</span>
             </button>
           ) : (
             <button
@@ -4783,10 +4783,10 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
                 setPan({ x: 0, y: 15 });
               }}
               className="px-2.5 py-1.5 rounded-xl border border-[#f0c8a5] bg-[#fdeed9] hover:bg-[#fbdcb8] text-[#c85a2b] flex items-center gap-1.5 transition-colors text-xs font-bold shadow-2xs"
-              title="Fokus ke Kantor ShadowMove Utama Anda"
+              title="Focus on Your Main Office"
             >
               <span>🏢</span>
-              <span className="text-[11px] hidden sm:inline">Kantor Utama</span>
+              <span className="text-[11px] hidden sm:inline">{currentCompany?.name || 'Main Office'}</span>
             </button>
           )}
 
@@ -4832,19 +4832,19 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             <div className="flex flex-col min-w-0 pr-2">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-[11px] text-indigo-300 tracking-wider uppercase">
-                  Daily Standup Sedang Berlangsung
+                  Daily Standup in Progress
                 </span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
               </div>
               <div className="text-xs text-indigo-100 truncate">
                 {standupSessionInfo.phase === 'gathering' ? (
-                  <span>🚶 Seluruh tim sedang berkumpul di Meja Bundar Ruang Rapat...</span>
+                  <span>🚶 The team is gathering at the Conference Table...</span>
                 ) : standupSessionInfo.speakerName ? (
                   <span>
-                    🗣️ <strong className="text-white font-semibold">{standupSessionInfo.speakerName}</strong> ({standupSessionInfo.speakerRole}) berbicara ({((standupSessionInfo.currentIdx ?? 0) + 1)}/{standupSessionInfo.totalCount})
+                    🗣️ <strong className="text-white font-semibold">{standupSessionInfo.speakerName}</strong> ({standupSessionInfo.speakerRole}) speaking ({((standupSessionInfo.currentIdx ?? 0) + 1)}/{standupSessionInfo.totalCount})
                   </span>
                 ) : (
-                  <span>✨ Menyusun notulensi ringkasan & mengirim ke Telegram...</span>
+                  <span>✨ Compiling summary minutes & sending to Telegram...</span>
                 )}
               </div>
             </div>
@@ -4852,16 +4852,16 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
               <button
                 onClick={() => handleFocusZone(11.5, 6.0)}
                 className="px-2.5 py-1 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white text-[11px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
-                title="Arahkan kamera ke meja rapat"
+                title="Focus camera on conference table"
               >
-                <span>👀 Lihat</span>
+                <span>👀 View</span>
               </button>
               <button
                 onClick={handleCancelStandup}
                 className="px-2 py-1 rounded-lg bg-white/10 hover:bg-rose-500/30 text-indigo-200 hover:text-rose-200 text-[11px] font-medium transition-colors"
-                title="Batalkan rapat standup"
+                title="Cancel standup meeting"
               >
-                Selesai
+                End
               </button>
             </div>
           </div>
@@ -4873,15 +4873,15 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         <div className="bg-[#faf5eb]/95 backdrop-blur-md border-2 border-[#d6c5ad] rounded-2xl shadow-xl p-1.5 flex items-center gap-1.5 text-xs">
           <div className="px-2 py-1 font-bold text-[#2c231c] flex items-center gap-1 text-[11px] shrink-0 border-r border-[#d6c5ad] pr-2.5">
             <span className="w-2 h-2 rounded-full bg-[#c85a2b] animate-pulse" />
-            <span>Kavling Regional:</span>
+            <span>Regional Lots:</span>
           </div>
 
           <button
             onClick={() => handleFocusCompany(0, 0, 1.0)}
             className="px-2.5 py-1 rounded-xl bg-[#fdeed9] hover:bg-[#fbdcb8] text-[#c85a2b] border border-[#f0c8a5] font-bold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
-            title="Kantor Utama Anda (ShadowMove Inc)"
+            title="Your Main Office"
           >
-            🏢 ShadowMove (Milik Anda)
+            🏢 {currentCompany?.name || 'Main Office'} (Yours)
           </button>
 
           <button
@@ -4929,7 +4929,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           <button
             onClick={() => handleFocusCompany(-80, 19, 1.0)}
             className="px-2 py-1 rounded-xl bg-[#f0fdf4] hover:bg-[#dcfce7] text-[#16a34a] border border-[#bbf7d0] font-semibold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
-            title="Kavling SuperMart 24/7 Mega Store"
+            title="SuperMart 24/7 Mega Store"
           >
             🏪 SuperMart 24/7
           </button>
@@ -4937,9 +4937,9 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           <button
             onClick={() => handleFocusCompany(80, 19, 1.0)}
             className="px-2 py-1 rounded-xl bg-[#fff7ed] hover:bg-[#ffedd5] text-[#ea580c] border border-[#fed7aa] font-semibold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
-            title="Kavling Sentral Aerorail Station Terminal"
+            title="Central Aerorail Station Terminal"
           >
-            🚄 Stasiun Sentral
+            🚄 Central Station
           </button>
 
           <div className="h-4 w-px bg-[#d6c5ad] shrink-0 mx-0.5" />
@@ -4948,9 +4948,9 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             <button
               onClick={() => onOpenCompanyModal()}
               className="px-2.5 py-1 rounded-xl bg-[#fdf2f8] hover:bg-[#fce7f3] text-[#db2777] border border-[#fbcfe8] font-bold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
-              title="Kustomisasi & Pilih Layout Kantor Perusahaan"
+              title="Customize & Select Office Layout"
             >
-              📐 Ganti Layout
+              📐 Change Layout
             </button>
           )}
 
@@ -4960,7 +4960,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
               setPan({ x: 0, y: -38 });
             }}
             className="px-2 py-1 rounded-xl bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#475569] border border-[#d6c5ad] font-bold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
-            title="Tampilkan Full Panorama Regional"
+            title="Show Full Regional Panorama"
           >
             🏙️ Panorama
           </button>
@@ -4986,16 +4986,16 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
                   <span>{hoveredAgent.name}</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#fdeed9] text-[#c85a2b] font-semibold border border-[#f0c8a5]">
                     {hoveredAgent.state === 'walking'
-                      ? '🚶 Berjalan'
+                      ? '🚶 Walking'
                       : hoveredAgent.state === 'working'
-                      ? '💻 Fokus'
+                      ? '💻 Working'
                       : hoveredAgent.state === 'idle'
                       ? '✨ Standby'
                       : hoveredAgent.state === 'talking'
-                      ? '💬 Diskusi'
+                      ? '💬 Discussing'
                       : hoveredAgent.state === 'meeting'
-                      ? '📊 Review Sprint'
-                      : '☕ Istirahat'}
+                      ? '📊 Sprint Review'
+                      : '☕ Coffee Break'}
                   </span>
                 </div>
                 <div className="text-[10px] text-[#c85a2b] font-semibold">{hoveredAgent.roleTitle}</div>
@@ -5007,7 +5007,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             </div>
 
             <div className="flex items-center justify-between text-[10px] text-[#786653] font-mono pt-1.5 border-t border-[#d6c5ad]">
-              <span className="text-[#c85a2b] font-bold">✨ Klik untuk inspeksi agent</span>
+              <span className="text-[#c85a2b] font-bold">✨ Click to inspect agent</span>
               <span>{formatNumber(hoveredAgent.stats.linesOfCode)} loc</span>
             </div>
           </div>
@@ -5032,7 +5032,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
                 <div className="font-bold text-xs flex items-center gap-1.5 text-[#2c231c]">
                   <span className="truncate">{hoveredExternalEmployee.name}</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569] font-bold border border-[#cbd5e1] shrink-0">
-                    🔒 Privat
+                    🔒 Private
                   </span>
                 </div>
                 <div className="text-[10px] text-[#786653] font-medium truncate">{hoveredExternalEmployee.companyName}</div>
@@ -5046,19 +5046,19 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             {/* Privacy Shield Notice: Internal discussion & tasks protected from non-owners */}
             <div className="text-[11px] text-[#64748b] bg-[#f8fafc] p-2 rounded-xl border border-[#e2e8f0] mb-2 flex flex-col gap-1">
               <div className="flex items-center gap-1 text-[10px] font-bold text-[#b45309]">
-                <span>🛡️ Diskusi & Task Internal Terenkripsi</span>
+                <span>🛡️ Internal Discussions & Tasks Encrypted</span>
               </div>
               <p className="text-[10px] text-[#475569] leading-tight">
-                Status publik: <span className="font-medium text-[#1e293b]">&ldquo;{hoveredExternalEmployee.publicStatus}&rdquo;</span>
+                Public status: <span className="font-medium text-[#1e293b]">&ldquo;{hoveredExternalEmployee.publicStatus}&rdquo;</span>
               </p>
               <p className="text-[9px] text-[#94a3b8] italic">
-                Diskusi & detail agent internal hanya dapat dilihat oleh pemilik node perusahaan ini.
+                Internal agent discussions & details are restricted to the node owner.
               </p>
             </div>
 
             <div className="flex items-center justify-between text-[10px] text-[#786653] font-mono pt-1 border-t border-[#d6c5ad]">
-              <span className="text-[#64748b]">Node Eksternal (P2P Mesh)</span>
-              <span className="text-[9px] text-[#a8947e]">Kavling Regional</span>
+              <span className="text-[#64748b]">External Node (P2P Mesh)</span>
+              <span className="text-[9px] text-[#a8947e]">Regional Lot</span>
             </div>
           </div>
         </div>
@@ -5088,11 +5088,11 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             </div>
 
             <div className="text-xs sm:text-[13px] text-[#475569] mb-3 bg-[#fffdf9] p-3 rounded-xl border border-[#d6c5ad] leading-relaxed shadow-2xs whitespace-normal break-words">
-              Kavling Terbuka Regional (Ukuran 33x24 unit) • Beroperasi dengan <strong className="text-[#1e293b]">{hoveredCompanyKavling.employees.length} Agent AI</strong> aktif.
+              Regional Open Lot (Size 33x24 units) • Operating with <strong className="text-[#1e293b]">{hoveredCompanyKavling.employees.length} active AI Agents</strong>.
             </div>
 
             <div className="flex items-center justify-between text-xs text-[#786653] font-medium pt-2 border-t border-[#d6c5ad]">
-              <span className="text-[#c85a2b] font-bold flex items-center gap-1">✨ Arahkan Kamera</span>
+              <span className="text-[#c85a2b] font-bold flex items-center gap-1">✨ Focus Camera</span>
               <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-[#f0e3ce] text-[#784620] border border-[#dccab3]">Neo-Jakarta</span>
             </div>
           </div>
@@ -5109,8 +5109,8 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             <div className="flex items-center gap-2.5">
               <span className="text-2xl">🐱</span>
               <div>
-                <div className="font-bold text-sm text-[#c85a2b]">Mochi si Kucing Kantor</div>
-                <div className="text-xs text-[#786653]">Maskot Resmi CEO Virtual • Klik untuk elus-elus ❤️</div>
+                <div className="font-bold text-sm text-[#c85a2b]">Mochi the Office Cat</div>
+                <div className="text-xs text-[#786653]">Official CEO Virtual Mascot • Click to pet ❤️</div>
               </div>
             </div>
           </div>
@@ -5146,11 +5146,11 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             <div className="flex items-center justify-between text-xs text-[#786653] font-medium pt-2 border-t border-[#d6c5ad]">
               {hoveredCityLandmark.id === 'company-shadowmove' ? (
                 <span className="text-[#c85a2b] font-bold flex items-center gap-1">
-                  <span>✨</span> Masuk ke Ruangan Kantor
+                  <span>✨</span> Enter Office Room
                 </span>
               ) : (
                 <span className="text-[#0284c7] font-bold flex items-center gap-1">
-                  <span>🚄</span> Buka Peta & Dispatch Misi
+                  <span>🚄</span> Open Map & Dispatch Mission
                 </span>
               )}
               <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-[#f0e3ce] text-[#784620] border border-[#dccab3]">Neo-Jakarta</span>

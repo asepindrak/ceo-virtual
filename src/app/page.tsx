@@ -28,9 +28,9 @@ import { MessagesSquare } from 'lucide-react';
 const CLEAN_GENESIS_COMPANY: Company = {
   id: 'genesis-company',
   ownerUserId: 'owner-genesis',
-  name: 'Perusahaan Saya',
+  name: 'My Virtual Company',
   industry: 'Software & Technology',
-  description: 'Node Perusahaan P2P Virtual',
+  description: 'Autonomous P2P Virtual Enterprise Node',
   officeLayoutTemplate: 'tech_startup',
   departments: [],
   agents: [],
@@ -52,7 +52,7 @@ export default function RealAgent3DPage() {
       type: 'system',
       agentId: 'node',
       agentName: 'Genesis Protocol',
-      description: 'Node P2P aktif. Menunggu inisialisasi perusahaan atau deteksi peer regional...',
+      description: 'P2P Node active. Awaiting company initialization or regional peer discovery...',
     },
   ]);
   const [peerNodes, setPeerNodes] = useState<any[]>([]);
@@ -92,7 +92,7 @@ export default function RealAgent3DPage() {
           setIsOnboardingOpen(true);
         } else if (data.identity) {
           const realCompanyId = data.identity.companyId || `comp-${data.identity.ownerAddress?.slice(2, 10).toLowerCase()}`;
-          const realName = data.identity.companyName || 'Perusahaan Saya';
+          const realName = data.identity.companyName || 'My Virtual Company';
           const realIndustry = data.identity.industry || 'Software Engineering';
 
           setCurrentCompany((prev) => ({
@@ -163,7 +163,7 @@ export default function RealAgent3DPage() {
                 wx: a.currentPosition.x,
                 wz: a.currentPosition.z,
                 state: a.state,
-                publicStatus: a.activeDialog?.message || a.stateMessage || 'Bekerja aktif di node kantor',
+                publicStatus: a.activeDialog?.message || a.stateMessage || 'Actively working at virtual office node',
                 activeDialog: a.activeDialog,
               })),
             }),
@@ -1095,7 +1095,7 @@ export default function RealAgent3DPage() {
     setAgents((prev) =>
       prev.map((a) =>
         a.currentTaskId === taskId
-          ? { ...a, state: 'idle', currentTaskId: undefined, stateMessage: 'Task dibatalkan / dihapus' }
+          ? { ...a, state: 'idle', currentTaskId: undefined, stateMessage: 'Task cancelled / removed' }
           : a
       )
     );
@@ -1112,7 +1112,7 @@ export default function RealAgent3DPage() {
         type: 'task_start',
         agentId: 'user',
         agentName: 'Project Manager',
-        description: `🗑️ Task berhasil dihapus dari Sprint Board.`,
+        description: `🗑️ Task removed successfully from Sprint Board.`,
       },
     ]);
   };
@@ -1143,7 +1143,7 @@ export default function RealAgent3DPage() {
       setAgents((prev) =>
         prev.map((a) =>
           a.currentTaskId === updatedTask.id
-            ? { ...a, state: 'idle', currentTaskId: undefined, stateMessage: 'Task selesai' }
+            ? { ...a, state: 'idle', currentTaskId: undefined, stateMessage: 'Task completed' }
             : a
         )
       );
@@ -1157,7 +1157,7 @@ export default function RealAgent3DPage() {
         type: 'task_start',
         agentId: updatedTask.assignedAgentId || 'user',
         agentName: 'Project Manager',
-        description: `📝 Task "${updatedTask.title}" berhasil diperbarui [Status: ${updatedTask.status}].`,
+        description: `📝 Task "${updatedTask.title}" updated successfully [Status: ${updatedTask.status}].`,
       },
     ]);
   };
@@ -1447,7 +1447,7 @@ export default function RealAgent3DPage() {
             ownerUserId: data.address || 'owner-node',
             name: data.companyName,
             industry: data.industry,
-            description: data.description || `Perusahaan ${data.companyName} di shard regional ${data.regionId}`,
+            description: data.description || `Company ${data.companyName} on regional shard ${data.regionId}`,
             officeLayoutTemplate: data.officeLayoutTemplate || 'tech_startup',
             departments: data.departments || [],
             agents: finalAgents,
@@ -1470,7 +1470,7 @@ export default function RealAgent3DPage() {
               type: 'system',
               agentId: 'genesis',
               agentName: 'Genesis Protocol',
-              description: `Genesis Block terverifikasi. Perusahaan ${data.companyName} resmi didirikan di jaringan P2P${llmDesc}!`,
+              description: `Genesis Block verified. Company ${data.companyName} officially founded on P2P network${llmDesc}!`,
             },
           ]);
 

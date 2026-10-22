@@ -17,7 +17,7 @@ function getStandupFilePath(companyId: string): string {
   return path.join(VIGENT_HOME, `standup_${companyId}.json`);
 }
 
-export function getStandupState(companyId: string = 'company-shadowmove'): StandupMeetingState {
+export function getStandupState(companyId: string = 'company-main'): StandupMeetingState {
   if (standupStateRegistry.has(companyId)) {
     return standupStateRegistry.get(companyId)!;
   }
@@ -71,39 +71,39 @@ function generateProceduralSpeech(
 ): StandupAgentSpeech {
   const roleLower = (agent.roleTitle || agent.role || '').toLowerCase();
   const assignedTask = tasks.find((t) => t.assignedAgentId === agent.id && t.status === 'in_progress');
-  const taskName = assignedTask ? assignedTask.title : 'fitur sistem';
+  const taskName = assignedTask ? assignedTask.title : 'system features';
 
   let yesterday = '';
   let today = '';
-  let blockers = 'Tidak ada kendala (None)';
+  let blockers = 'None';
 
   if (roleLower.includes('founder') || roleLower.includes('ceo') || roleLower.includes('lead') || roleLower.includes('manager')) {
-    yesterday = 'Review arsitektur sprint & alokasi tiket task tim.';
-    today = `Supervisi implementasi ${taskName} & sinkronisasi target deliverables.`;
-    blockers = 'None, roadmap berjalan sesuai jadwal.';
+    yesterday = 'Reviewed sprint architecture & allocated team task tickets.';
+    today = `Supervising implementation of ${taskName} & syncing deliverables.`;
+    blockers = 'None, roadmap is tracking on schedule.';
   } else if (roleLower.includes('design') || roleLower.includes('ui') || roleLower.includes('creative')) {
-    yesterday = 'Menyusun wireframe, design token warna, dan tata letak responsif.';
-    today = `Fokus visual polishing komponen ${taskName} & micro-animations.`;
-    blockers = 'None, aset grafis sudah siap diekspor.';
+    yesterday = 'Drafted wireframes, color design tokens, and responsive layouts.';
+    today = `Polishing visual components for ${taskName} & micro-animations.`;
+    blockers = 'None, graphic assets ready for export.';
   } else if (roleLower.includes('backend') || roleLower.includes('engineer') || roleLower.includes('cloud') || roleLower.includes('architect')) {
-    yesterday = 'Menyelesaikan skema data, endpoint API, dan optimasi query database.';
-    today = `Menghubungkan integrasi service ${taskName} & testing throughput.`;
-    blockers = 'None, pipeline API dan database stabil.';
+    yesterday = 'Completed data schemas, API endpoints, and database query optimizations.';
+    today = `Integrating service hooks for ${taskName} & testing throughput.`;
+    blockers = 'None, API pipeline and database stable.';
   } else if (roleLower.includes('qa') || roleLower.includes('test') || roleLower.includes('automation')) {
-    yesterday = 'Menulis skenario automated test dan regression testing.';
-    today = `Validasi end-to-end flows untuk ${taskName} di berbagai resolusi layar.`;
-    blockers = 'None, test suite hijau dan build staging stabil.';
+    yesterday = 'Authored automated test scenarios and regression suites.';
+    today = `Validating end-to-end flows for ${taskName} across multiple viewport resolutions.`;
+    blockers = 'None, test suite is green and staging build is stable.';
   } else if (roleLower.includes('devops') || roleLower.includes('infra') || roleLower.includes('reliability')) {
-    yesterday = 'Audit resource memory, konfigurasi container, dan monitoring log.';
-    today = 'Optimasi latency deployment dan setup alert monitoring real-time.';
-    blockers = 'None, server metrics dalam batas hijau.';
+    yesterday = 'Audited memory resources, container configs, and log monitors.';
+    today = 'Optimizing deployment latency and setting up real-time monitoring alerts.';
+    blockers = 'None, server metrics within normal green thresholds.';
   } else {
-    yesterday = 'Menyelesaikan modul fundamental dan dokumentasi alur kerja.';
-    today = `Melanjutkan pengerjaan ${taskName} dan koordinasi antar divisi.`;
-    blockers = 'None, semua dependensi terpenuhi.';
+    yesterday = 'Completed foundational modules and workflow documentation.';
+    today = `Continuing development on ${taskName} and cross-division coordination.`;
+    blockers = 'None, all dependencies met.';
   }
 
-  const fullSpeech = `🎯 Kemarin: ${yesterday} | ⚡ Hari ini: ${today} | 🚧 Blocker: ${blockers}`;
+  const fullSpeech = `🎯 Yesterday: ${yesterday} | ⚡ Today: ${today} | 🚧 Blockers: ${blockers}`;
   const seatPos = CONFERENCE_SEATS[seatIndex % CONFERENCE_SEATS.length];
 
   return {
@@ -124,7 +124,7 @@ function generateProceduralSpeech(
  * Generate full speeches for all agents in the company
  */
 export async function prepareStandupMeeting(
-  companyId: string = 'company-shadowmove',
+  companyId: string = 'company-main',
   triggeredBy: string = 'web'
 ): Promise<StandupMeetingState> {
   const company = getCompanyData(companyId);
@@ -158,7 +158,7 @@ export async function prepareStandupMeeting(
     id: `standup-start-${Date.now()}`,
     senderType: 'system',
     senderName: 'Meeting Room Orchestrator 📅',
-    message: `📢 **DAILY STANDUP MEETING DIMULAI!**\nSeluruh tim karyawan sedang berkumpul di Ruang Rapat (Conference Table) untuk menyelaraskan progres harian.`,
+    message: `📢 **DAILY STANDUP MEETING STARTED!**\nThe entire team is gathering at the Conference Table to align on daily progress and roadmap targets.`,
     timestamp: Date.now(),
     source: 'web',
   });
@@ -170,7 +170,7 @@ export async function prepareStandupMeeting(
  * Advance to next speaker during meeting
  */
 export async function advanceStandupSpeaker(
-  companyId: string = 'company-shadowmove'
+  companyId: string = 'company-main'
 ): Promise<{ state: StandupMeetingState; currentSpeech: StandupAgentSpeech | null; isCompleted: boolean }> {
   const state = getStandupState(companyId);
 
@@ -197,7 +197,7 @@ export async function advanceStandupSpeaker(
     senderName: currentSpeech.agentName,
     senderRoleTitle: currentSpeech.roleTitle,
     senderAvatarColor: currentSpeech.avatarColor,
-    message: `📢 **[DAILY STANDUP UPDATE]**\n• 🎯 **Kemarin:** ${currentSpeech.yesterday}\n• ⚡ **Hari ini:** ${currentSpeech.today}\n• 🚧 **Blocker:** ${currentSpeech.blockers}`,
+    message: `📢 **[DAILY STANDUP UPDATE]**\n• 🎯 **Yesterday:** ${currentSpeech.yesterday}\n• ⚡ **Today:** ${currentSpeech.today}\n• 🚧 **Blockers:** ${currentSpeech.blockers}`,
     timestamp: Date.now(),
     source: 'web',
   });
@@ -209,7 +209,7 @@ export async function advanceStandupSpeaker(
 /**
  * Finish Standup: Generate executive summary & dispatch directly to Telegram
  */
-export async function finishStandupMeeting(companyId: string = 'company-shadowmove'): Promise<StandupMeetingState> {
+export async function finishStandupMeeting(companyId: string = 'company-main'): Promise<StandupMeetingState> {
   const state = getStandupState(companyId);
   const company = getCompanyData(companyId);
   const tasks = getCompanyTasks(companyId);
@@ -223,37 +223,37 @@ export async function finishStandupMeeting(companyId: string = 'company-shadowmo
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-    timeZone: 'Asia/Jakarta',
+    timeZone: 'UTC',
   };
   const timeOptions: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: 'Asia/Jakarta',
+    timeZone: 'UTC',
     hour12: false,
   };
-  const formattedDate = now.toLocaleDateString('id-ID', dateOptions);
-  const formattedTime = now.toLocaleTimeString('id-ID', timeOptions);
+  const formattedDate = now.toLocaleDateString('en-US', dateOptions);
+  const formattedTime = now.toLocaleTimeString('en-US', timeOptions);
 
   const speechLines = state.speeches
     .map((s) => {
-      return `• 👤 *${s.agentName}* (_${s.roleTitle}_):\n   ↳ 🎯 *Kemarin:* ${s.yesterday}\n   ↳ ⚡ *Hari ini:* ${s.today}\n   ↳ 🚧 *Blocker:* ${s.blockers}`;
+      return `• 👤 *${s.agentName}* (_${s.roleTitle}_):\n   ↳ 🎯 *Yesterday:* ${s.yesterday}\n   ↳ ⚡ *Today:* ${s.today}\n   ↳ 🚧 *Blockers:* ${s.blockers}`;
     })
     .join('\n\n');
 
-  const summary = `📋 *LAPORAN DAILY STANDUP TIM ${company.name.toUpperCase()}*
-📅 *Hari/Tanggal:* ${formattedDate} (Pukul \`${formattedTime} WIB\`)
-👥 *Total Karyawan Hadir:* ${state.speeches.length} Anggota Tim
+  const summary = `📋 *DAILY STANDUP REPORT - ${company.name.toUpperCase()}*
+📅 *Date/Time:* ${formattedDate} (\`${formattedTime} UTC\`)
+👥 *Team Attendance:* ${state.speeches.length} Members Present
 
-🎯 *RANGKUMAN UPDATE TIAP ANGGOTA:*
+🎯 *INDIVIDUAL MEMBER UPDATES:*
 ${speechLines}
 
-📊 *STATUS TIKET SPRINT KANTOR:*
-• ✅ \`${doneCount}\` Task Selesai
-• ⚡ \`${inProgressCount}\` Task Sedang Dikerjakan
-• 🛡️ \`0\` Blocker Kritis
+📊 *OFFICE SPRINT TICKET STATUS:*
+• ✅ \`${doneCount}\` Tasks Completed
+• ⚡ \`${inProgressCount}\` Tasks In Progress
+• 🛡️ \`0\` Critical Blockers
 
-🚀 *Pesan Tim untuk CEO:*
-_"Rapat standup telah selesai! Seluruh divisi telah selaras dan langsung kembali ke meja kerja untuk mengeksekusi target hari ini. Selamat beraktivitas, Bos!"_`;
+🚀 *Team Note for CEO:*
+_"Standup meeting adjourned! All divisions are aligned and returning to their workstations to execute today's targets. Have a productive day, Boss!"_`;
 
   state.summary = summary;
   state.status = 'completed';
@@ -263,7 +263,7 @@ _"Rapat standup telah selesai! Seluruh divisi telah selaras dan langsung kembali
     id: `standup-summary-${Date.now()}`,
     senderType: 'system',
     senderName: 'Executive Standup Briefing 📋',
-    message: `✅ **DAILY STANDUP SELESAI & NOTULENSI DITERBITKAN!**\nSeluruh tim telah menyampaikan progres harian dan kembali ke meja masing-masing. Notulensi eksekutif telah dikirimkan ke Telegram CEO.`,
+    message: `✅ **DAILY STANDUP FINISHED & MINUTES PUBLISHED!**\nAll team members have shared their daily updates and returned to their workstations. Executive minutes have been dispatched to the CEO Telegram channel.`,
     timestamp: Date.now(),
     source: 'web',
   });
@@ -287,7 +287,7 @@ _"Rapat standup telah selesai! Seluruh divisi telah selaras dan langsung kembali
 /**
  * Reset standup back to idle
  */
-export function resetStandupState(companyId: string = 'company-shadowmove'): StandupMeetingState {
+export function resetStandupState(companyId: string = 'company-main'): StandupMeetingState {
   const state: StandupMeetingState = {
     companyId,
     status: 'idle',
