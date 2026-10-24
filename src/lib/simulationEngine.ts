@@ -63,6 +63,7 @@ export class OfficeSimulation {
     startedAt: number;
   };
   private idleTimers: Map<string, { startTime: number; duration: number; nextSpot?: Position3D; nextState?: AgentArrivalState; nextMessage?: string }> = new Map();
+  private stuckWatchdog: Map<string, { x: number; z: number; since: number }> = new Map();
   public currentCompany?: Company;
 
   private dispatchSprintReport(payload: {
@@ -193,10 +194,10 @@ export class OfficeSimulation {
       this.currentCompany?.name
     );
 
-    // Target position next to colleague's desk with clear, non-overlapping spacing
+    // Target position next to colleague's desk with clear, non-overlapping spacing in aisle
     const colDesk = target.deskPosition;
-    const offsetX = colDesk.x < 0 ? 1.4 : -1.4;
-    const offsetZ = 0.2;
+    const offsetX = colDesk.x < 0 ? 1.0 : -1.0;
+    const offsetZ = 0.0;
     const dest = { x: Number((colDesk.x + offsetX).toFixed(2)), z: Number((colDesk.z + offsetZ).toFixed(2)) };
 
     const updatedSender = this.sendAgentTo(
@@ -816,7 +817,91 @@ export class OfficeSimulation {
     // Update agent movement and states
     let updatedAgents = agents.map((agent) => {
       let currentAgent = { ...agent };
-      const pathState = this.pathStates.get(currentAgent.id);
+      let pathState = this.pathStates.get(currentAgent.id);
+
+      // Clean up orphaned pathState if agent is not in 'walking' state
+      if (currentAgent.state !== 'walking' && pathState) {
+        this.pathStates.delete(currentAgent.id);
+        this.stuckWatchdog.delete(currentAgent.id);
+        pathState = undefined;
+      }
+
+      // Anti-stuck watchdog: detect if an agent is stuck in 'walking' state
+      if (currentAgent.state === 'walking') {
+        const agId = currentAgent.id;
+        const lastRec = this.stuckWatchdog.get(agId);
+        const nowMs = Date.now();
+        if (!lastRec) {
+          this.stuckWatchdog.set(agId, { x: currentAgent.currentPosition.x, z: currentAgent.currentPosition.z, since: nowMs });
+        } else {
+          const moveDx = currentAgent.currentPosition.x - lastRec.x;
+          const moveDz = currentAgent.currentPosition.z - lastRec.z;
+          const movedDist = Math.hypot(moveDx, moveDz);
+          if (movedDist > 0.25) {
+            this.stuckWatchdog.set(agId, { x: currentAgent.currentPosition.x, z: currentAgent.currentPosition.z, since: nowMs });
+          } else if (nowMs - lastRec.since > 3000 / this.speedMultiplier) {
+            // Stuck for > 3 seconds near a wall/obstacle: rescue agent directly to their desk
+            this.pathStates.delete(agId);
+            this.stuckWatchdog.delete(agId);
+            currentAgent.currentPosition = { ...currentAgent.deskPosition };
+            const hasTask = tasks.some((t) => t.assignedAgentId === currentAgent.id && t.status === 'in_progress');
+            currentAgent.state = hasTask ? 'working' : 'idle';
+            currentAgent.stateMessage = hasTask ? `Fokus bekerja di meja kerja` : `Standby di meja kerja`;
+            currentAgent.facingDirection = 'front';
+            return currentAgent;
+          }
+        }
+      } else {
+        this.stuckWatchdog.delete(currentAgent.id);
+      }
+
+      // Stranded agent watchdog: Ensure any agent not actively in an ongoing activity is safely seated at their desk
+      const isStandupOngoing = this.isStandupActive();
+      const isDialogOngoing = Boolean(
+        this.activeMultiTurnDialog &&
+          (this.activeMultiTurnDialog.senderId === currentAgent.id || this.activeMultiTurnDialog.targetId === currentAgent.id)
+      );
+      const isIdleTimerOngoing = this.idleTimers.has(currentAgent.id);
+      const isSpecialState =
+        currentAgent.state === 'at_train_station' ||
+        currentAgent.state === 'business_trip' ||
+        currentAgent.state === 'leaving_office';
+
+      if (!pathState && !isSpecialState && currentAgent.deskPosition) {
+        // If standup ended but agent was left with 'meeting' state, clean it up
+        if (!isStandupOngoing && currentAgent.state === 'meeting') {
+          currentAgent.state = tasks.some((t) => t.assignedAgentId === currentAgent.id && t.status === 'in_progress')
+            ? 'working'
+            : 'idle';
+        }
+        // If talking dialog ended but agent was left with 'talking' state, clean it up
+        if (!isDialogOngoing && currentAgent.state === 'talking' && !currentAgent.collabPartnerId) {
+          currentAgent.state = tasks.some((t) => t.assignedAgentId === currentAgent.id && t.status === 'in_progress')
+            ? 'working'
+            : 'idle';
+        }
+        // If break ended but agent was left in coffee_break/playing_game without active timer
+        if (!isIdleTimerOngoing && (currentAgent.state === 'coffee_break' || currentAgent.state === 'playing_game')) {
+          currentAgent.state = tasks.some((t) => t.assignedAgentId === currentAgent.id && t.status === 'in_progress')
+            ? 'working'
+            : 'idle';
+        }
+
+        // If agent is not actively in standup, not in dialog, not on an active timer break, and not actively walking:
+        if (!isStandupOngoing && !isDialogOngoing && !isIdleTimerOngoing && currentAgent.state !== 'walking') {
+          const distToDesk = Math.hypot(
+            currentAgent.currentPosition.x - currentAgent.deskPosition.x,
+            currentAgent.currentPosition.z - currentAgent.deskPosition.z
+          );
+          if (distToDesk > 0.05) {
+            currentAgent.currentPosition = { ...currentAgent.deskPosition };
+            currentAgent.facingDirection = 'front';
+            const hasTask = tasks.some((t) => t.assignedAgentId === currentAgent.id && t.status === 'in_progress');
+            currentAgent.state = hasTask ? 'working' : 'idle';
+            currentAgent.stateMessage = hasTask ? 'Fokus bekerja di meja kerja' : 'Standby di meja kerja';
+          }
+        }
+      }
 
       if (pathState && currentAgent.state === 'walking') {
         let remainingStep = moveSpeed * effectiveDelta;
@@ -858,8 +943,15 @@ export class OfficeSimulation {
 
         if (arrived) {
           this.pathStates.delete(currentAgent.id);
+          this.stuckWatchdog.delete(currentAgent.id);
           currentAgent.state = pathState.onArrivalState;
           currentAgent.currentPosition = { ...pathState.finalTarget };
+
+          // If arriving at desk, ensure clean seating facing front towards monitors
+          if (pathState.onArrivalState === 'working' || pathState.onArrivalState === 'idle') {
+            currentAgent.currentPosition = { ...currentAgent.deskPosition };
+            currentAgent.facingDirection = 'front';
+          }
 
           if (pathState.onArrivalState === 'talking' && pathState.targetAgentId) {
             const targetAgent = agents.find((a) => a.id === pathState.targetAgentId);
@@ -1842,9 +1934,9 @@ export class OfficeSimulation {
       }
     }
 
-    // 3. Autonomous Idle Wanderer: Real office behavior — employees spend 85-90% of time at desk
-    // Interval tenang: 90-150 detik, dan hanya 15% peluang beranjak (ngambil kopi atau cek papan sprint)
-    const idleWanderInterval = (90000 + Math.random() * 60000) / this.speedMultiplier;
+    // 3. Autonomous Idle Wanderer: Real office behavior — employees spend 95%+ of time at desk
+    // Interval sangat tenang: 260-400 detik (~4.5 - 6.5 menit), dan hanya 5% peluang beranjak (pantry espresso / kanban)
+    const idleWanderInterval = (260000 + Math.random() * 140000) / this.speedMultiplier;
     if (!this.isStandupActive() && now - this.lastIdleActivityTime > idleWanderInterval) {
       this.lastIdleActivityTime = now;
       const idleAgents = updatedAgents.filter(
@@ -1856,8 +1948,8 @@ export class OfficeSimulation {
           !tasks.some((t) => t.assignedAgentId === a.id && t.status === 'in_progress')
       );
 
-      // Hanya 15% peluang beranjak — mayoritas waktu tetap tenang di meja kerja seperti kantor sungguhan
-      if (idleAgents.length > 0 && Math.random() < 0.15) {
+      // Hanya 5% peluang beranjak — mayoritas waktu tetap tenang dan fokus di meja kerja
+      if (idleAgents.length > 0 && Math.random() < 0.05) {
         const candidate = idleAgents[Math.floor(Math.random() * idleAgents.length)];
         const isLead = candidate.role.includes('manager') || candidate.roleTitle.toLowerCase().includes('architect');
         let result: { updatedAgent: Agent; event: ActivityEvent } | null = null;
@@ -1877,8 +1969,8 @@ export class OfficeSimulation {
       }
     }
 
-    // 4. Dynamic Personality & Collab banters (~90 - 150 seconds, only idle agents)
-    const collabInterval = (90000 + Math.random() * 60000) / this.speedMultiplier;
+    // 4. Dynamic Personality & Collab banters (~300 - 480 seconds, only idle agents)
+    const collabInterval = (300000 + Math.random() * 180000) / this.speedMultiplier;
     if (
       !this.isStandupActive() &&
       now - this.lastCollabTime > collabInterval &&

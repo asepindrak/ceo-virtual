@@ -6,7 +6,7 @@ export const CURRENT_USER: UserAccount = {
   email: 'sang@antigravity.dev',
   avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=SangOwner',
   pointsBalance: 4500, // Starts with 4,500 PTS
-  ownedOfficeIds: ['company-devnova', 'company-pulse'],
+  ownedOfficeIds: ['company-shadowmove'],
   createdAgentIds: ['mkt-agent-zenith'],
 };
 

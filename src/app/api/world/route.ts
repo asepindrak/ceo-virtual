@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   REGIONAL_DISTRICTS,
+  getDynamicRegionalDistricts,
   loadAllMissions,
   dispatchTravelMission,
   advanceMissionTick,
   cancelTravelMission,
 } from '@/lib/worldMapManager';
+import { getNodeStatus } from '@/lib/p2pNodeManager';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const regionId = searchParams.get('regionId');
+    const companyName = searchParams.get('companyName');
 
     // Auto-advance all running missions on request
     const missions = loadAllMissions();
@@ -21,9 +24,14 @@ export async function GET(req: NextRequest) {
     });
 
     const updatedMissions = loadAllMissions();
+    const nodeStatus = getNodeStatus();
+    const dynamicDistricts = getDynamicRegionalDistricts(
+      companyName ? { name: companyName } : undefined,
+      nodeStatus.peers
+    );
 
     if (regionId) {
-      const district = REGIONAL_DISTRICTS.find((d) => d.id === regionId);
+      const district = dynamicDistricts.find((d) => d.id === regionId);
       if (!district) {
         return NextResponse.json({ success: false, error: 'District not found' }, { status: 404 });
       }
@@ -38,10 +46,11 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      districts: REGIONAL_DISTRICTS,
-      totalDistricts: REGIONAL_DISTRICTS.length,
+      districts: dynamicDistricts,
+      totalDistricts: dynamicDistricts.length,
       missions: updatedMissions,
       activeMissionsCount: updatedMissions.filter((m) => m.status !== 'completed').length,
+      onlinePeersCount: nodeStatus.onlinePeersCount,
     });
   } catch (error: any) {
     console.error('Error fetching world map:', error);
@@ -106,13 +115,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, mission: updated });
     }
 
-    if (action === 'cancel') {
-      const { missionId } = body;
-      if (!missionId) {
-        return NextResponse.json({ success: false, error: 'missionId is required' }, { status: 400 });
-      }
-      const success = cancelTravelMission(missionId);
-      return NextResponse.json({ success, message: 'Misi berhasil dibatalkan.' });
+    if (action === 'claim_bounty') {
+      const { bountyId, bountyTitle, rewardXp, budgetCoins, bountyType, targetCompanyName } = body;
+      return NextResponse.json({
+        success: true,
+        message: `Bounty "${bountyTitle}" berhasil diambil dari ${targetCompanyName || 'kantor mitra'}! Ditambahkan ke Sprint Board.`,
+        bounty: {
+          id: bountyId,
+          title: bountyTitle,
+          rewardXp: rewardXp || 300,
+          budgetCoins: budgetCoins || 1000,
+          type: bountyType || 'coding',
+        },
+      });
+    }
+
+    if (action === 'buy_offer') {
+      const { offerId, offerTitle, priceCoins, category, targetCompanyName } = body;
+      return NextResponse.json({
+        success: true,
+        message: `Berhasil membeli lisensi "${offerTitle}" (${category}) seharga ${priceCoins} Coins dari ${targetCompanyName || 'kantor mitra'}!`,
+        offer: {
+          id: offerId,
+          title: offerTitle,
+          priceCoins: priceCoins || 400,
+          category: category || 'skill_template',
+        },
+      });
     }
 
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });

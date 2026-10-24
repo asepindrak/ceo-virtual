@@ -349,7 +349,7 @@ export function getCompanyProgress(companyId: string): CompanyLevelProgress {
     } catch {}
   }
 
-  const currentXp = data?.xp || 150;
+  const currentXp = typeof data?.xp === 'number' ? data.xp : 0;
   let currentLevel = 1;
   let currentTitle = LEVEL_THRESHOLDS[0].title;
   let nextXp = LEVEL_THRESHOLDS[1].requiredXp;
@@ -370,7 +370,7 @@ export function getCompanyProgress(companyId: string): CompanyLevelProgress {
     xp: currentXp,
     nextLevelXp: nextXp,
     totalTasksCompleted: data?.totalTasksCompleted || 0,
-    totalLinesOfCode: data?.totalLinesOfCode || 120,
+    totalLinesOfCode: typeof data?.totalLinesOfCode === 'number' ? data.totalLinesOfCode : 0,
     totalMemoriesCount: memories.length,
     achievements: data?.achievements || ['🚀 Office Founded', '💡 Collective Memory Active'],
   };

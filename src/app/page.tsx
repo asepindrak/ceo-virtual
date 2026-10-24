@@ -274,6 +274,30 @@ export default function RealAgent3DPage() {
           });
         };
 
+        const sanitizeStartingPosition = (agentList: Agent[]) =>
+          agentList.map((ag, idx) => {
+            const canonicalDesk = DESK_SLOTS[idx] || ag.deskPosition;
+            if (
+              ag.state !== 'at_train_station' &&
+              ag.state !== 'business_trip' &&
+              ag.state !== 'leaving_office' &&
+              canonicalDesk
+            ) {
+              const cleanedState = ag.currentTaskId ? 'working' : 'idle';
+              return {
+                ...ag,
+                deskPosition: { ...canonicalDesk },
+                currentPosition: { ...canonicalDesk },
+                facingDirection: 'front' as const,
+                state: (ag.state === 'meeting' || ag.state === 'talking' || ag.state === 'coffee_break' || ag.state === 'playing_game' || ag.state === 'walking')
+                  ? cleanedState
+                  : ag.state,
+                stateMessage: ag.stateMessage?.includes('Standup') ? 'Standby di meja kerja' : ag.stateMessage,
+              };
+            }
+            return ag;
+          });
+
         // B. Load Agents (XP, Level, Assigned Roles, Positions)
         const savedAgentsJson = getStorageItem('agents', companyId);
         let agentsLoaded = false;
@@ -281,7 +305,7 @@ export default function RealAgent3DPage() {
           try {
             const parsedAgents = JSON.parse(savedAgentsJson);
             if (Array.isArray(parsedAgents) && isMounted) {
-              const synchronizedAgents = applyGlobalLLMToUnconfiguredAgents(parsedAgents);
+              const synchronizedAgents = sanitizeStartingPosition(applyGlobalLLMToUnconfiguredAgents(parsedAgents));
               setAgents(synchronizedAgents);
               agentsLoaded = true;
             }
@@ -295,7 +319,7 @@ export default function RealAgent3DPage() {
               body: JSON.stringify({ action: 'get_agents', companyId }),
             }).then((r) => r.json());
             if (agentsRes?.success && Array.isArray(agentsRes.agents) && isMounted) {
-              const synchronizedAgents = applyGlobalLLMToUnconfiguredAgents(agentsRes.agents);
+              const synchronizedAgents = sanitizeStartingPosition(applyGlobalLLMToUnconfiguredAgents(agentsRes.agents));
               setAgents(synchronizedAgents);
               agentsLoaded = true;
             }
@@ -646,6 +670,61 @@ export default function RealAgent3DPage() {
         description: `🛒 Membeli [${item.name}] seharga ${item.price} pts di CEO Virtual SuperMart 24/7. Efek: ${item.effect}`,
       };
       setEvents((prev) => [buyEvent, ...prev.slice(0, 299)]);
+    },
+    [agents]
+  );
+
+  // Regional Bounty Claiming: adds a real TaskTicket to the Kanban board and awards XP/Coins
+  const handleClaimBounty = useCallback(
+    (bounty: any, targetComp: any) => {
+      const deptId = currentCompany.departments?.[0]?.id || 'engineering';
+      const newTicket: TaskTicket = {
+        id: `task-bounty-${Date.now()}`,
+        title: `[Regional Bounty] ${bounty.title}`,
+        projectName: targetComp.name,
+        description: `Kontrak bounty resmi dari ${targetComp.name} (${targetComp.industry}, ${targetComp.buildingType}). Hadiah: +${bounty.rewardXp} XP & ${bounty.budgetCoins} Coins.`,
+        type: 'coding',
+        departmentId: deptId,
+        assignedAgentId: agents[0]?.id,
+        status: 'backlog',
+        progress: 0,
+        artifacts: [],
+        logs: [`[${new Date().toLocaleTimeString()}] Kontrak Regional Bounty diterima dari ${targetComp.name}.`],
+        createdAt: Date.now(),
+      };
+
+      setTasks((prev) => [newTicket, ...prev]);
+
+      const bountyEvent: ActivityEvent = {
+        id: `event-bounty-${Date.now()}`,
+        timestamp: Date.now(),
+        type: 'system',
+        agentId: agents[0]?.id || 'user',
+        agentName: 'Sang Pratama (CEO)',
+        description: `🎯 Menerima Regional Bounty dari ${targetComp.name}: "${bounty.title}" (+${bounty.rewardXp} XP, ${bounty.budgetCoins} Coins). Tiket proyek telah ditambahkan ke Sprint Kanban!`,
+      };
+      setEvents((prev) => [bountyEvent, ...prev.slice(0, 299)]);
+    },
+    [agents, currentCompany]
+  );
+
+  // Regional Market License / Product Purchase
+  const handleBuyRegionalOffer = useCallback(
+    (offer: any, targetComp: any) => {
+      setUserAccount((prev) => ({
+        ...prev,
+        pointsBalance: Math.max(0, prev.pointsBalance - (offer.priceCoins || 100)),
+      }));
+
+      const purchaseEvent: ActivityEvent = {
+        id: `event-buy-offer-${Date.now()}`,
+        timestamp: Date.now(),
+        type: 'system',
+        agentId: agents[0]?.id || 'user',
+        agentName: 'Sang Pratama (CEO)',
+        description: `🛒 Berhasil membeli lisensi B2B "${offer.title || offer.name}" dari ${targetComp.name} seharga ${offer.priceCoins} Coins.`,
+      };
+      setEvents((prev) => [purchaseEvent, ...prev.slice(0, 299)]);
     },
     [agents]
   );
@@ -1162,24 +1241,50 @@ export default function RealAgent3DPage() {
     ]);
   };
 
-  // Switch Company / Multi-Office
+  // Switch Company / Multi-Office or Update Office Layout
   const handleSelectCompany = (newCompany: Company) => {
     setCurrentCompany(newCompany);
-    setAgents(newCompany.agents);
-    setTasks(newCompany.tasks);
-    setSelectedAgentId(undefined);
-    setPendingDecisions([]);
-    setActiveDecisionModal(null);
-    setEvents([
-      {
-        id: `spawn-${Date.now()}`,
-        timestamp: Date.now(),
-        type: 'movement',
-        agentId: newCompany.agents[0]?.id || 'root',
-        agentName: newCompany.name,
-        description: `Office switched to ${newCompany.name} (${newCompany.industry}) with ${newCompany.agents.length} agents.`,
-      },
-    ]);
+    if (newCompany.id !== currentCompany.id) {
+      setAgents(newCompany.agents);
+      setTasks(newCompany.tasks);
+      setSelectedAgentId(undefined);
+      setPendingDecisions([]);
+      setActiveDecisionModal(null);
+      setEvents([
+        {
+          id: `spawn-${Date.now()}`,
+          timestamp: Date.now(),
+          type: 'movement',
+          agentId: newCompany.agents[0]?.id || 'root',
+          agentName: newCompany.name,
+          description: `Office switched to ${newCompany.name} (${newCompany.industry}) with ${newCompany.agents.length} agents.`,
+        },
+      ]);
+    } else {
+      setEvents((prev) => [
+        {
+          id: `layout-${Date.now()}`,
+          timestamp: Date.now(),
+          type: 'system',
+          agentId: 'system',
+          agentName: 'Office Architect',
+          description: `📐 Layout & arsitektur kantor ${newCompany.name} berhasil diubah ke tema [${newCompany.officeLayoutTemplate || 'tech_startup'}].`,
+        },
+        ...prev.slice(0, 299),
+      ]);
+    }
+
+    try {
+      setStorageItem('company', newCompany.id, JSON.stringify(newCompany));
+      localStorage.setItem('vigent_active_company_id', newCompany.id);
+      fetch('/api/workspace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save_company', companyId: newCompany.id, company: newCompany }),
+      }).catch(console.error);
+    } catch (e) {
+      console.error('Error saving company update:', e);
+    }
   };
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
@@ -1412,6 +1517,8 @@ export default function RealAgent3DPage() {
           onDispatchMission={handleMissionDispatched}
           onMissionCompleted={handleMissionCompleted}
           onBuyItem={handleBuySupermarketItem}
+          onClaimBounty={handleClaimBounty}
+          onBuyOffer={handleBuyRegionalOffer}
         />
       )}
 

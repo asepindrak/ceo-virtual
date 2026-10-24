@@ -53,7 +53,7 @@ export const REGIONAL_DISTRICTS: RegionalDistrict[] = [
         name: 'ShadowMove Inc',
         industry: 'Autonomous AI & 3D Interactive Web',
         level: 3,
-        ownerName: 'Asep Indra (You)',
+        ownerName: 'Sang Pratama (You)',
         buildingType: 'Modern Glass Tower',
         specialization: 'Fullstack Next.js, AI Agents, Low-Poly 3D',
         reputation: 98,
@@ -549,6 +549,94 @@ export const REGIONAL_DISTRICTS: RegionalDistrict[] = [
     ],
   },
 ];
+
+// -----------------------------------------------------------------------------
+// DYNAMIC REGIONAL DISTRICTS ENGINE (INTEGRATES ACTIVE COMPANY & P2P PEERS)
+// -----------------------------------------------------------------------------
+
+export function getDynamicRegionalDistricts(activeCompany?: any, peers?: any[]): RegionalDistrict[] {
+  return REGIONAL_DISTRICTS.map((district) => {
+    let companies = [...district.companies];
+
+    // If district is Jakarta (or active company's designated sector)
+    if (district.id === 'region-jakarta') {
+      const activeId = activeCompany?.id || 'company-shadowmove';
+      const activeName = activeCompany?.name || 'ShadowMove Inc';
+      const activeIndustry = activeCompany?.industry || 'Autonomous AI & 3D Interactive Web';
+
+      companies = companies.map((c) => {
+        if (c.id === 'company-shadowmove' || c.id === activeId) {
+          const userBounties = (Array.isArray(activeCompany?.tasks) && activeCompany.tasks.length > 0)
+            ? activeCompany.tasks.slice(0, 3).map((t: any) => ({
+                id: `bounty-${t.id}`,
+                title: t.title,
+                rewardXp: 300,
+                budgetCoins: 1000,
+                type: (t.type || 'coding') as any,
+              }))
+            : c.openBounties;
+
+          return {
+            ...c,
+            id: activeId,
+            name: activeName,
+            industry: activeIndustry,
+            ownerName: 'Sang Pratama (You)',
+            openBounties: userBounties,
+            specialization: activeCompany?.description || c.specialization,
+          };
+        }
+        return c;
+      });
+    }
+
+    // Merge live P2P peers into their respective sector
+    if (Array.isArray(peers) && peers.length > 0) {
+      peers.forEach((peer: any) => {
+        const peerSector = peer.regionalSector || 'region-jakarta';
+        if (peerSector === district.id && !companies.some((c) => c.id === peer.nodeId || c.id === peer.companyId)) {
+          companies.push({
+            id: peer.companyId || peer.nodeId,
+            name: peer.companyName || 'Decentralized Peer Node',
+            industry: peer.industry || 'Decentralized P2P Mesh Studio',
+            level: 3,
+            ownerName: `Node Peer (${peer.ip || 'Remote PC'})`,
+            buildingType: 'P2P Decentralized Node',
+            specialization: `Direct Tunnel: ${peer.endpointUrl || 'LAN Mesh'}`,
+            reputation: peer.reputationScore || 98,
+            status: peer.isOnline ? 'open_for_trade' : 'offline',
+            isLivePeer: true,
+            peerEndpoint: peer.endpointUrl,
+            peerNodeId: peer.nodeId,
+            openBounties: [
+              {
+                id: `bounty-peer-${peer.nodeId}`,
+                title: `B2B Task Sync & Collaboration with ${peer.companyName}`,
+                rewardXp: 350,
+                budgetCoins: 1200,
+                type: 'coding',
+              },
+            ],
+            marketOffers: [
+              {
+                id: `offer-peer-${peer.nodeId}`,
+                title: `${peer.companyName} Remote API License`,
+                priceCoins: 500,
+                category: 'api_license',
+                description: `Akses endpoint terdesentralisasi ke node ${peer.companyName}.`,
+              },
+            ],
+          });
+        }
+      });
+    }
+
+    return {
+      ...district,
+      companies,
+    };
+  });
+}
 
 // -----------------------------------------------------------------------------
 // TRAVEL MISSIONS STORAGE & ENGINE

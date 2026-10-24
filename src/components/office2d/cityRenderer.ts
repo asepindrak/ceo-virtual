@@ -24,6 +24,7 @@ export interface IsoCtx {
   toIso: (x: number, z: number) => { isoX: number; isoY: number };
   zoom: number;
   t: number;
+  labelQueue?: Array<() => void>;
 }
 
 interface Pt {
@@ -83,18 +84,18 @@ interface Geo {
 export const DISTRICT = {
   minX: -108,
   maxX: 108,
-  minZ: -22,
-  maxZ: 58,
+  minZ: -25,
+  maxZ: 62,
   roadMinX: -108,
   roadMaxX: 108,
-  northRowZ: 0,
-  southRowZ: 38,
+  northRowZ: -1.0,
+  southRowZ: 39.5,
   plotHalfW: 16.5,
-  plotHalfD: 12,
-  supermart: { cx: -84, cz: 0 },
-  station: { cx: 84, cz: 0 },
-  parkWest: { cx: -84, cz: 38 },
-  parkEast: { cx: 84, cz: 38 },
+  plotHalfD: 11.0,
+  supermart: { cx: -84, cz: -1.0 },
+  station: { cx: 84, cz: -1.0 },
+  parkWest: { cx: -84, cz: 39.5 },
+  parkEast: { cx: 84, cz: 39.5 },
   crosswalks: [-84, -42, 0, 42, 84],
 };
 
@@ -208,7 +209,7 @@ export const faceX = (c: IsoCtx, x: number, za: number, zb: number, ha: number, 
   poly(c, [P(c, x, za, ha), P(c, x, zb, ha), P(c, x, zb, hb), P(c, x, za, hb)], fill, stroke, Math.max(0.5, 0.7 * c.zoom));
 
 /** Lantai / area datar. */
-export const isoRect = (c: IsoCtx, x0: number, z0: number, x1: number, z1: number, fill: string, stroke?: string, elev = 0) =>
+export const isoRect = (c: IsoCtx, x0: number, z0: number, x1: number, z1: number, fill?: string, stroke?: string, elev = 0) =>
   poly(c, [P(c, x0, z0, elev), P(c, x1, z0, elev), P(c, x1, z1, elev), P(c, x0, z1, elev)], fill, stroke, Math.max(0.6, 1 * c.zoom));
 
 /** Elips lantai (lingkaran dunia yang diproyeksikan). */
@@ -675,64 +676,76 @@ const frontRails = (c: IsoCtx, g: Geo) => {
 /** Monumen nama perusahaan (3D) di depan pintu masuk. */
 const monumentSign = (c: IsoCtx, x: number, z: number, title: string, subtitle: string, color: string, hovered: boolean) => {
   const { ctx } = c;
+  // 1. Fondasi tiang monumen fisik 3D di tanah
   isoBox(c, x, z, 4.2, 0.5, 4, '#e7e0d4');
   isoBox(c, x, z, 3.8, 0.35, 12, color, { elev: 4 });
 
-  const s = c.zoom;
-  // Lift position - ensure label stays clearly above monument
-  const p = P(c, x, z, Math.max(26, 32 * s));
+  // 2. Badge papan nama 2D mengambang (render di top overlay layer agar bebas tertutup slab / z-index issue)
+  const drawBadge = () => {
+    const s = c.zoom;
+    // Lift position - ensure label stays clearly above monument
+    const p = P(c, x, z, Math.max(26, 32 * s));
 
-  // Minimum readable font sizes at any zoom level
-  const titleFontSize = Math.max(10, Math.round(11.5 * s));
-  const subFontSize = Math.max(8, Math.round(9 * s));
-  const titleFont = `bold ${titleFontSize}px sans-serif`;
-  const subFont = `bold ${subFontSize}px sans-serif`;
+    // Minimum readable font sizes at any zoom level
+    const titleFontSize = Math.max(10, Math.round(11.5 * s));
+    const subFontSize = Math.max(8, Math.round(9 * s));
+    const titleFont = `bold ${titleFontSize}px sans-serif`;
+    const subFont = `bold ${subFontSize}px sans-serif`;
 
-  ctx.font = titleFont;
-  const tw = ctx.measureText(title).width;
-  ctx.font = subFont;
-  const sw = subtitle ? ctx.measureText(subtitle).width : 0;
-
-  const contentW = Math.max(tw, sw);
-  // Padding around text must have a minimum pixel width (never shrink to zero when zoomed out)
-  const padX = Math.max(20, Math.round(28 * s));
-  const w = contentW + padX;
-
-  const showSub = Boolean(subtitle);
-  const lineGap = Math.max(3, Math.round(4 * s));
-  const padY = Math.max(10, Math.round(14 * s));
-  // Total container height is guaranteed to fit all lines plus padding
-  const h = titleFontSize + (showSub ? subFontSize + lineGap : 0) + padY;
-
-  ctx.fillStyle = 'rgba(30,20,10,0.2)';
-  ctx.beginPath();
-  ctx.roundRect(p.x - w / 2 + 1.5, p.y - h / 2 + 2, w, h, 6);
-  ctx.fill();
-
-  ctx.fillStyle = hovered ? '#ffffff' : 'rgba(255,252,245,0.98)';
-  ctx.beginPath();
-  ctx.roundRect(p.x - w / 2, p.y - h / 2, w, h, 6);
-  ctx.fill();
-
-  ctx.strokeStyle = color;
-  ctx.lineWidth = hovered ? 2.5 : Math.max(1.5, 2 * s);
-  ctx.stroke();
-
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#2c231c';
-
-  if (showSub) {
-    const titleCenterY = p.y - (subFontSize / 2 + lineGap / 2);
-    const subCenterY = p.y + (titleFontSize / 2 + lineGap / 2);
     ctx.font = titleFont;
-    ctx.fillText(title, p.x, titleCenterY);
-    ctx.fillStyle = color;
+    const tw = ctx.measureText(title).width;
     ctx.font = subFont;
-    ctx.fillText(subtitle, p.x, subCenterY);
+    const sw = subtitle ? ctx.measureText(subtitle).width : 0;
+
+    const contentW = Math.max(tw, sw);
+    // Padding around text must have a minimum pixel width (never shrink to zero when zoomed out)
+    const padX = Math.max(20, Math.round(28 * s));
+    const w = contentW + padX;
+
+    const showSub = Boolean(subtitle);
+    const lineGap = Math.max(3, Math.round(4 * s));
+    const padY = Math.max(10, Math.round(14 * s));
+    // Total container height is guaranteed to fit all lines plus padding
+    const h = titleFontSize + (showSub ? subFontSize + lineGap : 0) + padY;
+
+    // Drop shadow
+    ctx.fillStyle = 'rgba(20, 15, 10, 0.25)';
+    ctx.beginPath();
+    ctx.roundRect(p.x - w / 2 + 1.5, p.y - h / 2 + 2, w, h, 6);
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = hovered ? '#ffffff' : 'rgba(255,252,245,0.98)';
+    ctx.beginPath();
+    ctx.roundRect(p.x - w / 2, p.y - h / 2, w, h, 6);
+    ctx.fill();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = hovered ? 2.5 : Math.max(1.5, 2 * s);
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#2c231c';
+
+    if (showSub) {
+      const titleCenterY = p.y - (subFontSize / 2 + lineGap / 2);
+      const subCenterY = p.y + (titleFontSize / 2 + lineGap / 2);
+      ctx.font = titleFont;
+      ctx.fillText(title, p.x, titleCenterY);
+      ctx.fillStyle = color;
+      ctx.font = subFont;
+      ctx.fillText(subtitle, p.x, subCenterY);
+    } else {
+      ctx.font = titleFont;
+      ctx.fillText(title, p.x, p.y);
+    }
+  };
+
+  if (c.labelQueue) {
+    c.labelQueue.push(drawBadge);
   } else {
-    ctx.font = titleFont;
-    ctx.fillText(title, p.x, p.y);
+    drawBadge();
   }
 };
 
@@ -1432,32 +1445,29 @@ const makeGeo = (cx: number, cz: number, hw: number, hd: number, primary: string
 export const renderEmptyKavling = (c: IsoCtx, k: KavlingLike, hovered: boolean) => {
   const g = makeGeo(k.cx, k.cz, k.halfW, k.halfD, '#059669', '#10b981', '#34d399');
   const lotLabel = k.plotLabel || `Parcel #${k.id.replace(/\D/g, '') || '1'}`;
-  const signTitle = `📍 VACANT LOT (AVAILABLE)`;
-  const signSub = `AWAITING P2P PEER NODE`;
-
-  // Monumen untuk baris selatan berada di belakang kavling (gambar duluan)
-  if (g.entranceAtBack) {
-    monumentSign(c, g.cx - 5.5, g.z0 - 0.7, signTitle, signSub, '#059669', hovered);
-  }
-
-  // Plinth fondasi batu paving/tanah surveyor rapi & bersih
-  plinth(c, g, hovered ? '#f0fdf4' : '#f8fafc', hovered, '#cbd5e1');
-
-  // Surveyor Grid (Garis grid arsitektur tanah)
-  floorGrid(c, g.x0 + 0.5, g.z0 + 0.5, g.x1 - 0.5, g.z1 - 0.5, 3.0, 'rgba(100, 116, 139, 0.22)');
+  const signTitle = `📍 KAVLING REGIONAL TERSEDIA`;
+  const signSub = `SIAP DIBANGUN • AWAITING P2P PEER`;
 
   const ctx = c.ctx;
   const s = c.zoom;
 
-  // Garis batas keliling kavling surveyor tape
+  // 1. Tanah kavling datar (FLUSH DENGAN TANAH, elev = 0, tidak melayang)
+  const groundFill = hovered ? '#ecfdf5' : '#8fbe80';
+  const groundBorder = hovered ? '#059669' : '#7ca86f';
+  isoRect(c, g.x0, g.z0, g.x1, g.z1, groundFill, groundBorder, 0);
+
+  // 2. Garis batas paving perbatasan tapak tanah kapling
+  isoRect(c, g.x0 + 0.4, g.z0 + 0.4, g.x1 - 0.4, g.z1 - 0.4, undefined, hovered ? 'rgba(5, 150, 105, 0.4)' : 'rgba(100, 140, 90, 0.35)', 0);
+
+  // 3. Garis surveyor tape putus-putus (menempel pas di tanah, elev = 0)
   ctx.save();
-  ctx.setLineDash([8 * s, 6 * s]);
-  const pTL = P(c, g.x0 + 1.0, g.z0 + 1.0, 0.5);
-  const pTR = P(c, g.x1 - 1.0, g.z0 + 1.0, 0.5);
-  const pBR = P(c, g.x1 - 1.0, g.z1 - 1.0, 0.5);
-  const pBL = P(c, g.x0 + 1.0, g.z1 - 1.0, 0.5);
-  ctx.strokeStyle = hovered ? '#059669' : 'rgba(16, 185, 129, 0.65)';
-  ctx.lineWidth = Math.max(1.2, 1.8 * s);
+  ctx.setLineDash([6 * s, 4 * s]);
+  const pTL = P(c, g.x0 + 0.8, g.z0 + 0.8, 0);
+  const pTR = P(c, g.x1 - 0.8, g.z0 + 0.8, 0);
+  const pBR = P(c, g.x1 - 0.8, g.z1 - 0.8, 0);
+  const pBL = P(c, g.x0 + 0.8, g.z1 - 0.8, 0);
+  ctx.strokeStyle = hovered ? '#059669' : 'rgba(16, 185, 129, 0.75)';
+  ctx.lineWidth = Math.max(1, 1.4 * s);
   ctx.beginPath();
   ctx.moveTo(pTL.x, pTL.y);
   ctx.lineTo(pTR.x, pTR.y);
@@ -1467,61 +1477,66 @@ export const renderEmptyKavling = (c: IsoCtx, k: KavlingLike, hovered: boolean) 
   ctx.stroke();
   ctx.restore();
 
-  // 4 Patok Surveyor (Survey Stakes) dengan bendera oranye & hijau di tiap sudut
+  // 4. Surveyor Grid halus arsitektur tanah
+  floorGrid(c, g.x0 + 1.0, g.z0 + 1.0, g.x1 - 1.0, g.z1 - 1.0, 3.0, 'rgba(80, 120, 70, 0.22)');
+
+  // 5. Patok kayu surveyor di 4 sudut menancap di tanah
   const corners = [
-    { x: g.x0 + 1.2, z: g.z0 + 1.2 },
-    { x: g.x1 - 1.2, z: g.z0 + 1.2 },
-    { x: g.x1 - 1.2, z: g.z1 - 1.2 },
-    { x: g.x0 + 1.2, z: g.z1 - 1.2 },
+    { x: g.x0 + 1.0, z: g.z0 + 1.0 },
+    { x: g.x1 - 1.0, z: g.z0 + 1.0 },
+    { x: g.x1 - 1.0, z: g.z1 - 1.0 },
+    { x: g.x0 + 1.0, z: g.z1 - 1.0 },
   ];
   corners.forEach((cp, ci) => {
-    // Tiang patok surveyor
-    isoBox(c, cp.x, cp.z, 0.25, 0.25, 14, '#b45309');
-    // Bendera pita surveyor di ujung tiang
-    const top = P(c, cp.x, cp.z, 14);
-    ctx.fillStyle = ci % 2 === 0 ? '#f97316' : '#10b981';
+    // Tiang kayu kecil menancap
+    isoBox(c, cp.x, cp.z, 0.2, 0.2, 8, '#92400e', { elev: 0 });
+    // Bendera surveyor
+    const top = P(c, cp.x, cp.z, 8);
+    ctx.fillStyle = ci % 2 === 0 ? '#ea580c' : '#10b981';
     ctx.beginPath();
     ctx.moveTo(top.x, top.y);
-    ctx.lineTo(top.x + 8 * s, top.y - 3 * s);
-    ctx.lineTo(top.x, top.y - 6 * s);
+    ctx.lineTo(top.x + 6 * s, top.y - 2.5 * s);
+    ctx.lineTo(top.x, top.y - 5 * s);
     ctx.closePath();
     ctx.fill();
   });
 
-  // Holographic blueprint / surveyor ring di tengah kavling
-  const centerIso = P(c, g.cx, g.cz, 1);
-  if (s >= 0.55) {
+  // 6. Label & Target Survey di tengah tanah kavling
+  const centerIso = P(c, g.cx, g.cz, 0);
+  if (s >= 0.5) {
     ctx.save();
     // Lingkaran target survey
     ctx.strokeStyle = hovered ? 'rgba(5, 150, 105, 0.85)' : 'rgba(16, 185, 129, 0.45)';
-    ctx.lineWidth = Math.max(1, 1.5 * s);
+    ctx.lineWidth = Math.max(1, 1.2 * s);
     ctx.beginPath();
-    ctx.ellipse(centerIso.x, centerIso.y, 48 * s, 25 * s, 0, 0, Math.PI * 2);
+    ctx.ellipse(centerIso.x, centerIso.y, 44 * s, 23 * s, 0, 0, Math.PI * 2);
     ctx.stroke();
 
     // Pulse marker animasi lembut
-    const pulseR = (32 + Math.sin(c.t * 3) * 6) * s;
+    const pulseR = (28 + Math.sin(c.t * 2.5) * 5) * s;
     ctx.beginPath();
     ctx.ellipse(centerIso.x, centerIso.y, pulseR, pulseR * 0.52, 0, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(16, 185, 129, 0.28)';
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.3)';
     ctx.stroke();
 
-    // Label di tengah tanah: Nama Kavling & Status
+    // Label di tengah tanah
     const groundFontSize = Math.max(8, Math.round(9 * s));
     ctx.font = `bold ${groundFontSize}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#047857';
-    ctx.fillText(`[ ${lotLabel.toUpperCase()} ]`, centerIso.x, centerIso.y - 6 * s);
+    ctx.fillStyle = hovered ? '#065f46' : '#14532d';
+    ctx.fillText(`[ ${lotLabel.toUpperCase()} ]`, centerIso.x, centerIso.y - 5 * s);
     ctx.font = `${Math.max(7, Math.round(7.5 * s))}px sans-serif`;
-    ctx.fillStyle = '#64748b';
-    ctx.fillText('Ready for Construction Upon P2P Connection', centerIso.x, centerIso.y + 6 * s);
+    ctx.fillStyle = '#475569';
+    ctx.fillText('Lahan Terbuka • Siap Terhubung ke Node P2P', centerIso.x, centerIso.y + 6 * s);
     ctx.restore();
   }
 
-  // Monumen untuk baris utara berada di depan kavling
-  if (!g.entranceAtBack) {
-    monumentSign(c, g.cx + 5.5, g.z1 + 1.1, signTitle, signSub, '#059669', hovered);
+  // 7. Monumen penanda kavling di dalam tapak kavling (tidak mepet atau menabrak trotoar/jalan)
+  if (g.entranceAtBack) {
+    monumentSign(c, g.cx - 5.0, g.z0 + 1.2, signTitle, signSub, '#059669', hovered);
+  } else {
+    monumentSign(c, g.cx + 5.0, g.z1 - 1.2, signTitle, signSub, '#059669', hovered);
   }
 };
 
@@ -1541,8 +1556,6 @@ export const renderCompanyKavling = (c: IsoCtx, k: KavlingLike, hovered: boolean
   const signTitle = `${k.badgeIcon} ${k.shortName}`;
   const signSub = `${k.ownerName.split(' ')[0].toUpperCase()} • LV ${k.level}`;
 
-  // Monumen untuk baris selatan berada "di belakang" kavling (lebih jauh dari penonton) → gambar duluan.
-  if (g.entranceAtBack) monumentSign(c, g.cx - 5.5, g.z0 - 0.7, signTitle, signSub, g.primary, hovered);
 
   plinth(c, g, def.floor, hovered, def.slabSide);
   def.drawFloor(c, g);
@@ -1577,133 +1590,378 @@ export const renderCompanyKavling = (c: IsoCtx, k: KavlingLike, hovered: boolean
   q.flush();
 
   frontRails(c, g);
-  if (!g.entranceAtBack) monumentSign(c, g.cx + 5.5, g.z1 + 1.1, signTitle, signSub, g.primary, hovered);
+  if (g.entranceAtBack) {
+    monumentSign(c, g.cx - 5.5, g.z0 - 0.7, signTitle, signSub, g.primary, hovered);
+  } else {
+    monumentSign(c, g.cx + 5.5, g.z1 + 1.1, signTitle, signSub, g.primary, hovered);
+  }
 };
 
 // =============================================================================
-// PUBLIC: SUPERMART
+// PUBLIC: SUPERMART 24/7 MEGA STORE (GRAND ARCHITECTURE & 3D INTERIOR)
 // =============================================================================
 export const renderSuperMart = (c: IsoCtx, hovered: boolean) => {
   const { cx, cz } = DISTRICT.supermart;
   const g = makeGeo(cx, cz, DISTRICT.plotHalfW, DISTRICT.plotHalfD, '#16a34a', '#22c55e', '#15803d');
-  plinth(c, g, '#f8fafc', hovered, '#b8c9b8');
-  floorGrid(c, g.x0, g.z0, g.x1, g.z1, 1.2, 'rgba(148,163,184,0.25)');
-  isoRect(c, cx - 3, cz + 9, cx + 3, cz + 12, '#e2e8f0');
-  backWalls(c, g, { color: '#f1f5f9', h: 44, kind: 'plain', trim: '#16a34a' });
-
-  // papan nama di dinding belakang
   const ctx = c.ctx;
-  faceZ(c, cx - 6, cx + 6, g.z0 + 0.31, 32, 41, '#16a34a');
-  const sp = P(c, cx, g.z0 + 0.31, 36.5);
+  const s = c.zoom;
+
+  // 1. Plinth / Pondasi Gedung Supermarket 3D
+  plinth(c, g, '#f8fafc', hovered, '#94a3b8');
+
+  // Lantai ubin supermarket marmer putih-gading dengan lis emerald
+  floorGrid(c, g.x0, g.z0, g.x1, g.z1, 1.8, 'rgba(22, 163, 74, 0.12)');
+
+  // Entrance & Exit Walkway Runners (Karpet Keset Selamat Datang di Depan Kiri)
+  isoRect(c, cx - 14.5, cz + 6.0, cx - 9.0, cz + 9.6, '#15803d', '#166534', 0.2);
+  isoRect(c, cx - 14.2, cz + 6.3, cx - 9.3, cz + 9.3, '#16a34a', '#86efac', 0.2);
+
+  // Panah Sirkulasi Lantai (Traffic Flow Guides)
+  const entP = P(c, cx - 11.8, cz + 7.8, 0.3);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${Math.max(4, Math.round(5 * s))}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('ENTRY ➔', entP.x, entP.y);
+
+  // 2. Dinding Belakang & Kiri (Modern High Backwall & Canopy)
+  backWalls(c, g, { color: '#f8fafc', h: 48, kind: 'plain', trim: '#16a34a' });
+
+  // Papan Nama Toko Neon 3D Megah di Dinding Belakang (Z = g.z0 + 0.31)
+  faceZ(c, cx - 12.5, cx + 12.5, g.z0 + 0.31, 33, 46, '#15803d', '#14532d');
+  faceZ(c, cx - 12.2, cx + 12.2, g.z0 + 0.32, 34, 45, '#16a34a', '#22c55e');
+
+  const signPos = P(c, cx, g.z0 + 0.32, 40.5);
   ctx.save();
-  ctx.translate(sp.x, sp.y);
+  ctx.translate(signPos.x, signPos.y);
   ctx.transform(1, 16 / 30, 0, 1, 0, 0);
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${Math.max(6, Math.round(10 * c.zoom))}px sans-serif`;
+  ctx.font = `bold ${Math.max(6.5, Math.round(11 * s))}px ui-sans-serif, system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('SUPERMART 24/7', 0, 0);
+  ctx.fillText('🛒 VIGENT SUPERMART 24/7', 0, -2 * s);
+  ctx.fillStyle = '#dcfce7';
+  ctx.font = `bold ${Math.max(4, Math.round(6 * s))}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.fillText('MEGA STORE • ALWAYS FRESH • 100% LOCAL PRODUCE', 0, 5 * s);
   ctx.restore();
 
   const q = new DepthQueue();
-  // Kulkas minuman di dinding kiri (pintu kaca)
-  for (let i = 0; i < 6; i++) {
-    const zz = cz - 9.5 + i * 2.4;
-    q.add(g.x0 + 0.9, zz, () => {
-      isoBox(c, g.x0 + 0.9, zz, 1.2, 2.3, 30, '#e5e7eb');
-      faceX(c, g.x0 + 1.51, zz - 1.05, zz + 1.05, 3, 27, '#bfdbfe', '#94a3b8');
-      for (let r = 0; r < 4; r++)
-        for (let b = 0; b < 5; b++)
-          faceX(c, g.x0 + 1.52, zz - 0.95 + b * 0.4, zz - 0.7 + b * 0.4, 5 + r * 5.6, 8.5 + r * 5.6, ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#f8fafc'][(b + r + i) % 5]);
-    });
-  }
-  // Lorong rak (membujur sepanjang z, dipecah per segmen untuk depth sort)
-  const prodCols = ['#dc2626', '#f59e0b', '#16a34a', '#2563eb', '#9333ea', '#ea580c', '#0891b2'];
-  [-10.5, -6.5, -2.5, 1.5].forEach((dx, ai) => {
-    for (let s = 0; s < 4; s++) {
-      const zz = cz - 8 + s * 2.2;
-      q.add(cx + dx, zz, () => {
-        isoBox(c, cx + dx, zz, 1.2, 2.2, 22, '#e5e7eb', { top: '#f8fafc' });
-        for (let r = 0; r < 4; r++) {
-          faceX(c, cx + dx + 0.61, zz - 1.05, zz + 1.05, 2.5 + r * 5, 3.2 + r * 5, '#94a3b8');
-          for (let b = 0; b < 5; b++)
-            faceX(c, cx + dx + 0.615, zz - 1 + b * 0.42, zz - 0.66 + b * 0.42, 3.2 + r * 5, 6.8 + r * 5, prodCols[(b + r * 2 + s + ai) % prodCols.length]);
+
+  // 3. ZONA DINDING UTARA: WALK-IN CHILLED BEVERAGE & DAIRY WALL
+  // Kulkas chiller kaca tinggi (height 38px!) berisi 4 tingkat rak minuman segar
+  const coolerW = 4.2;
+  const coolerOffsets = [-12.5, -7.5, -2.5, 2.5, 7.5, 12.5];
+  coolerOffsets.forEach((dx, cIdx) => {
+    const xMid = cx + dx;
+    const zMid = g.z0 + 1.2;
+    q.add(xMid, zMid, () => {
+      // Bodi kulkas hitam baja
+      isoBox(c, xMid, zMid, coolerW, 1.8, 38, '#0f172a', { top: '#1e293b' });
+      // Pintu kaca es berpendar cyan dingin
+      faceZ(c, xMid - coolerW / 2 + 0.15, xMid + coolerW / 2 - 0.15, zMid + 0.91, 2, 37, 'rgba(56, 189, 248, 0.32)', '#38bdf8');
+
+      // 4 Tingkat Rak Minuman di dalam Kulkas
+      const drinkCols = [
+        ['#ef4444', '#dc2626', '#b91c1c'], // Soda merah / Cola
+        ['#f97316', '#ea580c', '#c2410c'], // Jus jeruk / Energy
+        ['#ffffff', '#f1f5f9', '#e2e8f0'], // Susu segar / Yogurt
+        ['#0ea5e9', '#0284c7', '#0369a1'], // Air mineral / Isotonik
+      ];
+      for (let tier = 0; tier < 4; tier++) {
+        const tierH = 5 + tier * 8;
+        // Ambalan rak stainless
+        faceZ(c, xMid - coolerW / 2 + 0.2, xMid + coolerW / 2 - 0.2, zMid + 0.88, tierH, tierH + 1.2, '#94a3b8');
+        // Botol-botol minuman tebal berjejer
+        for (let b = 0; b < 6; b++) {
+          const bx0 = xMid - coolerW / 2 + 0.35 + b * 0.6;
+          const bx1 = bx0 + 0.42;
+          const colSet = drinkCols[(tier + cIdx) % drinkCols.length];
+          const col = colSet[b % colSet.length];
+          faceZ(c, bx0, bx1, zMid + 0.89, tierH + 1.2, tierH + 5.8, col);
+          // Tutup botol putih
+          faceZ(c, bx0 + 0.08, bx1 - 0.08, zMid + 0.89, tierH + 5.8, tierH + 6.8, '#f8fafc');
         }
-        if (s === 3) {
-          for (let r = 0; r < 4; r++)
-            for (let b = 0; b < 3; b++)
-              faceZ(c, cx + dx - 0.5 + b * 0.36, cx + dx - 0.2 + b * 0.36, zz + 1.105, 3.2 + r * 5, 6.8 + r * 5, prodCols[(b + r + ai) % prodCols.length]);
+      }
+      // Handle pintu chrome
+      faceZ(c, xMid + coolerW / 2 - 0.4, xMid + coolerW / 2 - 0.25, zMid + 0.92, 14, 26, '#f8fafc', '#94a3b8');
+    });
+  });
+
+  // 4. ZONA TENGAH: 3 LORONG RAK GONDOLA 3D BESAR (MAIN GROCERY AISLES)
+  // Lorong rak besar, kokoh, tinggi 27px, dan sarat produk
+  const aisleConfigs = [
+    {
+      dx: -6.0,
+      aisleNo: '01',
+      title: 'SNACKS & DRINKS',
+      colors: ['#ef4444', '#f97316', '#eab308', '#dc2626', '#b91c1c'],
+    },
+    {
+      dx: 0.0,
+      aisleNo: '02',
+      title: 'GROCERY & STAPLES',
+      colors: ['#16a34a', '#10b981', '#059669', '#0d9488', '#0284c7'],
+    },
+    {
+      dx: 6.0,
+      aisleNo: '03',
+      title: 'BREAKFAST & BAKERY',
+      colors: ['#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'],
+    },
+  ];
+
+  aisleConfigs.forEach(({ dx, aisleNo, title, colors }, aIdx) => {
+    const ax = cx + dx;
+    const shelfWidth = 2.6; // Tebal & kokoh!
+    const shelfH = 27;     // Tinggi 27px!
+
+    // 4 Segmen membujur per lorong (z: cz - 7.5 s.d cz + 1.5)
+    for (let sIdx = 0; sIdx < 4; sIdx++) {
+      const az = cz - 6.5 + sIdx * 2.2;
+      q.add(ax, az, () => {
+        // Bodi rak gondola logam putih bersih
+        isoBox(c, ax, az, shelfWidth, 2.0, shelfH, '#e2e8f0', { top: '#f8fafc', right: '#cbd5e1' });
+
+        // Produk di sisi kanan (+x) rak
+        for (let tier = 0; tier < 3; tier++) {
+          const tH = 3.5 + tier * 7.5;
+          // Ambalan logam
+          faceX(c, ax + shelfWidth / 2 + 0.02, az - 0.95, az + 0.95, tH, tH + 1.0, '#94a3b8');
+          // Kotak / kemasan produk 3D
+          for (let p = 0; p < 4; p++) {
+            const za = az - 0.85 + p * 0.45;
+            const zb = za + 0.36;
+            const pCol = colors[(p + tier * 2 + sIdx + aIdx) % colors.length];
+            faceX(c, ax + shelfWidth / 2 + 0.04, za, zb, tH + 1.0, tH + 5.5, pCol);
+            // Label / kemasan detail
+            faceX(c, ax + shelfWidth / 2 + 0.05, za + 0.06, zb - 0.06, tH + 2.0, tH + 4.2, '#ffffff');
+          }
+        }
+
+        // Jika segmen depan (sIdx === 3), buat End-Cap Display khusus promosi!
+        if (sIdx === 3) {
+          // Promo Endcap Stand kuning cerah / merah
+          const endCapZ = az + 1.05;
+          isoBox(c, ax, endCapZ + 0.5, shelfWidth * 0.9, 0.9, 22, '#eab308', { top: '#fde047' });
+          // Header Promo Banner
+          faceZ(c, ax - 1.0, ax + 1.0, endCapZ + 0.96, 17, 21, '#dc2626', '#b91c1c');
+          const pP = P(c, ax, endCapZ + 0.96, 19);
+          ctx.save();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${Math.max(3.5, Math.round(4.5 * s))}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('BEST BUY', pP.x, pP.y);
+          ctx.restore();
+
+          // Barang diskon di rak promo
+          for (let tier = 0; tier < 3; tier++) {
+            const tH = 2.5 + tier * 5.5;
+            for (let b = 0; b < 3; b++) {
+              const bx0 = ax - 0.8 + b * 0.6;
+              faceZ(c, bx0, bx0 + 0.45, endCapZ + 0.96, tH + 0.8, tH + 4.5, colors[(b + tier) % colors.length]);
+            }
+          }
         }
       });
     }
-    // papan nomor lorong menggantung
-    q.add(cx + dx, cz - 1, () => {
-      line(c, P(c, cx + dx, cz - 1, 44), P(c, cx + dx, cz - 1, 34), '#64748b', 0.8 * c.zoom);
-      isoBox(c, cx + dx, cz - 1, 0.1, 1.6, 4, '#16a34a', { elev: 30, right: '#15803d' });
-    }, 3);
+
+    // Papan Kategori Menggantung di Atas Lorong
+    q.add(ax, cz - 2.5, () => {
+      // Tiang gantung kawat dari plafon
+      line(c, P(c, ax, cz - 2.5, 48), P(c, ax, cz - 2.5, 36), '#64748b', 1.2 * s);
+      // Papan hijau neon
+      isoBox(c, ax, cz - 2.5, 0.2, 2.8, 6.5, '#15803d', { elev: 33, top: '#16a34a', right: '#166534' });
+      // Teks kategori
+      const signPt = P(c, ax + 0.15, cz - 2.5, 36.5);
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.max(4.5, Math.round(6.5 * s))}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`AISLE ${aisleNo} • ${title}`, signPt.x, signPt.y);
+      ctx.restore();
+    }, 4);
   });
-  // Rak buah & sayur (peti kayu)
-  [
-    [7, -8.6, '#f97316'],
-    [10, -8.6, '#ef4444'],
-    [13, -8.6, '#22c55e'],
-    [8.5, -5.4, '#facc15'],
-    [11.5, -5.4, '#84cc16'],
-  ].forEach(([dx, dz, col]) =>
-    q.add(cx + (dx as number), cz + (dz as number), () => {
-      const x = cx + (dx as number);
-      const z = cz + (dz as number);
-      isoBox(c, x, z, 2.4, 1.6, 9, '#a16207', { top: '#854d0e' });
-      for (let i = 0; i < 6; i++) {
-        const p = P(c, x - 0.8 + (i % 3) * 0.8, z - 0.4 + Math.floor(i / 3) * 0.8, 10.5);
-        ctx.fillStyle = col as string;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 3.2 * c.zoom, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.45)';
-        ctx.beginPath();
-        ctx.arc(p.x - 1 * c.zoom, p.y - 1 * c.zoom, 1 * c.zoom, 0, Math.PI * 2);
-        ctx.fill();
+
+  // 5. ZONA BARAT (DEPAN-KIRI): FRESH PRODUCE ISLAND (BUAH & SAYUR SEGAR & BAKERY)
+  // Meja pulau display kayu berundak yang besar dan padat buah
+  const fruitTables = [
+    { x: cx - 12.0, z: cz - 2.0, w: 3.4, d: 2.4, fruit: '🍎 Apel Fuji', col: '#ef4444', col2: '#22c55e' },
+    { x: cx - 12.0, z: cz + 1.5, w: 3.4, d: 2.4, fruit: '🍊 Jeruk & Pisang', col: '#f97316', col2: '#eab308' },
+  ];
+
+  fruitTables.forEach((tab) => {
+    q.add(tab.x, tab.z, () => {
+      // Meja kayu jati tebal
+      isoBox(c, tab.x, tab.z, tab.w, tab.d, 12, '#78350f', { top: '#92400e', right: '#451a03' });
+
+      // Keranjang kayu berundak berisi buah-buahan bervolume jelas
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 4; col++) {
+          const fx = tab.x - tab.w / 2 + 0.5 + col * 0.8;
+          const fz = tab.z - tab.d / 2 + 0.4 + row * 0.8;
+          const fp = P(c, fx, fz, 13.5);
+          const fColor = (row + col) % 2 === 0 ? tab.col : tab.col2;
+
+          // Buah bulat besar dengan kilau pantulan
+          ctx.fillStyle = fColor;
+          ctx.beginPath();
+          ctx.arc(fp.x, fp.y, 4.2 * s, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+          ctx.beginPath();
+          ctx.arc(fp.x - 1.2 * s, fp.y - 1.2 * s, 1.4 * s, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
-    })
-  );
-  // Konter kasir
-  [6.4, 10.2, 14].forEach((dx, i) => {
-    q.add(cx + dx, cz + 5.2, () => {
-      isoBox(c, cx + dx, cz + 5.2, 1.2, 3, 11, '#334155', { top: '#475569' });
-      isoBox(c, cx + dx, cz + 4.8, 0.9, 2, 0.5, '#111827', { elev: 11 });
-      isoBox(c, cx + dx + 0.2, cz + 6.2, 0.5, 0.1, 5, '#111827', { elev: 11, left: '#22d3ee' });
-      line(c, P(c, cx + dx - 0.6, cz + 6.6, 0), P(c, cx + dx - 0.6, cz + 6.6, 24), '#94a3b8', 0.8 * c.zoom);
-      isoBox(c, cx + dx - 0.6, cz + 6.6, 0.1, 0.8, 3, '#16a34a', { elev: 22 });
-      void i;
+
+      // Plang label kayu
+      const lblPt = P(c, tab.x, tab.z + tab.d / 2 + 0.05, 8);
+      ctx.save();
+      ctx.fillStyle = '#fef3c7';
+      ctx.font = `bold ${Math.max(3.5, Math.round(4.5 * s))}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(tab.fruit, lblPt.x, lblPt.y);
+      ctx.restore();
     });
-    q.add(cx + dx + 1.2, cz + 5.6, () => drawPerson(c, cx + dx + 1.2, cz + 5.6, '#16a34a', '#1f2937', { bob: Math.sin(c.t * 2 + dx) * 0.4 }), 0.05);
   });
-  // Troli belanja di pintu
-  for (let i = 0; i < 4; i++) {
-    const x = cx - 7 - i * 0.7;
-    q.add(x, cz + 10, () => {
-      isoBox(c, x, cz + 10, 0.6, 1, 6, '#cbd5e1', { elev: 3, alpha: 0.85, top: 'rgba(203,213,225,0.4)' });
-      isoBox(c, x, cz + 10.5, 0.6, 0.08, 2, '#dc2626', { elev: 9 });
+
+  // Display Artisan Bakery & Roti Segar (Di sebelah pulau buah)
+  q.add(cx - 12.0, cz - 5.5, () => {
+    // Meja display roti kayu
+    isoBox(c, cx - 12.0, cz - 5.5, 3.4, 2.0, 14, '#9a3412', { top: '#c2410c' });
+    // Kanopi kain melengkung garis hijau-putih
+    for (let str = 0; str < 5; str++) {
+      const sx0 = cx - 13.7 + str * 0.68;
+      const strCol = str % 2 === 0 ? '#16a34a' : '#f8fafc';
+      faceZ(c, sx0, sx0 + 0.68, cz - 4.45, 17, 23, strCol);
+    }
+    // Roti baguette & croissant di rak
+    for (let b = 0; b < 4; b++) {
+      const bp = P(c, cx - 13.2 + b * 0.8, cz - 5.5, 15);
+      ctx.fillStyle = '#d97706';
+      ctx.beginPath();
+      ctx.ellipse(bp.x, bp.y, 5 * s, 2.5 * s, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  // 6. ZONA TIMUR (DEPAN-KANAN): 2 MODERN POS CHECKOUT LANES (MEJA KASIR LENGKAP)
+  const cashierLanes = [
+    { dx: 10.5, dz: 3.5, no: '01', open: true },
+    { dx: 13.8, dz: 4.8, no: '02', open: true },
+  ];
+
+  cashierLanes.forEach((lane) => {
+    const kx = cx + lane.dx;
+    const kz = cz + lane.dz;
+    const laneW = 1.6;
+    const laneD = 4.2;
+
+    q.add(kx, kz, () => {
+      // Meja kasir utama (Modern Charcoal Slate)
+      isoBox(c, kx, kz, laneW, laneD, 13, '#334155', { top: '#475569', right: '#1e293b' });
+
+      // Conveyor belt karet hitam berputar
+      isoBox(c, kx - 0.2, kz - 0.5, 0.9, 2.8, 0.6, '#0f172a', { elev: 13, top: '#1e293b' });
+
+      // Barang belanjaan di conveyor belt
+      isoBox(c, kx - 0.2, kz - 1.2, 0.4, 0.4, 2.5, '#ef4444', { elev: 13.6 });
+      isoBox(c, kx - 0.2, kz - 0.5, 0.35, 0.5, 3.2, '#f59e0b', { elev: 13.6 });
+      isoBox(c, kx - 0.2, kz + 0.2, 0.4, 0.35, 2.0, '#3b82f6', { elev: 13.6 });
+
+      // Monitor POS Touchscreen Layar Biru Menyala di atas tiang
+      line(c, P(c, kx + 0.4, kz + 1.2, 13), P(c, kx + 0.4, kz + 1.2, 21), '#94a3b8', 1.5 * s);
+      isoBox(c, kx + 0.4, kz + 1.2, 0.4, 0.7, 5.5, '#0284c7', { elev: 19, top: '#38bdf8', left: '#0369a1' });
+
+      // Barcode Scanner Laser Merah
+      line(c, P(c, kx, kz + 0.8, 13.6), P(c, kx - 0.4, kz + 0.8, 13.6), '#ef4444', 1.2 * s);
+
+      // Rak Impulse Buy (permen, cokelat kecil di depan kasir)
+      faceX(c, kx + laneW / 2 + 0.05, kz - 1.5, kz + 0.5, 4, 11, '#64748b');
+      faceX(c, kx + laneW / 2 + 0.08, kz - 1.4, kz - 0.6, 5, 10, '#ec4899');
+      faceX(c, kx + laneW / 2 + 0.08, kz - 0.4, kz + 0.4, 5, 10, '#eab308');
+
+      // Kantong Belanja Kuning SuperMart di Ujung Meja
+      isoBox(c, kx - 0.2, kz + 1.7, 0.5, 0.5, 4.5, '#facc15', { elev: 13, top: '#fde047' });
+
+      // Papan Nomor Kasir Menyala Menggantung
+      line(c, P(c, kx, kz + 1.8, 38), P(c, kx, kz + 1.8, 26), '#64748b', 1 * s);
+      isoBox(c, kx, kz + 1.8, 0.1, 1.4, 4, '#15803d', { elev: 23, top: '#16a34a' });
+      const kP = P(c, kx + 0.1, kz + 1.8, 25);
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.max(4, Math.round(5.5 * s))}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(lane.no, kP.x, kP.y);
+      ctx.restore();
     });
-  }
-  // Pembeli yang berjalan di lorong
-  [
-    [-8.5, '#3b82f6', '#1f2937', 0],
-    [-4.5, '#db2777', '#78350f', 2],
-    [-0.5, '#f59e0b', '#111827', 4],
-    [4.2, '#7c3aed', '#1f2937', 1],
-  ].forEach(([dx, body, hair, ph]) => {
-    const z = cz - 7 + ((Math.sin(c.t * 0.35 + (ph as number)) + 1) / 2) * 12;
-    const x = cx + (dx as number);
-    q.add(x, z, () => {
-      drawPerson(c, x, z, body as string, hair as string, { bob: Math.abs(Math.sin(c.t * 6 + (ph as number))) * 1.2 });
-      isoBox(c, x + 0.5, z + 0.3, 0.5, 0.7, 4, '#cbd5e1', { elev: 3, alpha: 0.8 });
+
+    // NPC Kasir berseragam hijau di balik meja
+    q.add(kx + 0.9, kz + 0.2, () => {
+      drawPerson(c, kx + 0.9, kz + 0.2, '#16a34a', '#1e293b', {
+        bob: Math.sin(c.t * 2 + lane.dx) * 0.3,
+      });
     }, 0.05);
   });
+
+  // 7. ZONA PINTU MASUK (SELATAN-BARAT): SHOPPING CART BAY & SECURITY GATES
+  // Deretan Troli Belanja Stainless Steel Chrome
+  for (let t = 0; t < 5; t++) {
+    const tx = cx - 13.5 + t * 0.9;
+    const tz = cz + 8.2;
+    q.add(tx, tz, () => {
+      // Keranjang troli kawat chrome
+      isoBox(c, tx, tz, 0.7, 1.2, 7.5, '#cbd5e1', { elev: 2.5, alpha: 0.9, top: 'rgba(203,213,225,0.5)' });
+      // Roda & sasis troli
+      isoBox(c, tx, tz, 0.6, 1.1, 1.2, '#475569');
+      // Gagang troli merah menyala
+      isoBox(c, tx, tz + 0.6, 0.65, 0.1, 1.6, '#dc2626', { elev: 9.5 });
+    });
+  }
+
+  // Tiang Sensor Masuk RFID Chrome
+  [cx - 8.2, cx - 6.2].forEach((px) => {
+    q.add(px, cz + 8.0, () => {
+      isoBox(c, px, cz + 8.0, 0.35, 0.35, 18, '#94a3b8', { top: '#cbd5e1' });
+      isoBox(c, px, cz + 8.0, 0.36, 0.36, 2, '#38bdf8', { elev: 15 }); // Sensor LED biru
+    });
+  });
+
+  // 8. LIVING ANIMATED NPCS (PELANGGAN & PETUGAS)
+  // Shopper 1: Budi mendorong troli belanja di lorong Aisle 01
+  const shopperZ = cz - 4.5 + ((Math.sin(c.t * 0.4) + 1) / 2) * 5.0;
+  q.add(cx - 3.5, shopperZ, () => {
+    drawPerson(c, cx - 3.5, shopperZ, '#2563eb', '#451a03', {
+      bob: Math.abs(Math.sin(c.t * 4)) * 0.8,
+    });
+    // Troli yang didorong
+    isoBox(c, cx - 3.5, shopperZ + 1.1, 0.7, 1.2, 7, '#cbd5e1', { elev: 2.5, alpha: 0.9 });
+    isoBox(c, cx - 3.5, shopperZ + 1.65, 0.65, 0.1, 1.6, '#dc2626', { elev: 9 });
+  }, 0.05);
+
+  // Shopper 2: Maya sedang memilih buah di Fresh Produce Island
+  q.add(cx - 9.8, cz - 0.5, () => {
+    drawPerson(c, cx - 9.8, cz - 0.5, '#db2777', '#172554', {
+      bob: Math.sin(c.t * 1.5) * 0.2,
+      cup: true, // Membawa kantong belanja
+    });
+  }, 0.05);
+
+  // Staf Restocking: Dani berseragam polo hijau sedang menata kardus di Aisle 02
+  q.add(cx + 2.5, cz - 3.5, () => {
+    drawPerson(c, cx + 2.5, cz - 3.5, '#16a34a', '#1e293b', {
+      bob: Math.sin(c.t * 2) * 0.3,
+    });
+    // Kardus stok barang cokelat
+    isoBox(c, cx + 2.5, cz - 2.5, 0.9, 0.9, 5.5, '#b45309', { top: '#d97706' });
+  }, 0.05);
+
   q.flush();
+
+  // Pagar Depan & Monumen Identitas SuperMart
   frontRails(c, g);
-  monumentSign(c, cx + 5.5, g.z1 + 1.1, '🏪 SuperMart 24/7', 'PUBLIC FACILITY', '#16a34a', hovered);
+  monumentSign(c, cx + 6.0, g.z1 - 0.5, '🛒 SuperMart 24/7 Mega Store', 'PUBLIC FACILITY • RETAIL CENTER', '#16a34a', hovered);
 };
 
 // =============================================================================

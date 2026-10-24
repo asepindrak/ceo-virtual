@@ -111,6 +111,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   }, [initialTab]);
 
   const [selectedLayout, setSelectedLayout] = useState<OfficeLayoutTemplateId>(currentCompany.officeLayoutTemplate || 'tech_startup');
+  const [appliedLayoutNotice, setAppliedLayoutNotice] = useState<string | null>(null);
   const [customLayout, setCustomLayout] = useState<OfficeLayoutTemplateId>('tech_startup');
   const [customName, setCustomName] = useState('');
   const [customIndustry, setCustomIndustry] = useState('');
@@ -776,6 +777,16 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 </div>
               </div>
 
+              {appliedLayoutNotice && (
+                <div className="p-3 bg-[#f0fdf4] border-2 border-[#86efac] rounded-xl text-[#166534] flex items-center justify-between shadow-xs animate-in fade-in">
+                  <div className="flex items-center gap-2 text-xs font-bold">
+                    <CheckCircle2 className="w-4 h-4 text-[#16a34a]" />
+                    <span>Layout &ldquo;{appliedLayoutNotice}&rdquo; berhasil diterapkan ke kantor utama!</span>
+                  </div>
+                  <span className="text-[11px] font-medium text-[#15803d]">Perubahan aktif di canvas</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {OFFICE_LAYOUT_TEMPLATES.map((tmpl) => {
                   const isCurrent = (currentCompany.officeLayoutTemplate || 'tech_startup') === tmpl.id;
@@ -784,6 +795,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                       key={tmpl.id}
                       onClick={() => {
                         setSelectedLayout(tmpl.id);
+                        setAppliedLayoutNotice(tmpl.name);
                         onSelectCompany({
                           ...currentCompany,
                           officeLayoutTemplate: tmpl.id,

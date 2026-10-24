@@ -53,6 +53,8 @@ interface WorldMapModalProps {
   onDispatchMission?: (mission: TravelMission) => void;
   onBuyItem?: (item: any) => void;
   onViewCityScale?: () => void;
+  onClaimBounty?: (bounty: any, company: RegionalCompanyInfo) => void;
+  onBuyOffer?: (offer: any, company: RegionalCompanyInfo) => void;
 }
 
 export const WorldMapModal: React.FC<WorldMapModalProps> = ({
@@ -64,6 +66,8 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
   onDispatchMission,
   onBuyItem,
   onViewCityScale,
+  onClaimBounty,
+  onBuyOffer,
 }) => {
   const [activeTab, setActiveTab] = useState<'atlas' | 'dispatch' | 'missions' | 'p2p_mesh'>('atlas');
   const [districts, setDistricts] = useState<RegionalDistrict[]>([]);
@@ -179,11 +183,14 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
   const [missionType, setMissionType] = useState<TravelMissionType>('b2b_pitch');
   const [isDispatching, setIsDispatching] = useState(false);
   const [dispatchNotice, setDispatchNotice] = useState('');
+  const [actionNotice, setActionNotice] = useState('');
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
 
-  // Fetch world map data from API
+  // Fetch world map data from API with dynamic active company synchronization
   const fetchWorldData = async () => {
     try {
-      const res = await fetch('/api/world');
+      const compNameQuery = currentCompany?.name ? `?companyName=${encodeURIComponent(currentCompany.name)}` : '';
+      const res = await fetch(`/api/world${compNameQuery}`);
       const data = await res.json();
       if (data.success) {
         setDistricts(data.districts || []);
@@ -193,6 +200,84 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
       console.error('Error fetching world data:', e);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Claim Regional Bounty Contract
+  const handleClaimBountyAction = async (bounty: any, comp: RegionalCompanyInfo) => {
+    setIsProcessingAction(true);
+    try {
+      const res = await fetch('/api/world', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'claim_bounty',
+          bountyId: bounty.id,
+          targetCompanyId: comp.id,
+          targetCompanyName: comp.name,
+          bountyTitle: bounty.title,
+          bountyBudgetCoins: bounty.budgetCoins,
+          bountyRewardXp: bounty.rewardXp,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionNotice(`🎯 Bounty "${bounty.title}" berhasil diambil! Tiket proyek telah ditambahkan ke Sprint Kanban (+${bounty.rewardXp} XP, ${bounty.budgetCoins} Coins).`);
+        if (onClaimBounty) {
+          onClaimBounty(bounty, comp);
+        }
+        setTimeout(() => setActionNotice(''), 5000);
+      } else {
+        setActionNotice(`❌ Gagal mengambil bounty: ${data.message || 'Error'}`);
+        setTimeout(() => setActionNotice(''), 4000);
+      }
+    } catch (err: any) {
+      setActionNotice(`❌ Error: ${err.message}`);
+      setTimeout(() => setActionNotice(''), 4000);
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  // Buy Regional Market License / Product
+  const handleBuyOfferAction = async (offer: any, comp: RegionalCompanyInfo) => {
+    if ((userPoints || 0) < offer.priceCoins) {
+      setActionNotice(`❌ Saldo Koin tidak mencukupi! Diperlukan ${offer.priceCoins} Coins (Saldo Anda: ${userPoints || 0} Coins).`);
+      setTimeout(() => setActionNotice(''), 4000);
+      return;
+    }
+
+    setIsProcessingAction(true);
+    try {
+      const offerTitle = offer.title || (offer as any).name || 'License';
+      const res = await fetch('/api/world', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'buy_offer',
+          offerId: offer.id,
+          offerName: offerTitle,
+          priceCoins: offer.priceCoins,
+          targetCompanyId: comp.id,
+          targetCompanyName: comp.name,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionNotice(`🎉 Lisensi "${offerTitle}" dari ${comp.name} berhasil dibeli seharga ${offer.priceCoins} Coins!`);
+        if (onBuyOffer) {
+          onBuyOffer(offer, comp);
+        }
+        setTimeout(() => setActionNotice(''), 5000);
+      } else {
+        setActionNotice(`❌ Gagal membeli lisensi: ${data.message || 'Error'}`);
+        setTimeout(() => setActionNotice(''), 4000);
+      }
+    } catch (err: any) {
+      setActionNotice(`❌ Error: ${err.message}`);
+      setTimeout(() => setActionNotice(''), 4000);
+    } finally {
+      setIsProcessingAction(false);
     }
   };
 
@@ -348,11 +433,17 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
 
         {/* Content Area (flex-1 overflow-y-auto min-h-0) */}
         <div className="p-4 sm:p-5 flex-1 overflow-y-auto min-h-0 space-y-4">
-          {/* Notification banner */}
+          {/* Notification banners */}
           {dispatchNotice && (
             <div className="p-3 bg-[#e6f4ea] border border-[#34a853] text-[#137333] rounded-2xl text-xs font-medium flex items-center gap-2 animate-in fade-in">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-[#137333]" />
               <span>{dispatchNotice}</span>
+            </div>
+          )}
+          {actionNotice && (
+            <div className="p-3 bg-[#e0f2fe] border border-[#0284c7] text-[#0369a1] rounded-2xl text-xs font-medium flex items-center gap-2 animate-in fade-in shadow-xs">
+              <Sparkles className="w-4 h-4 shrink-0 text-[#0284c7]" />
+              <span>{actionNotice}</span>
             </div>
           )}
 
@@ -565,10 +656,10 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         return (
                           <div
                             key={comp.id}
-                            className={`p-3.5 rounded-xl border transition-all space-y-2.5 ${
+                            className={`p-3.5 rounded-xl border transition-all space-y-3 ${
                               isMyCompany
-                                ? 'bg-[#fef8e7] border-[#c85a2b]'
-                                : 'bg-[#faf5eb] border-[#d6c5ad] hover:border-[#c85a2b]'
+                                ? 'bg-[#fef8e7] border-2 border-[#c85a2b] shadow-xs'
+                                : 'bg-[#fffdf9] border-[#d6c5ad] hover:border-[#c85a2b]'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-2">
@@ -579,8 +670,14 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                                     Lv {comp.level}
                                   </span>
                                   {isMyCompany && (
-                                    <span className="text-[10px] px-1.5 py-0.2 bg-[#c85a2b] text-white rounded font-bold">
-                                      Your Office
+                                    <span className="text-[10px] px-2 py-0.5 bg-[#c85a2b] text-white rounded font-bold">
+                                      ⭐ Your Office
+                                    </span>
+                                  )}
+                                  {comp.isLivePeer && (
+                                    <span className="text-[10px] px-2 py-0.5 bg-[#0284c7] text-white rounded font-bold flex items-center gap-1">
+                                      <Radio className="w-2.5 h-2.5 animate-pulse" />
+                                      <span>Live P2P Peer</span>
                                     </span>
                                   )}
                                 </div>
@@ -590,6 +687,11 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                                 <div className="text-xs text-[#786653] mt-0.5">
                                   Owner: <strong className="text-[#2c231c]">{comp.ownerName}</strong> • {comp.buildingType}
                                 </div>
+                                {comp.peerEndpoint && (
+                                  <div className="text-[10px] font-mono text-[#0284c7] mt-0.5">
+                                    🌐 {comp.peerEndpoint}
+                                  </div>
+                                )}
                               </div>
 
                               {!isMyCompany && (
@@ -607,30 +709,117 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                               )}
                             </div>
 
-                            {/* Bounties & Market Items Pills */}
-                            <div className="text-[10px] space-y-1.5 pt-1 border-t border-[#ede2d1]">
-                              <div className="flex items-center justify-between text-[#786653]">
-                                <span className="flex items-center gap-1">
-                                  <Briefcase className="w-3 h-3 text-[#c85a2b]" />
+                            {/* Open Bounties Section */}
+                            <div className="space-y-1.5 pt-2 border-t border-[#ede2d1]">
+                              <div className="flex items-center justify-between text-[11px] font-bold text-[#786653]">
+                                <span className="flex items-center gap-1.5">
+                                  <Briefcase className="w-3.5 h-3.5 text-[#c85a2b]" />
                                   <span>Open Bounties ({comp.openBounties.length})</span>
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <ShoppingBag className="w-3 h-3 text-[#4f46e5]" />
-                                  <span>Market Products ({comp.marketOffers.length})</span>
                                 </span>
                               </div>
 
-                              {comp.openBounties.length > 0 && (
-                                <div className="p-2 rounded-lg bg-[#fffdf9] border border-[#ede2d1] text-[11px]">
-                                  <div className="font-semibold text-[#2c231c] truncate">
-                                    📋 {comp.openBounties[0].title}
-                                  </div>
-                                  <div className="text-[9px] text-[#786653] font-mono flex items-center justify-between mt-0.5">
-                                    <span>Reward: +{comp.openBounties[0].rewardXp} XP</span>
-                                    <span className="text-[#ab7a1a] font-bold">
-                                      {comp.openBounties[0].budgetCoins} Coins
-                                    </span>
-                                  </div>
+                              {comp.openBounties.length === 0 ? (
+                                <div className="text-[10px] text-[#9e8b78] italic p-1.5 bg-[#faf5eb] rounded-lg">
+                                  Tidak ada bounty terbuka saat ini.
+                                </div>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  {comp.openBounties.map((bounty) => (
+                                    <div
+                                      key={bounty.id}
+                                      className="p-2 rounded-lg bg-[#faf5eb] border border-[#ede2d1] text-[11px] space-y-1"
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                          <div className="font-semibold text-[#2c231c]">
+                                            📋 {bounty.title}
+                                          </div>
+                                          <div className="text-[10px] text-[#786653] font-mono">
+                                            Kategori: {bounty.type.toUpperCase()}
+                                          </div>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                          <div className="text-[10px] text-[#ab7a1a] font-bold font-mono">
+                                            +{bounty.budgetCoins} Coins
+                                          </div>
+                                          <div className="text-[9px] text-[#059669] font-mono">
+                                            +{bounty.rewardXp} XP
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex justify-end pt-1">
+                                        {isMyCompany ? (
+                                          <span className="text-[10px] text-[#786653] bg-[#ede2d1] px-2 py-0.5 rounded font-medium">
+                                            Bounty Internal Anda
+                                          </span>
+                                        ) : (
+                                          <button
+                                            disabled={isProcessingAction}
+                                            onClick={() => handleClaimBountyAction(bounty, comp)}
+                                            className="px-2.5 py-1 bg-[#c85a2b] hover:bg-[#b04d22] text-white text-[10px] font-bold rounded-md flex items-center gap-1 transition-all shadow-2xs disabled:opacity-50"
+                                          >
+                                            <Award className="w-3 h-3" />
+                                            <span>🎯 Ambil Bounty</span>
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Market Products & Licenses Section */}
+                            <div className="space-y-1.5 pt-2 border-t border-[#ede2d1]">
+                              <div className="flex items-center justify-between text-[11px] font-bold text-[#786653]">
+                                <span className="flex items-center gap-1.5">
+                                  <ShoppingBag className="w-3.5 h-3.5 text-[#4f46e5]" />
+                                  <span>Market Products & IP Licenses ({comp.marketOffers.length})</span>
+                                </span>
+                              </div>
+
+                              {comp.marketOffers.length === 0 ? (
+                                <div className="text-[10px] text-[#9e8b78] italic p-1.5 bg-[#faf5eb] rounded-lg">
+                                  Belum ada produk/lisensi yang diperjualbelikan.
+                                </div>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  {comp.marketOffers.map((offer) => (
+                                    <div
+                                      key={offer.id}
+                                      className="p-2 rounded-lg bg-[#faf5eb] border border-[#ede2d1] text-[11px] flex items-center justify-between gap-2"
+                                    >
+                                      <div className="min-w-0">
+                                        <div className="font-semibold text-[#2c231c] truncate">
+                                          📦 {offer.title}
+                                        </div>
+                                        <div className="text-[10px] text-[#786653] truncate">
+                                          {offer.category.toUpperCase()} • {offer.description}
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <span className="text-[11px] font-mono font-bold text-[#ab7a1a]">
+                                          {offer.priceCoins} Coins
+                                        </span>
+                                        {!isMyCompany ? (
+                                          <button
+                                            disabled={isProcessingAction}
+                                            onClick={() => handleBuyOfferAction(offer, comp)}
+                                            className="px-2.5 py-1 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-[10px] font-bold rounded-md flex items-center gap-1 transition-all shadow-2xs disabled:opacity-50"
+                                          >
+                                            <Coins className="w-3 h-3" />
+                                            <span>Beli</span>
+                                          </button>
+                                        ) : (
+                                          <span className="text-[9px] text-[#786653] bg-[#ede2d1] px-1.5 py-0.5 rounded">
+                                            Katalog Anda
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               )}
                             </div>

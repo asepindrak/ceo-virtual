@@ -9,6 +9,7 @@ import {
   renderMainOfficeSignature,
   renderCompanyKavling,
   renderSentralTrainStation,
+  renderSuperMart,
   applyTemplateSeats,
   IsoCtx,
 } from './cityRenderer';
@@ -120,11 +121,11 @@ export interface ExternalCompanyKavling {
 }
 
 export const REGIONAL_PLOT_COORDINATES = [
-  { id: 'plot-nw', label: 'Kavling Regional Barat #1', cx: -42.0, cz: 0.0, halfW: 16.5, halfD: 12.0 },
-  { id: 'plot-ne', label: 'Kavling Regional Timur #1', cx: 42.0, cz: 0.0, halfW: 16.5, halfD: 12.0 },
-  { id: 'plot-sw', label: 'Kavling Regional Barat #2', cx: -42.0, cz: 36.0, halfW: 16.5, halfD: 12.0 },
-  { id: 'plot-sc', label: 'Kavling Regional Selatan #1', cx: 0.0, cz: 36.0, halfW: 16.5, halfD: 12.0 },
-  { id: 'plot-se', label: 'Kavling Regional Timur #2', cx: 42.0, cz: 36.0, halfW: 16.5, halfD: 12.0 },
+  { id: 'plot-nw', label: 'Kavling Regional Barat #1', cx: -42.0, cz: -1.0, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-ne', label: 'Kavling Regional Timur #1', cx: 42.0, cz: -1.0, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-sw', label: 'Kavling Regional Barat #2', cx: -42.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-sc', label: 'Kavling Regional Selatan #1', cx: 0.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-se', label: 'Kavling Regional Timur #2', cx: 42.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
 ];
 
 export function buildRegionalKavlings(peerNodes?: any[]): ExternalCompanyKavling[] {
@@ -227,8 +228,8 @@ export const CITY_LANDMARKS = [
     type: 'Regional Transit & Intercity Dispatch Hub',
     desc: 'Grand station terminal featuring high-speed platforms, RFID ticket turnstiles, and digital departure schedule.',
     icon: '🚄',
-    wx: 80.0,
-    wz: 19.0,
+    wx: 84.0,
+    wz: 0.0,
     radius: 55,
   },
   {
@@ -237,8 +238,8 @@ export const CITY_LANDMARKS = [
     type: 'Retail Facility & Office Supply Center',
     desc: 'All-in-one 24-hour supermarket featuring food and grocery aisles, beverage chillers, and POS checkout counters.',
     icon: '🏪',
-    wx: -80.0,
-    wz: 19.0,
+    wx: -84.0,
+    wz: -1.0,
     radius: 55,
   },
   {
@@ -247,8 +248,8 @@ export const CITY_LANDMARKS = [
     type: 'Regional Dining Hub',
     desc: 'Tech community food court where agents and developers relax for lunch and coffee breaks.',
     icon: '🍜',
-    wx: 0.0,
-    wz: 19.0,
+    wx: 20.0,
+    wz: 12.5,
     radius: 35,
   },
 ];
@@ -303,7 +304,6 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
   // HUD Card visibility toggles
   const [isAgentListOpen, setIsAgentListOpen] = useState(true);
-  const [isMiniMapExpanded, setIsMiniMapExpanded] = useState(true);
 
   // Synchronize neighboring regional employees to their template desks
   useEffect(() => {
@@ -526,8 +526,8 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     const catDist = Math.hypot(clientX - catIso.isoX, clientY - (catIso.isoY - 10 * zoom));
     setIsCatHovered(catDist < 25 * zoom);
 
-    // 4. Hit test against Train Station (Sentral Aerorail Station at wx: 80.0, wz: 19.0)
-    const stIso = worldToIso(80.0, 19.0, width, height);
+    // 4. Hit test against Train Station (Sentral Aerorail Station at wx: 84.0, wz: 0.0)
+    const stIso = worldToIso(84.0, 0.0, width, height);
     const stDist = Math.hypot(clientX - stIso.isoX, clientY - (stIso.isoY - 20 * zoom));
     setIsStationHovered(stDist < 75 * zoom);
 
@@ -535,7 +535,9 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     let foundKavling: ExternalCompanyKavling | null = null;
     if (!foundAgent && !foundExtEmp) {
       for (const comp of regionalKavlings) {
-        const { isoX, isoY } = worldToIso(comp.cx, comp.cz + 13.5, width, height);
+        const signZ = comp.cz > 18 ? comp.cz - 12.7 : comp.cz + 13.1;
+        const signX = comp.cz > 18 ? comp.cx - 5.5 : comp.cx + 5.5;
+        const { isoX, isoY } = worldToIso(signX, signZ, width, height);
         const dist = Math.hypot(clientX - isoX, clientY - (isoY - 20 * zoom));
         if (dist < 36 * zoom) {
           foundKavling = comp;
@@ -1044,7 +1046,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
       // 5. Lima Zebra Crosswalks Menyeberang Boulevard (Menghubungkan Semua Kavling)
       ctx.fillStyle = '#ffffff';
-      const crosswalkCenters = [-80.0, -42.0, 0.0, 42.0, 80.0];
+      const crosswalkCenters = [-84.0, -42.0, 0.0, 42.0, 84.0];
       crosswalkCenters.forEach((cxw) => {
         for (let zx = cxw - 1.8; zx <= cxw + 1.8; zx += 0.65) {
           const zw1 = toIso(zx - 0.2, 16.3);
@@ -1395,6 +1397,31 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
       // Themed signature back-wall plaque and installation for active company
       renderMainOfficeSignature({ ctx, toIso, zoom, t: timeSec }, activeLayoutTemplate);
+
+      // High-Visibility Floating Architectural Identity Plaque
+      if (zoom >= 0.5) {
+        const plaqueIso = toIso(0.0, -11.6);
+        const compTitle = `${currentCompany?.name?.toUpperCase() || 'SHADOWMOVE'} • ${mainTheme.label.toUpperCase()}`;
+        ctx.font = `bold ${Math.max(6, Math.round(7.5 * zoom))}px ui-sans-serif, system-ui, sans-serif`;
+        const tw = ctx.measureText(compTitle).width;
+        const bw = tw + 22 * zoom;
+        const bh = 15 * zoom;
+        const by = plaqueIso.isoY - 50 * zoom;
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+        ctx.beginPath();
+        ctx.roundRect(plaqueIso.isoX - bw / 2, by - bh / 2, bw, bh, 4 * zoom);
+        ctx.fill();
+        ctx.strokeStyle = mainTheme.accent;
+        ctx.lineWidth = 1.8 * zoom;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(compTitle, plaqueIso.isoX, by);
+        ctx.textBaseline = 'alphabetic';
+      }
 
       // Hanging macrame plants along top window frame
       const hangingPlantIso1 = toIso(-13.5, -11.5);
@@ -2031,122 +2058,357 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.fill();
 
       // ---------------------------------------------------------
-      // RETRO ARCADE GAME CORNER (X: -8.8, Z: -3.8)
+      // SIGNATURE THEMED CENTERPIECE INSTALLATION (X: -8.8, Z: -3.8)
+      // Transforms visibly based on activeLayoutTemplate!
       // ---------------------------------------------------------
-      const arcadeIso = toIso(-8.8, -3.8);
-      // Floor glow mat
-      ctx.fillStyle = 'rgba(168, 85, 247, 0.22)';
-      ctx.beginPath();
-      ctx.ellipse(arcadeIso.isoX, arcadeIso.isoY + 4 * zoom, 28 * zoom, 16 * zoom, 0, 0, Math.PI * 2);
-      ctx.fill();
+      const centerpieceIso = toIso(-8.8, -3.8);
 
-      // Main Cabinet Body (Dark purple / Obsidian)
-      ctx.fillStyle = '#1e1b4b';
-      ctx.beginPath();
-      ctx.roundRect(arcadeIso.isoX - 16 * zoom, arcadeIso.isoY - 38 * zoom, 32 * zoom, 42 * zoom, 5);
-      ctx.fill();
-      ctx.strokeStyle = '#c084fc';
-      ctx.lineWidth = 1.8;
-      ctx.stroke();
+      if (activeLayoutTemplate === 'cloud_datacenter') {
+        // === CLOUD DATACENTER: Supercomputing Server Rack & NOC Terminal ===
+        // Floor antistatic cooling glow
+        ctx.fillStyle = 'rgba(2, 132, 199, 0.28)';
+        ctx.beginPath();
+        ctx.ellipse(centerpieceIso.isoX, centerpieceIso.isoY + 4 * zoom, 30 * zoom, 16 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-      // Side trim neon strip (Magenta & Cyan)
-      ctx.strokeStyle = '#06b6d4';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(arcadeIso.isoX - 15 * zoom, arcadeIso.isoY - 35 * zoom);
-      ctx.lineTo(arcadeIso.isoX - 15 * zoom, arcadeIso.isoY + 2 * zoom);
-      ctx.stroke();
-      ctx.strokeStyle = '#ec4899';
-      ctx.beginPath();
-      ctx.moveTo(arcadeIso.isoX + 15 * zoom, arcadeIso.isoY - 35 * zoom);
-      ctx.lineTo(arcadeIso.isoX + 15 * zoom, arcadeIso.isoY + 2 * zoom);
-      ctx.stroke();
+        // 42U Heavy Datacenter Server Rack Tower
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(centerpieceIso.isoX - 16 * zoom, centerpieceIso.isoY - 44 * zoom, 32 * zoom, 48 * zoom, 4);
+        ctx.fill();
+        ctx.strokeStyle = '#0284c7';
+        ctx.lineWidth = 1.8 * zoom;
+        ctx.stroke();
 
-      // Illuminated Marquee Top (Sleek Retro Neon Marquee)
-      const marqueeGlow = Math.sin(timeSec * 4) * 0.2 + 0.8;
-      ctx.fillStyle = `rgba(236, 72, 153, ${marqueeGlow})`;
-      ctx.beginPath();
-      ctx.roundRect(arcadeIso.isoX - 15 * zoom, arcadeIso.isoY - 37 * zoom, 30 * zoom, 9 * zoom, 2);
-      ctx.fill();
-      ctx.strokeStyle = '#f472b6';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+        // Blinking blade server units with animated optical activity
+        for (let b = 0; b < 6; b++) {
+          const sy = centerpieceIso.isoY - (40 - b * 6.5) * zoom;
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(centerpieceIso.isoX - 14 * zoom, sy, 28 * zoom, 5 * zoom);
+          // LED activity lights
+          for (let led = 0; led < 5; led++) {
+            const isBlinking = Math.sin(timeSec * 7 + b * 2 + led * 1.5) > 0;
+            ctx.fillStyle = isBlinking ? (led % 2 === 0 ? '#38bdf8' : '#4ade80') : '#0369a1';
+            ctx.beginPath();
+            ctx.arc(centerpieceIso.isoX - 11 * zoom + led * 4.5 * zoom, sy + 2.5 * zoom, 1.2 * zoom, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
 
-      // Compact, perfectly fitted text "ARCADE" without oversized emoji overflow
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `900 ${Math.max(4, Math.round(5 * zoom))}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('ARCADE', arcadeIso.isoX, arcadeIso.isoY - 32.5 * zoom);
-      ctx.textBaseline = 'alphabetic'; // reset baseline
+        // Top rack marquee: "CLOUD 42U"
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(centerpieceIso.isoX - 14 * zoom, centerpieceIso.isoY - 43 * zoom, 28 * zoom, 4 * zoom);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(4, Math.round(4.5 * zoom))}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('NOC RACK #01', centerpieceIso.isoX, centerpieceIso.isoY - 41 * zoom);
+        ctx.textBaseline = 'alphabetic';
 
-      // CRT Monitor Screen (Animated Pixel Game)
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.roundRect(arcadeIso.isoX - 12 * zoom, arcadeIso.isoY - 24 * zoom, 24 * zoom, 15 * zoom, 2);
-      ctx.fill();
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      } else if (activeLayoutTemplate === 'fintech_trading') {
+        // === FINTECH TRADING: Bloomberg Multi-Screen Terminal & Gold Bull ===
+        // Marble floor glow
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.22)';
+        ctx.beginPath();
+        ctx.ellipse(centerpieceIso.isoX, centerpieceIso.isoY + 4 * zoom, 30 * zoom, 16 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-      // Animated retro pixel elements inside CRT screen
-      const pixelShipX = arcadeIso.isoX + Math.sin(timeSec * 3) * 7 * zoom;
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(pixelShipX - 2.5 * zoom, arcadeIso.isoY - 14 * zoom, 5 * zoom, 3 * zoom); // Spaceship
-      ctx.fillStyle = '#f43f5e';
-      const invaderY = arcadeIso.isoY - 21 * zoom + (Math.floor(timeSec * 2) % 2) * 1.5 * zoom;
-      ctx.fillRect(arcadeIso.isoX - 6 * zoom, invaderY, 4 * zoom, 3 * zoom); // Invader 1
-      ctx.fillRect(arcadeIso.isoX + 2 * zoom, invaderY, 4 * zoom, 3 * zoom); // Invader 2
+        // Heavy trading desk base
+        ctx.fillStyle = '#1c1917';
+        ctx.beginPath();
+        ctx.roundRect(centerpieceIso.isoX - 18 * zoom, centerpieceIso.isoY - 20 * zoom, 36 * zoom, 24 * zoom, 4);
+        ctx.fill();
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 1.4 * zoom;
+        ctx.stroke();
 
-      // Angled Control Panel Deck
-      ctx.fillStyle = '#312e81';
-      ctx.beginPath();
-      ctx.roundRect(arcadeIso.isoX - 15 * zoom, arcadeIso.isoY - 8 * zoom, 30 * zoom, 10 * zoom, 3);
-      ctx.fill();
-      ctx.strokeStyle = '#818cf8';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+        // Dual 4K Curved Bloomberg Trading Screens
+        // Left screen (Candlestick chart)
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(centerpieceIso.isoX - 17 * zoom, centerpieceIso.isoY - 38 * zoom, 16 * zoom, 16 * zoom);
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 1 * zoom;
+        ctx.strokeRect(centerpieceIso.isoX - 17 * zoom, centerpieceIso.isoY - 38 * zoom, 16 * zoom, 16 * zoom);
+        // Green candlesticks
+        for (let c = 0; c < 4; c++) {
+          const cx = centerpieceIso.isoX - 15 * zoom + c * 3.8 * zoom;
+          const isUp = Math.sin(timeSec * 2 + c) > -0.2;
+          ctx.fillStyle = isUp ? '#22c55e' : '#ef4444';
+          ctx.fillRect(cx, centerpieceIso.isoY - (30 + (c % 2) * 3) * zoom, 2.2 * zoom, 5 * zoom);
+        }
 
-      // Joysticks & Buttons
-      // Joystick 1 (Red ball)
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(arcadeIso.isoX - 9 * zoom, arcadeIso.isoY - 3 * zoom);
-      ctx.lineTo(arcadeIso.isoX - 9 * zoom, arcadeIso.isoY - 6 * zoom);
-      ctx.stroke();
-      ctx.fillStyle = '#ef4444';
-      ctx.beginPath();
-      ctx.arc(arcadeIso.isoX - 9 * zoom, arcadeIso.isoY - 6.5 * zoom, 2.2 * zoom, 0, Math.PI * 2);
-      ctx.fill();
+        // Right screen (Order Book / Ticker)
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(centerpieceIso.isoX + 1 * zoom, centerpieceIso.isoY - 38 * zoom, 16 * zoom, 16 * zoom);
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 1 * zoom;
+        ctx.strokeRect(centerpieceIso.isoX + 1 * zoom, centerpieceIso.isoY - 38 * zoom, 16 * zoom, 16 * zoom);
+        // Ticker lines
+        for (let t = 0; t < 3; t++) {
+          ctx.fillStyle = t % 2 === 0 ? '#10b981' : '#f59e0b';
+          ctx.fillRect(centerpieceIso.isoX + 3 * zoom, centerpieceIso.isoY - (35 - t * 4) * zoom, 12 * zoom, 2 * zoom);
+        }
 
-      // Joystick 2 (Blue ball)
-      ctx.beginPath();
-      ctx.moveTo(arcadeIso.isoX + 2 * zoom, arcadeIso.isoY - 3 * zoom);
-      ctx.lineTo(arcadeIso.isoX + 2 * zoom, arcadeIso.isoY - 6 * zoom);
-      ctx.stroke();
-      ctx.fillStyle = '#3b82f6';
-      ctx.beginPath();
-      ctx.arc(arcadeIso.isoX + 2 * zoom, arcadeIso.isoY - 6.5 * zoom, 2.2 * zoom, 0, Math.PI * 2);
-      ctx.fill();
+        // Golden Bull Figurine on desk
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath();
+        ctx.ellipse(centerpieceIso.isoX, centerpieceIso.isoY - 10 * zoom, 5 * zoom, 3.5 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-      // Action Buttons (Yellow & Green)
-      ctx.fillStyle = '#eab308';
-      ctx.beginPath();
-      ctx.arc(arcadeIso.isoX - 3 * zoom, arcadeIso.isoY - 3.5 * zoom, 1.4 * zoom, 0, Math.PI * 2);
-      ctx.arc(arcadeIso.isoX + 8 * zoom, arcadeIso.isoY - 3.5 * zoom, 1.4 * zoom, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#10b981';
-      ctx.beginPath();
-      ctx.arc(arcadeIso.isoX - 1 * zoom, arcadeIso.isoY - 5 * zoom, 1.4 * zoom, 0, Math.PI * 2);
-      ctx.arc(arcadeIso.isoX + 10 * zoom, arcadeIso.isoY - 5 * zoom, 1.4 * zoom, 0, Math.PI * 2);
-      ctx.fill();
+      } else if (activeLayoutTemplate === 'robotics_hardware') {
+        // === ROBOTICS LAB: Industrial Robotic Arm & 3D Printer running ===
+        // Hazard caution stripe mat
+        ctx.fillStyle = 'rgba(234, 179, 8, 0.25)';
+        ctx.beginPath();
+        ctx.ellipse(centerpieceIso.isoX, centerpieceIso.isoY + 4 * zoom, 30 * zoom, 16 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-      // Coin Door / Glowing 25¢ Insert
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(arcadeIso.isoX - 5 * zoom, arcadeIso.isoY + 5 * zoom, 10 * zoom, 8 * zoom);
-      ctx.fillStyle = '#ef4444';
-      ctx.fillRect(arcadeIso.isoX - 2.5 * zoom, arcadeIso.isoY + 7 * zoom, 5 * zoom, 1.5 * zoom);
+        // Heavy steel workbench
+        ctx.fillStyle = '#374151';
+        ctx.beginPath();
+        ctx.roundRect(centerpieceIso.isoX - 18 * zoom, centerpieceIso.isoY - 22 * zoom, 36 * zoom, 26 * zoom, 4);
+        ctx.fill();
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 1.6 * zoom;
+        ctx.stroke();
+
+        // 3D Printer Glass Chamber on Left
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        ctx.fillRect(centerpieceIso.isoX - 16 * zoom, centerpieceIso.isoY - 40 * zoom, 15 * zoom, 18 * zoom);
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 1 * zoom;
+        ctx.strokeRect(centerpieceIso.isoX - 16 * zoom, centerpieceIso.isoY - 40 * zoom, 15 * zoom, 18 * zoom);
+        // Laser extrusion nozzle & glowing heatbed
+        const nozzleX = centerpieceIso.isoX - 14 * zoom + Math.sin(timeSec * 5) * 4 * zoom + 4 * zoom;
+        ctx.fillStyle = '#f97316';
+        ctx.fillRect(centerpieceIso.isoX - 14 * zoom, centerpieceIso.isoY - 25 * zoom, 11 * zoom, 2 * zoom); // bed
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(nozzleX, centerpieceIso.isoY - 32 * zoom, 2 * zoom, 6 * zoom); // head laser
+
+        // Articulated Robotic Arm on Right
+        const armBaseX = centerpieceIso.isoX + 9 * zoom;
+        const armBaseY = centerpieceIso.isoY - 22 * zoom;
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath();
+        ctx.arc(armBaseX, armBaseY, 4 * zoom, 0, Math.PI * 2);
+        ctx.fill();
+        // Moving joints
+        const armAngle1 = Math.sin(timeSec * 2) * 0.4 - 0.7;
+        const j1X = armBaseX + Math.cos(armAngle1) * 12 * zoom;
+        const j1Y = armBaseY + Math.sin(armAngle1) * 12 * zoom;
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 3.5 * zoom;
+        ctx.beginPath();
+        ctx.moveTo(armBaseX, armBaseY);
+        ctx.lineTo(j1X, j1Y);
+        ctx.stroke();
+        // Gripper claw
+        ctx.fillStyle = '#4b5563';
+        ctx.beginPath();
+        ctx.arc(j1X, j1Y, 3 * zoom, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (activeLayoutTemplate === 'creative_genai') {
+        // === CREATIVE GENAI STUDIO: Neural Hologram Easel & Generative Canvas ===
+        // Cyber magenta/pink floor glow
+        ctx.fillStyle = 'rgba(219, 39, 119, 0.25)';
+        ctx.beginPath();
+        ctx.ellipse(centerpieceIso.isoX, centerpieceIso.isoY + 4 * zoom, 30 * zoom, 16 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Wooden Easel Stand
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 2.2 * zoom;
+        ctx.beginPath();
+        ctx.moveTo(centerpieceIso.isoX - 12 * zoom, centerpieceIso.isoY + 2 * zoom);
+        ctx.lineTo(centerpieceIso.isoX, centerpieceIso.isoY - 44 * zoom);
+        ctx.lineTo(centerpieceIso.isoX + 12 * zoom, centerpieceIso.isoY + 2 * zoom);
+        ctx.stroke();
+
+        // Large 24-inch Digital Cintiq Canvas on Easel
+        ctx.fillStyle = '#18181b';
+        ctx.beginPath();
+        ctx.roundRect(centerpieceIso.isoX - 16 * zoom, centerpieceIso.isoY - 40 * zoom, 32 * zoom, 24 * zoom, 3);
+        ctx.fill();
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 1.4 * zoom;
+        ctx.stroke();
+
+        // Color-shifting generative AI neural canvas
+        const genHue = (timeSec * 45) % 360;
+        const artGrad = ctx.createLinearGradient(
+          centerpieceIso.isoX - 14 * zoom,
+          centerpieceIso.isoY - 38 * zoom,
+          centerpieceIso.isoX + 14 * zoom,
+          centerpieceIso.isoY - 18 * zoom
+        );
+        artGrad.addColorStop(0, `hsl(${genHue}, 85%, 60%)`);
+        artGrad.addColorStop(0.5, `hsl(${(genHue + 60) % 360}, 85%, 55%)`);
+        artGrad.addColorStop(1, `hsl(${(genHue + 120) % 360}, 85%, 65%)`);
+        ctx.fillStyle = artGrad;
+        ctx.fillRect(centerpieceIso.isoX - 14 * zoom, centerpieceIso.isoY - 38 * zoom, 28 * zoom, 20 * zoom);
+
+        // AI Prompt Tag on bottom
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        ctx.fillRect(centerpieceIso.isoX - 12 * zoom, centerpieceIso.isoY - 23 * zoom, 24 * zoom, 4 * zoom);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(3.5, Math.round(4 * zoom))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⚡ GENAI DRAFT #42', centerpieceIso.isoX, centerpieceIso.isoY - 21 * zoom);
+        ctx.textBaseline = 'alphabetic';
+
+      } else if (activeLayoutTemplate === 'cafe_agency') {
+        // === CAFE & AGENCY: Teak Coffee Roaster Counter & Comfy Leather Chesterfield ===
+        // Warm parquet rug
+        ctx.fillStyle = 'rgba(180, 83, 9, 0.22)';
+        ctx.beginPath();
+        ctx.ellipse(centerpieceIso.isoX, centerpieceIso.isoY + 4 * zoom, 30 * zoom, 16 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Rustic Teak Artisan Roaster Counter
+        ctx.fillStyle = '#5c2c16';
+        ctx.beginPath();
+        ctx.roundRect(centerpieceIso.isoX - 17 * zoom, centerpieceIso.isoY - 28 * zoom, 34 * zoom, 30 * zoom, 4);
+        ctx.fill();
+        ctx.strokeStyle = '#b45309';
+        ctx.lineWidth = 1.4 * zoom;
+        ctx.stroke();
+
+        // Copper Drum Roaster on top
+        ctx.fillStyle = '#b45309';
+        ctx.beginPath();
+        ctx.arc(centerpieceIso.isoX - 6 * zoom, centerpieceIso.isoY - 34 * zoom, 7 * zoom, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.2 * zoom;
+        ctx.stroke();
+
+        // Chalkboard Daily Blend Sign
+        ctx.fillStyle = '#1c1917';
+        ctx.fillRect(centerpieceIso.isoX + 4 * zoom, centerpieceIso.isoY - 40 * zoom, 12 * zoom, 16 * zoom);
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 1 * zoom;
+        ctx.strokeRect(centerpieceIso.isoX + 4 * zoom, centerpieceIso.isoY - 40 * zoom, 12 * zoom, 16 * zoom);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(3.5, Math.round(4 * zoom))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('GAYO', centerpieceIso.isoX + 10 * zoom, centerpieceIso.isoY - 34 * zoom);
+        ctx.fillText('NATURAL', centerpieceIso.isoX + 10 * zoom, centerpieceIso.isoY - 28 * zoom);
+
+      } else {
+        // === TECH STARTUP: Retro Arcade Game Cabinet ===
+        // Floor glow mat
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.22)';
+        ctx.beginPath();
+        ctx.ellipse(centerpieceIso.isoX, centerpieceIso.isoY + 4 * zoom, 28 * zoom, 16 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Main Cabinet Body (Dark purple / Obsidian)
+        ctx.fillStyle = '#1e1b4b';
+        ctx.beginPath();
+        ctx.roundRect(centerpieceIso.isoX - 16 * zoom, centerpieceIso.isoY - 38 * zoom, 32 * zoom, 42 * zoom, 5);
+        ctx.fill();
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        // Side trim neon strip (Magenta & Cyan)
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(centerpieceIso.isoX - 15 * zoom, centerpieceIso.isoY - 35 * zoom);
+        ctx.lineTo(centerpieceIso.isoX - 15 * zoom, centerpieceIso.isoY + 2 * zoom);
+        ctx.stroke();
+        ctx.strokeStyle = '#ec4899';
+        ctx.beginPath();
+        ctx.moveTo(centerpieceIso.isoX + 15 * zoom, centerpieceIso.isoY - 35 * zoom);
+        ctx.lineTo(centerpieceIso.isoX + 15 * zoom, centerpieceIso.isoY + 2 * zoom);
+        ctx.stroke();
+
+        // Illuminated Marquee Top (Sleek Retro Neon Marquee)
+        const marqueeGlow = Math.sin(timeSec * 4) * 0.2 + 0.8;
+        ctx.fillStyle = `rgba(236, 72, 153, ${marqueeGlow})`;
+        ctx.beginPath();
+        ctx.roundRect(centerpieceIso.isoX - 15 * zoom, centerpieceIso.isoY - 37 * zoom, 30 * zoom, 9 * zoom, 2);
+        ctx.fill();
+        ctx.strokeStyle = '#f472b6';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Compact, perfectly fitted text "ARCADE"
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `900 ${Math.max(4, Math.round(5 * zoom))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('ARCADE', centerpieceIso.isoX, centerpieceIso.isoY - 32.5 * zoom);
+        ctx.textBaseline = 'alphabetic';
+
+        // CRT Monitor Screen (Animated Pixel Game)
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(centerpieceIso.isoX - 12 * zoom, centerpieceIso.isoY - 24 * zoom, 24 * zoom, 15 * zoom, 2);
+        ctx.fill();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Animated retro pixel elements inside CRT screen
+        const pixelShipX = centerpieceIso.isoX + Math.sin(timeSec * 3) * 7 * zoom;
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(pixelShipX - 2.5 * zoom, centerpieceIso.isoY - 14 * zoom, 5 * zoom, 3 * zoom); // Spaceship
+        ctx.fillStyle = '#f43f5e';
+        const invaderY = centerpieceIso.isoY - 21 * zoom + (Math.floor(timeSec * 2) % 2) * 1.5 * zoom;
+        ctx.fillRect(centerpieceIso.isoX - 6 * zoom, invaderY, 4 * zoom, 3 * zoom); // Invader 1
+        ctx.fillRect(centerpieceIso.isoX + 2 * zoom, invaderY, 4 * zoom, 3 * zoom); // Invader 2
+
+        // Angled Control Panel Deck
+        ctx.fillStyle = '#312e81';
+        ctx.beginPath();
+        ctx.roundRect(centerpieceIso.isoX - 15 * zoom, centerpieceIso.isoY - 8 * zoom, 30 * zoom, 10 * zoom, 3);
+        ctx.fill();
+        ctx.strokeStyle = '#818cf8';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Joysticks & Buttons
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(centerpieceIso.isoX - 9 * zoom, centerpieceIso.isoY - 3 * zoom);
+        ctx.lineTo(centerpieceIso.isoX - 9 * zoom, centerpieceIso.isoY - 6 * zoom);
+        ctx.stroke();
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(centerpieceIso.isoX - 9 * zoom, centerpieceIso.isoY - 6.5 * zoom, 2.2 * zoom, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(centerpieceIso.isoX + 2 * zoom, centerpieceIso.isoY - 3 * zoom);
+        ctx.lineTo(centerpieceIso.isoX + 2 * zoom, centerpieceIso.isoY - 6 * zoom);
+        ctx.stroke();
+        ctx.fillStyle = '#3b82f6';
+        ctx.beginPath();
+        ctx.arc(centerpieceIso.isoX + 2 * zoom, centerpieceIso.isoY - 6.5 * zoom, 2.2 * zoom, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath();
+        ctx.arc(centerpieceIso.isoX - 3 * zoom, centerpieceIso.isoY - 3.5 * zoom, 1.4 * zoom, 0, Math.PI * 2);
+        ctx.arc(centerpieceIso.isoX + 8 * zoom, centerpieceIso.isoY - 3.5 * zoom, 1.4 * zoom, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath();
+        ctx.arc(centerpieceIso.isoX - 1 * zoom, centerpieceIso.isoY - 5 * zoom, 1.4 * zoom, 0, Math.PI * 2);
+        ctx.arc(centerpieceIso.isoX + 10 * zoom, centerpieceIso.isoY - 5 * zoom, 1.4 * zoom, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Coin Door
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(centerpieceIso.isoX - 5 * zoom, centerpieceIso.isoY + 5 * zoom, 10 * zoom, 8 * zoom);
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(centerpieceIso.isoX - 2.5 * zoom, centerpieceIso.isoY + 7 * zoom, 5 * zoom, 1.5 * zoom);
+      }
 
       // ---------------------------------------------------------
       // MOCHI'S COZY CAT HOUSE & PLUSH BED (Rumah & Kasur Kucing Mochi)
@@ -2811,9 +3073,25 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         }
 
         // Ergonomic High-Back Swivel Chair behind desk
+        // Base & shadow
+        ctx.fillStyle = 'rgba(25, 30, 45, 0.22)';
+        ctx.beginPath();
+        ctx.ellipse(dIso.isoX, dIso.isoY - 12 * zoom, 11 * zoom, 5 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // High-back ergonomic backrest behind agent
         ctx.fillStyle = '#1e293b';
         ctx.beginPath();
-        ctx.ellipse(dIso.isoX, dIso.isoY + 12 * zoom, 8 * zoom, 4.5 * zoom, 0, 0, Math.PI * 2);
+        ctx.roundRect(dIso.isoX - 11 * zoom, dIso.isoY - 28 * zoom, 22 * zoom, 18 * zoom, 5 * zoom);
+        ctx.fill();
+        ctx.strokeStyle = isOccupied ? (dp.pod === 'green' ? '#10b981' : '#a855f7') : '#475569';
+        ctx.lineWidth = 1.4 * zoom;
+        ctx.stroke();
+
+        // Swivel seat cushion
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.ellipse(dIso.isoX, dIso.isoY - 12 * zoom, 10 * zoom, 5 * zoom, 0, 0, Math.PI * 2);
         ctx.fill();
       });
 
@@ -2992,22 +3270,22 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         const isSelected = agent.id === selectedAgentId;
         const isHovered = hoveredAgent?.id === agent.id;
 
-        // Ground shadow
+        // Ground shadow (Always firmly planted on the floor at renderY for all agents)
         ctx.fillStyle = 'rgba(40, 25, 15, 0.22)';
         ctx.beginPath();
         ctx.ellipse(renderX, renderY, 15 * zoom, 7.5 * zoom, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Selected / Hovered pulse ring
+        // Selected / Hovered pulse ring (Anchored at floor level renderY)
         if (isSelected || isHovered) {
           ctx.strokeStyle = isSelected ? '#ec4899' : '#0284c7';
-          ctx.lineWidth = 3 * zoom;
+          ctx.lineWidth = 2.5 * zoom;
           ctx.beginPath();
           ctx.ellipse(
             renderX,
             renderY,
-            (20 + Math.sin(timeSec * 4) * 2.5) * zoom,
-            (10 + Math.sin(timeSec * 4) * 1.2) * zoom,
+            (18 + Math.sin(timeSec * 4) * 2.5) * zoom,
+            (9 + Math.sin(timeSec * 4) * 1.2) * zoom,
             0,
             0,
             Math.PI * 2
@@ -3022,6 +3300,8 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         const walkSway = isWalking ? Math.sin(timeSec * 7) * 0.08 : 0;
         const talkBounce = isTalking ? Math.sin(timeSec * 5) * 1.2 * zoom : 0;
         const workTyping = agent.state === 'working' ? Math.sin(timeSec * 8) * 0.8 * zoom : 0;
+
+        // Grounded character vertical anchor: shoes rest directly on floor shadow at renderY across ALL agents
         const charY = renderY - 12 * zoom - walkBounce + talkBounce;
 
         ctx.save();
@@ -3054,6 +3334,22 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           ctx.ellipse(10 * zoom + headShift, headY + 5 * zoom, 3.2 * zoom, 8 * zoom, -0.08, 0, Math.PI * 2);
           ctx.fill();
         }
+
+        // Cute Grounded Chibi Legs & Shoes (Firmly planted on floor shadow at renderY for ALL agents)
+        const legSwing = isWalking ? Math.sin(timeSec * 8) * 2.2 * zoom : 0;
+        // Modern dark trousers / skirt
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.roundRect(-6.5 * zoom, 0 - legSwing, 4.8 * zoom, 10.5 * zoom + legSwing, 2 * zoom);
+        ctx.roundRect(1.7 * zoom, 0 + legSwing, 4.8 * zoom, 10.5 * zoom - legSwing, 2 * zoom);
+        ctx.fill();
+
+        // Dark leather shoes touching floor shadow at renderY
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.ellipse(-4.1 * zoom, 11 * zoom - legSwing * 0.4, 3.4 * zoom, 1.9 * zoom, 0, 0, Math.PI * 2);
+        ctx.ellipse(4.1 * zoom, 11 * zoom + legSwing * 0.4, 3.4 * zoom, 1.9 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
 
         // Chibi Torso
         ctx.fillStyle = agent.shirtColor || '#3b82f6';
@@ -3164,13 +3460,15 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
         ctx.restore();
 
-        // --- CUTE NAME BADGE PILL (Tampil Rapi & Bebas Overflow saat Zoom Out) ---
-        const tagY = charY - 48 * zoom;
-        if (zoom >= 0.58) {
+        // --- CUTE NAME BADGE PILL (Tampil Rapi & Terikat Erat dengan Karakter di Semua Level Zoom) ---
+        const tagH = 14 * zoom;
+        const tagY = charY - 37 * zoom - tagH;
+
+        if (zoom >= 0.40) {
           ctx.save();
           const genderSymbol = isFemale ? '♀' : '♂';
           const nameText = `${agent.name.split(' ')[0]} ${genderSymbol}`;
-          const badgeFontSize = Math.max(9, Math.round(9.5 * zoom));
+          const badgeFontSize = Math.max(6.5, 8.8 * zoom);
           ctx.font = `bold ${badgeFontSize}px sans-serif`;
           const nameWidth = ctx.measureText(nameText).width;
 
@@ -3187,34 +3485,33 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           else if (agent.state === 'seeking_approval') roleEmoji = '⚠️';
           else if (agent.state === 'idle') roleEmoji = '✨';
 
-          const tagW = nameWidth + Math.max(20, Math.round(24 * zoom));
-          const tagH = Math.max(16, Math.round(18 * zoom));
+          const tagW = nameWidth + 16 * zoom;
 
           // Badge shadow & pill
           ctx.fillStyle = 'rgba(40, 25, 15, 0.16)';
           ctx.beginPath();
-          ctx.roundRect(renderX - tagW / 2, tagY + 1.5, tagW, tagH, 6);
+          ctx.roundRect(renderX - tagW / 2, tagY + 1 * zoom, tagW, tagH, 4 * zoom);
           ctx.fill();
 
           ctx.fillStyle = isSelected ? '#ec4899' : '#ffffff';
           ctx.strokeStyle = isSelected ? '#db2777' : '#e2d5c3';
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = Math.max(0.8, 1.2 * zoom);
           ctx.beginPath();
-          ctx.roundRect(renderX - tagW / 2, tagY, tagW, tagH, 6);
+          ctx.roundRect(renderX - tagW / 2, tagY, tagW, tagH, 4 * zoom);
           ctx.fill();
           ctx.stroke();
 
           ctx.fillStyle = isSelected ? '#ffffff' : (isFemale ? '#831843' : '#1e293b');
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
-          ctx.fillText(nameText, renderX - tagW / 2 + 6, tagY + tagH / 2);
+          ctx.fillText(nameText, renderX - tagW / 2 + 4 * zoom, tagY + tagH / 2);
 
-          ctx.font = `${Math.max(8, Math.round(9 * zoom))}px sans-serif`;
-          ctx.fillText(roleEmoji, renderX + tagW / 2 - 13, tagY + tagH / 2);
+          ctx.font = `${Math.max(6, 8 * zoom)}px sans-serif`;
+          ctx.fillText(roleEmoji, renderX + tagW / 2 - 10 * zoom, tagY + tagH / 2);
           ctx.restore();
         }
 
-        // --- PLAYFUL ACTIVITY BUBBLE (MATCHING IMAGE_0.JPG: 🎵, !, ☕, 💻, 🕹️) ---
+        // --- PLAYFUL ACTIVITY BUBBLE ---
         let activityEmoji = '';
         if (agent.state === 'working') {
           activityEmoji = agent.role.includes('qa') ? '!' : '🎵';
@@ -3229,18 +3526,18 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         }
 
         if (activityEmoji && !agent.activeDialog) {
-          const actBubbleY = tagY - 18 * zoom;
+          const actBubbleY = tagY - 9 * zoom;
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(renderX, actBubbleY, 8 * zoom, 0, Math.PI * 2);
+          ctx.arc(renderX, actBubbleY, 6.5 * zoom, 0, Math.PI * 2);
           ctx.fill();
           ctx.strokeStyle = activityEmoji === '!' ? '#ef4444' : '#6366f1';
-          ctx.lineWidth = 1.4;
+          ctx.lineWidth = Math.max(0.8, 1.2 * zoom);
           ctx.stroke();
           ctx.fillStyle = activityEmoji === '!' ? '#ef4444' : '#4f46e5';
-          ctx.font = `bold ${Math.round(9 * zoom)}px sans-serif`;
+          ctx.font = `bold ${Math.max(6, 7.5 * zoom)}px sans-serif`;
           ctx.textAlign = 'center';
-          ctx.fillText(activityEmoji, renderX, actBubbleY + 3.2 * zoom);
+          ctx.fillText(activityEmoji, renderX, actBubbleY + 2.5 * zoom);
         }
 
         // --- ACTIVE TASK PROGRESS PILL ---
@@ -3248,28 +3545,28 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           const activeTask = tasksRef.current.find((t) => t.id === agent.currentTaskId);
           if (activeTask && activeTask.status === 'in_progress') {
             const pct = Math.round(activeTask.progress);
-            const pillW = 54 * zoom;
-            const pillH = 14 * zoom;
-            const pillY = tagY - 17 * zoom;
+            const pillW = 46 * zoom;
+            const pillH = 12 * zoom;
+            const pillY = activityEmoji ? tagY - 20 * zoom : tagY - 11 * zoom;
 
             ctx.fillStyle = '#064e3b';
             ctx.beginPath();
-            ctx.roundRect(renderX - pillW / 2, pillY, pillW, pillH, 7 * zoom);
+            ctx.roundRect(renderX - pillW / 2, pillY, pillW, pillH, 4 * zoom);
             ctx.fill();
             ctx.fillStyle = '#10b981';
             ctx.beginPath();
             ctx.roundRect(
-              renderX - pillW / 2 + 1.5 * zoom,
-              pillY + 1.5 * zoom,
-              Math.max(4 * zoom, (pillW - 3 * zoom) * (pct / 100)),
-              pillH - 3 * zoom,
-              5 * zoom
+              renderX - pillW / 2 + 1 * zoom,
+              pillY + 1 * zoom,
+              Math.max(2 * zoom, (pillW - 2 * zoom) * (pct / 100)),
+              pillH - 2 * zoom,
+              3 * zoom
             );
             ctx.fill();
             ctx.fillStyle = '#ffffff';
-            ctx.font = `bold ${Math.round(8 * zoom)}px monospace`;
+            ctx.font = `bold ${Math.max(6, 7 * zoom)}px monospace`;
             ctx.textAlign = 'center';
-            ctx.fillText(`⚡ ${pct}%`, renderX, pillY + 10 * zoom);
+            ctx.fillText(`⚡ ${pct}%`, renderX, pillY + pillH / 2 + 0.8 * zoom);
           }
         }
 
@@ -3349,8 +3646,10 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       // cafe_agency, fintech_trading, creative_genai, robotics_hardware)
       // dengan kualitas visual setara kantor utama.
       // =========================================================
-      const isoCtx: IsoCtx = { ctx, toIso, zoom, t: timeSec };
-      regionalKavlings.forEach((kavling) => {
+      const labelQueue: Array<() => void> = [];
+      const isoCtx: IsoCtx = { ctx, toIso, zoom, t: timeSec, labelQueue };
+      const sortedKavlings = [...regionalKavlings].sort((a, b) => (a.cx + a.cz) - (b.cx + b.cz));
+      sortedKavlings.forEach((kavling) => {
         const isKavlingHovered = hoveredCompanyKavling?.id === kavling.id;
         renderCompanyKavling(isoCtx, kavling, isKavlingHovered);
       });
@@ -3361,232 +3660,17 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       // Memiliki Kavling Mandiri Penuh (33 x 24 units) & Desain Interior Khusus
       // =========================================================
 
-      // A. KAVLING MANDIRI: SUPERMART 24/7 MEGA STORE (Barat Boulevard: cx = -80.0, cz = 19.0)
-      const smCx = -80.0;
-      const smCz = 19.0;
-      const smHalfW = 16.5;
-      const smHalfD = 12.0;
-      const isSmHovered = hoveredCompanyKavling?.id === 'landmark-supermart';
-
-      // 1. Plinth Fondasi Kavling Supermarket 3D
-      const smSlabD = 10 * zoom;
-      const smTL = toIso(smCx - smHalfW, smCz - smHalfD);
-      const smTR = toIso(smCx + smHalfW, smCz - smHalfD);
-      const smBR = toIso(smCx + smHalfW, smCz + smHalfD);
-      const smBL = toIso(smCx - smHalfW, smCz + smHalfD);
-
-      // Drop shadow plinth
-      ctx.fillStyle = 'rgba(20, 30, 20, 0.18)';
-      ctx.beginPath();
-      ctx.moveTo(smTL.isoX, smTL.isoY + smSlabD + 12 * zoom);
-      ctx.lineTo(smTR.isoX, smTR.isoY + smSlabD + 12 * zoom);
-      ctx.lineTo(smBR.isoX, smBR.isoY + smSlabD + 16 * zoom);
-      ctx.lineTo(smBL.isoX, smBL.isoY + smSlabD + 16 * zoom);
-      ctx.closePath();
-      ctx.fill();
-
-      // Front & right foundation bevels
-      ctx.fillStyle = '#a3c4a8';
-      ctx.beginPath();
-      ctx.moveTo(smBL.isoX, smBL.isoY);
-      ctx.lineTo(smBR.isoX, smBR.isoY);
-      ctx.lineTo(smBR.isoX, smBR.isoY + smSlabD);
-      ctx.lineTo(smBL.isoX, smBL.isoY + smSlabD);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = '#8fad94';
-      ctx.beginPath();
-      ctx.moveTo(smBR.isoX, smBR.isoY);
-      ctx.lineTo(smTR.isoX, smTR.isoY);
-      ctx.lineTo(smTR.isoX, smTR.isoY + smSlabD);
-      ctx.lineTo(smBR.isoX, smBR.isoY + smSlabD);
-      ctx.closePath();
-      ctx.fill();
-
-      // Lantai Ubin Marmer Supermarket Putih Bersih
-      ctx.beginPath();
-      ctx.moveTo(smTL.isoX, smTL.isoY);
-      ctx.lineTo(smTR.isoX, smTR.isoY);
-      ctx.lineTo(smBR.isoX, smBR.isoY);
-      ctx.lineTo(smBL.isoX, smBL.isoY);
-      ctx.closePath();
-      ctx.fillStyle = '#f8fafc';
-      ctx.fill();
-      ctx.strokeStyle = isSmHovered ? '#16a34a' : '#86efac';
-      ctx.lineWidth = isSmHovered ? 2.5 * zoom : 1.5 * zoom;
-      ctx.stroke();
-
-      // Ubin Keramik Grid Hijau Lembut
-      fillZone(
-        { x: smCx - 15.0, z: smCz - 10.5 },
-        { x: smCx + 15.0, z: smCz - 10.5 },
-        { x: smCx + 15.0, z: smCz + 10.5 },
-        { x: smCx - 15.0, z: smCz + 10.5 },
-        '#f0fdf4',
-        'rgba(22, 163, 74, 0.15)'
-      );
-
-      // INTERIOR SUPERMARKET:
-      // 1. Chiller Glass Cooler Wall (Dinding Minuman & Susu Dingin di Utara: cz = smCz - 8.5)
-      const chIso = toIso(smCx, smCz - 8.5);
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(chIso.isoX - 38 * zoom, chIso.isoY - 26 * zoom, 76 * zoom, 18 * zoom);
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1.2 * zoom;
-      ctx.strokeRect(chIso.isoX - 38 * zoom, chIso.isoY - 26 * zoom, 76 * zoom, 18 * zoom);
-      // Pintu Kaca Berpendar Biru Es Dingin
-      for (let d = 0; d < 4; d++) {
-        ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
-        ctx.fillRect(chIso.isoX - (34 - d * 18) * zoom, chIso.isoY - 24 * zoom, 16 * zoom, 14 * zoom);
-        // Minuman botol beraneka warna di dalam rak kulkas
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(chIso.isoX - (32 - d * 18) * zoom, chIso.isoY - 18 * zoom, 3 * zoom, 6 * zoom);
-        ctx.fillStyle = '#eab308';
-        ctx.fillRect(chIso.isoX - (27 - d * 18) * zoom, chIso.isoY - 18 * zoom, 3 * zoom, 6 * zoom);
-        ctx.fillStyle = '#06b6d4';
-        ctx.fillRect(chIso.isoX - (22 - d * 18) * zoom, chIso.isoY - 18 * zoom, 3 * zoom, 6 * zoom);
-      }
-
-      // 2. Tiga Lorong Belanja (3 Grocery Aisles dengan Rak Bertingkat Penuh Produk)
-      [-9.0, 0.0, 9.0].forEach((rx, aisleIdx) => {
-        const aisleIso = toIso(smCx + rx, smCz - 1.5);
-        // Rak Besi Supermarket
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(aisleIso.isoX - 6 * zoom, aisleIso.isoY - 22 * zoom, 12 * zoom, 20 * zoom);
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 1 * zoom;
-        ctx.strokeRect(aisleIso.isoX - 6 * zoom, aisleIso.isoY - 22 * zoom, 12 * zoom, 20 * zoom);
-        // Papan Kategori Nomor Lorong
-        ctx.fillStyle = '#16a34a';
-        ctx.fillRect(aisleIso.isoX - 5 * zoom, aisleIso.isoY - 26 * zoom, 10 * zoom, 4.5 * zoom);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${Math.max(3.5, Math.round(4 * zoom))}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText(`A-${aisleIdx + 1}`, aisleIso.isoX, aisleIso.isoY - 22.5 * zoom);
-        // Produk di Tiap Tingkat Rak
-        const colors = ['#dc2626', '#ea580c', '#16a34a', '#2563eb', '#9333ea'];
-        for (let tier = 0; tier < 3; tier++) {
-          ctx.fillStyle = colors[(aisleIdx + tier) % colors.length];
-          ctx.fillRect(aisleIso.isoX - 4.5 * zoom, aisleIso.isoY - (18 - tier * 5) * zoom, 9 * zoom, 3.5 * zoom);
-        }
-      });
-
-      // 3. Fresh Produce Island (Meja Buah & Sayuran Segar di Tengah Depan)
-      const fruitIso = toIso(smCx - 6.5, smCz + 5.5);
-      ctx.fillStyle = '#78350f'; // Peti kayu
-      ctx.fillRect(fruitIso.isoX - 12 * zoom, fruitIso.isoY - 8 * zoom, 24 * zoom, 10 * zoom);
-      ctx.strokeStyle = '#b45309';
-      ctx.strokeRect(fruitIso.isoX - 12 * zoom, fruitIso.isoY - 8 * zoom, 24 * zoom, 10 * zoom);
-      // Buah Jeruk, Apel, & Sayur
-      ctx.fillStyle = '#f97316'; // Jeruk
-      ctx.beginPath();
-      ctx.arc(fruitIso.isoX - 6 * zoom, fruitIso.isoY - 5 * zoom, 2.5 * zoom, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ef4444'; // Apel merah
-      ctx.beginPath();
-      ctx.arc(fruitIso.isoX, fruitIso.isoY - 5 * zoom, 2.5 * zoom, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#22c55e'; // Sayuran hijau
-      ctx.beginPath();
-      ctx.arc(fruitIso.isoX + 6 * zoom, fruitIso.isoY - 5 * zoom, 2.5 * zoom, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 4. Kasir POS Checkout Counters (3 Meja Kasir dengan Conveyor Belt & Monitor)
-      const renderCashier = (kx: number, kz: number) => {
-        const kIso = toIso(kx, kz);
-        // Counter & Conveyor
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(kIso.isoX - 8 * zoom, kIso.isoY - 8 * zoom, 16 * zoom, 8 * zoom);
-        ctx.fillStyle = '#0f172a'; // Conveyor belt
-        ctx.fillRect(kIso.isoX - 6 * zoom, kIso.isoY - 7 * zoom, 12 * zoom, 2 * zoom);
-        // Kasir POS Monitor & Scanner Barcode
-        ctx.fillStyle = '#0284c7';
-        ctx.fillRect(kIso.isoX + 2 * zoom, kIso.isoY - 14 * zoom, 5 * zoom, 5 * zoom);
-        // Kantong belanja belanjaan
-        ctx.fillStyle = '#fde047';
-        ctx.fillRect(kIso.isoX - 6 * zoom, kIso.isoY - 12 * zoom, 4 * zoom, 4 * zoom);
-      };
-      renderCashier(smCx + 5.0, smCz + 4.5);
-      renderCashier(smCx + 11.0, smCz + 4.5);
-
-      // 5. Trolley Bay (Deretan Keranjang Belanja Chrome di Pintu Masuk)
-      const trIso = toIso(smCx - 13.0, smCz + 8.5);
-      for (let t = 0; t < 3; t++) {
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 1.2 * zoom;
-        ctx.strokeRect(trIso.isoX + (t * 5) * zoom, trIso.isoY - 8 * zoom, 6 * zoom, 7 * zoom);
-        ctx.fillStyle = '#ef4444'; // Gagang troli merah
-        ctx.fillRect(trIso.isoX + (t * 5) * zoom + 5 * zoom, trIso.isoY - 8 * zoom, 1.5 * zoom, 7 * zoom);
-      }
-
-      // 6. NPC: Kasir Sarah di counter & Shopper Budi berbelanja
-      const cashierNpc = toIso(smCx + 5.0, smCz + 2.8);
-      ctx.fillStyle = '#16a34a'; // Seragam hijau SuperMart
-      ctx.fillRect(cashierNpc.isoX - 3 * zoom, cashierNpc.isoY - 12 * zoom, 6 * zoom, 7 * zoom);
-      ctx.fillStyle = '#fed7aa';
-      ctx.beginPath();
-      ctx.arc(cashierNpc.isoX, cashierNpc.isoY - 15 * zoom, 3 * zoom, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Shopper Budi mendorong troli
-      const shopperProgress = Math.sin(timeSec * 2) * 4 * zoom;
-      const shopperNpc = toIso(smCx - 2.0, smCz + 1.0);
-      ctx.fillStyle = '#3b82f6';
-      ctx.fillRect(shopperNpc.isoX - 3 * zoom + shopperProgress, shopperNpc.isoY - 12 * zoom, 6 * zoom, 7 * zoom);
-      ctx.fillStyle = '#fed7aa';
-      ctx.beginPath();
-      ctx.arc(shopperNpc.isoX + shopperProgress, shopperNpc.isoY - 15 * zoom, 3 * zoom, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 7. Totem Monumen SuperMart di Depan Pintu Masuk (Bebas Overflow pada Zoom Out)
-      const smTotem = toIso(smCx, smCz + 13.0);
-      const smTitle = '🛒 VIGENT SUPERMART 24/7';
-      const smSub = 'MEGA STORE • FASILITAS PUBLIK MANDIRI';
-      const smTitleSize = Math.max(10, Math.round(11.5 * zoom));
-      const smSubSize = Math.max(8, Math.round(9 * zoom));
-      const smTitleFont = `bold ${smTitleSize}px sans-serif`;
-      const smSubFont = `bold ${smSubSize}px sans-serif`;
-
-      ctx.font = smTitleFont;
-      const smTw = ctx.measureText(smTitle).width;
-      ctx.font = smSubFont;
-      const smSw = ctx.measureText(smSub).width;
-      const smPadX = Math.max(22, Math.round(32 * zoom));
-      const smPadY = Math.max(12, Math.round(16 * zoom));
-      const smLineGap = Math.max(3, Math.round(4 * zoom));
-      const smTotemW = Math.max(smTw, smSw) + smPadX;
-      const smTotemH = smTitleSize + smSubSize + smLineGap + smPadY;
-      const smTotemY = smTotem.isoY - smTotemH - Math.max(4, 6 * zoom);
-
-      ctx.fillStyle = 'rgba(20, 15, 10, 0.22)';
-      ctx.beginPath();
-      ctx.roundRect(smTotem.isoX - smTotemW / 2, smTotemY + 2, smTotemW, smTotemH, 6);
-      ctx.fill();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.roundRect(smTotem.isoX - smTotemW / 2, smTotemY, smTotemW, smTotemH, 6);
-      ctx.fill();
-      ctx.strokeStyle = '#16a34a';
-      ctx.lineWidth = Math.max(1.5, 2 * zoom);
-      ctx.stroke();
-
-      ctx.fillStyle = '#14532d';
-      ctx.font = smTitleFont;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(smTitle, smTotem.isoX, smTotemY + smPadY / 2 + smTitleSize / 2);
-
-      ctx.fillStyle = '#16a34a';
-      ctx.font = smSubFont;
-      ctx.fillText(smSub, smTotem.isoX, smTotemY + smPadY / 2 + smTitleSize + smLineGap + smSubSize / 2);
+      // A. KAVLING MANDIRI: SUPERMART 24/7 MEGA STORE (Barat Boulevard: cx = -84.0, cz = -1.0)
+      // Menggunakan true 3D isometric renderer (lorong rak 3D besar, kulkas chiller kaca es, pulau buah segar, meja kasir POS, dan troli belanja).
+      const isSmHovered = hoveredCompanyKavling?.id === 'landmark-supermart' || hoveredCityLandmark?.id === 'landmark-supermart';
+      renderSuperMart(isoCtx, isSmHovered);
 
 
-      // B. KAVLING MANDIRI: SENTRAL AERORAIL STATION TERMINAL (Timur Boulevard: cx = 80.0, cz = 19.0)
+      // B. KAVLING MANDIRI: SENTRAL AERORAIL STATION TERMINAL (Timur Boulevard: cx = 84.0, cz = 0.0)
       // Menggunakan true 3D isometric renderer (100% sejajar rel & peron, multi-car Whoosh 350 km/h,
       // moncong aerodinamis, lampu sorot LED, peron bertingkat, gerbang RFID, dan kanopi melengkung).
-      const stCx = 80.0;
-      const stCz = 19.0;
+      const stCx = 84.0;
+      const stCz = 0.0;
       const isStHovered = isStationHovered || hoveredCompanyKavling?.id === 'landmark-train-station' || hoveredCityLandmark?.id === 'landmark-train-station';
       renderSentralTrainStation(isoCtx, stCx, stCz, isStHovered);
 
@@ -3612,30 +3696,32 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.strokeStyle = '#d97706';
       ctx.lineWidth = 1.2 * zoom;
       ctx.stroke();
-      // Payung kuliner jingga & banner Pujasera (Bebas overflow saat zoom out)
+      // Payung kuliner jingga & banner Pujasera (Bebas overflow saat zoom out, defer ke labelQueue)
       const pjKanopi = toIso(20.0, 14.0);
-      if (zoom >= 0.58) {
-        const pjText = '🍜 PUJASERA 24 JAM';
-        const pjFont = `bold ${Math.max(8, Math.round(9 * zoom))}px sans-serif`;
-        ctx.font = pjFont;
-        const pjTw = ctx.measureText(pjText).width;
-        const pjW = pjTw + 16;
-        const pjH = Math.max(16, Math.round(18 * zoom));
-        ctx.fillStyle = '#ea580c';
-        ctx.beginPath();
-        ctx.roundRect(pjKanopi.isoX - pjW / 2, pjKanopi.isoY - pjH - 4, pjW, pjH, 4);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.font = pjFont;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(pjText, pjKanopi.isoX, pjKanopi.isoY - pjH / 2 - 4);
-      } else {
-        ctx.fillStyle = '#ea580c';
-        ctx.beginPath();
-        ctx.roundRect(pjKanopi.isoX - 16 * zoom, pjKanopi.isoY - 16 * zoom, 32 * zoom, 7 * zoom, 2 * zoom);
-        ctx.fill();
-      }
+      labelQueue.push(() => {
+        if (zoom >= 0.58) {
+          const pjText = '🍜 PUJASERA 24 JAM';
+          const pjFont = `bold ${Math.max(8, Math.round(9 * zoom))}px sans-serif`;
+          ctx.font = pjFont;
+          const pjTw = ctx.measureText(pjText).width;
+          const pjW = pjTw + 16;
+          const pjH = Math.max(16, Math.round(18 * zoom));
+          ctx.fillStyle = '#ea580c';
+          ctx.beginPath();
+          ctx.roundRect(pjKanopi.isoX - pjW / 2, pjKanopi.isoY - pjH - 4, pjW, pjH, 4);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = pjFont;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(pjText, pjKanopi.isoX, pjKanopi.isoY - pjH / 2 - 4);
+        } else {
+          ctx.fillStyle = '#ea580c';
+          ctx.beginPath();
+          ctx.roundRect(pjKanopi.isoX - 16 * zoom, pjKanopi.isoY - 16 * zoom, 32 * zoom, 7 * zoom, 2 * zoom);
+          ctx.fill();
+        }
+      });
 
       // Modern Solar LED Streetlights sepanjang trotoar
       [-60.0, -30.0, -5.0, 25.0, 60.0].forEach((slx) => {
@@ -4249,6 +4335,13 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       drawIsometricCar(moveCar6X, 21.6, '#1d4ed8', 'up_left', 'suv', true);
 
       // =========================================================
+      // 8.5. TOP OVERLAY PASS: ALL BUILDING LABELS, TOTEMS & MONUMENTS
+      // Rendered strictly above all ground, slabs, walls, furniture,
+      // street amenities, and cars so no label is EVER clipped or occluded!
+      // =========================================================
+      labelQueue.forEach((drawLabel) => drawLabel());
+
+      // =========================================================
       // 9. RENDER AMBIENT PARTICLES (STEAM, SNOOZE ZZZ, HEARTS)
       // =========================================================
       particlesRef.current.forEach((p) => {
@@ -4386,308 +4479,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         </div>
       </div>
 
-      {/* ========================================================= */}
-      {/* HUD 2: TOP-RIGHT ISOMETRIC MINI-MAP HUD (MATCH TOPNAV)     */}
-      {/* ========================================================= */}
-      <div
-        className={`absolute top-[4.75rem] right-4 sm:right-6 z-20 flex flex-col items-end gap-2 pointer-events-auto transition-all duration-300 ${
-          selectedAgentId ? 'opacity-0 pointer-events-none translate-x-8' : 'opacity-100 translate-x-0'
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          {/* Mini-Map Floating Box */}
-          <div className="bg-[#faf5eb]/95 backdrop-blur-xl border-2 border-[#d6c5ad] rounded-2xl shadow-xl p-2.5 w-64 text-[#2c231c]">
-            <div className="flex items-center justify-between pb-1.5 px-1 border-b border-[#d6c5ad] text-[11px] font-bold">
-              <span className="flex items-center gap-1.5 text-[#2c231c]">
-                <Compass className="w-3.5 h-3.5 text-[#c85a2b]" />
-                <span>Office Radar</span>
-                <span className="px-1.5 py-0.5 rounded-full bg-[#fdeed9] text-[9px] text-[#c85a2b] font-medium border border-[#f0c8a5]">
-                  {agents.length} Agent
-                </span>
-              </span>
-              <button
-                onClick={() => setIsMiniMapExpanded(!isMiniMapExpanded)}
-                className="text-[#786653] hover:text-[#2c231c] p-0.5 rounded hover:bg-[#ede2d1] transition-colors"
-                title={isMiniMapExpanded ? 'Kecilkan Mini-Map' : 'Buka Mini-Map'}
-              >
-                {isMiniMapExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
-            </div>
 
-            {isMiniMapExpanded && (
-              <div className="mt-2 flex flex-col gap-2">
-                {/* SVG Isometric Floor Radar */}
-                <div className="relative w-full h-[126px] bg-[#1a1512] rounded-xl overflow-hidden border border-[#d6c5ad] shadow-inner">
-                  <svg
-                    viewBox="0 0 220 126"
-                    className="w-full h-full select-none"
-                  >
-                    {/* Background Grid Pattern */}
-                    <defs>
-                      <pattern id="radarGrid" width="10" height="10" patternUnits="userSpaceOnUse">
-                        <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
-                      </pattern>
-                      {/* Gradient for zones */}
-                      <linearGradient id="pantryGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#f97316" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#c2410c" stopOpacity="0.10" />
-                      </linearGradient>
-                      <linearGradient id="loungeGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#a855f7" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity="0.10" />
-                      </linearGradient>
-                      <linearGradient id="leadGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#6366f1" stopOpacity="0.28" />
-                        <stop offset="100%" stopColor="#4338ca" stopOpacity="0.10" />
-                      </linearGradient>
-                      <linearGradient id="sprintGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#0284c7" stopOpacity="0.10" />
-                      </linearGradient>
-                      <linearGradient id="podsGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#059669" stopOpacity="0.10" />
-                      </linearGradient>
-                    </defs>
-
-                    <rect width="220" height="126" fill="url(#radarGrid)" />
-
-                    {/* Outer Platform Diamond (Bounds: X: -16.5..16.5, Z: -12..12) */}
-                    <polygon
-                      points="95,9 204,71 125,117 16,55"
-                      fill="#261e18"
-                      stroke="#854d0e"
-                      strokeWidth="1.2"
-                      strokeOpacity="0.6"
-                    />
-
-                    {/* Zone Polygons (Clickable to center camera) */}
-                    {/* 1. Lounge & Arcade & Cat (X: -16..-6, Z: -12..-2.5) */}
-                    <polygon
-                      points="97,10 130,29 98,47 65,28"
-                      fill="url(#loungeGrad)"
-                      stroke="#a855f7"
-                      strokeWidth="0.9"
-                      strokeOpacity="0.7"
-                      className="cursor-pointer hover:fill-purple-500/30 transition-colors"
-                      onClick={() => handleFocusZone(-11, -7)}
-                    />
-                    <text
-                      x="97"
-                      y="29"
-                      fill="#d8b4fe"
-                      fontSize="7.5"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                      className="pointer-events-none select-none font-sans"
-                    >
-                      🎮 LOUNGE
-                    </text>
-
-                    {/* 2. Pantry & Espresso Bar (X: -16..-6, Z: 2.5..12) */}
-                    <polygon
-                      points="49,38 82,56 50,74 17,55"
-                      fill="url(#pantryGrad)"
-                      stroke="#f97316"
-                      strokeWidth="0.9"
-                      strokeOpacity="0.7"
-                      className="cursor-pointer hover:fill-orange-500/30 transition-colors"
-                      onClick={() => handleFocusZone(-11.8, 6.0)}
-                    />
-                    <text
-                      x="50"
-                      y="56"
-                      fill="#fdba74"
-                      fontSize="7.5"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                      className="pointer-events-none select-none font-sans"
-                    >
-                      ☕ PANTRY
-                    </text>
-
-                    {/* 3. Open Engineering & Design Pods (X: -5..5, Z: -6..4) */}
-                    <polygon
-                      points="113,42 146,61 113,80 80,61"
-                      fill="url(#podsGrad)"
-                      stroke="#10b981"
-                      strokeWidth="0.9"
-                      strokeOpacity="0.7"
-                      className="cursor-pointer hover:fill-emerald-500/30 transition-colors"
-                      onClick={() => handleFocusZone(0, -1)}
-                    />
-                    <text
-                      x="113"
-                      y="62"
-                      fill="#6ee7b7"
-                      fontSize="7.5"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                      className="pointer-events-none select-none font-sans"
-                    >
-                      💻 PODS
-                    </text>
-
-                    {/* 4. Lead Suite (X: 6..16, Z: -12..-2.5) */}
-                    <polygon
-                      points="169,51 202,71 171,89 138,70"
-                      fill="url(#leadGrad)"
-                      stroke="#6366f1"
-                      strokeWidth="0.9"
-                      strokeOpacity="0.7"
-                      className="cursor-pointer hover:fill-indigo-500/30 transition-colors"
-                      onClick={() => handleFocusZone(11, -7)}
-                    />
-                    <text
-                      x="170"
-                      y="70"
-                      fill="#c7d2fe"
-                      fontSize="7.5"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                      className="pointer-events-none select-none font-sans"
-                    >
-                      👑 LEAD
-                    </text>
-
-                    {/* 5. Sprint & QA War Room (X: 6..16, Z: 2.5..12) */}
-                    <polygon
-                      points="121,79 154,98 123,116 90,97"
-                      fill="url(#sprintGrad)"
-                      stroke="#06b6d4"
-                      strokeWidth="0.9"
-                      strokeOpacity="0.7"
-                      className="cursor-pointer hover:fill-cyan-500/30 transition-colors"
-                      onClick={() => handleFocusZone(11, 7)}
-                    />
-                    <text
-                      x="122"
-                      y="98"
-                      fill="#67e8f9"
-                      fontSize="7.5"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                      className="pointer-events-none select-none font-sans"
-                    >
-                      📊 SPRINT
-                    </text>
-
-                    {/* Mochi Cat Indicator on Mini-Map */}
-                    {(() => {
-                      const mcx = 110 + (catRef.current.x - catRef.current.z) * 3.3;
-                      const mcy = 63 + (catRef.current.x + catRef.current.z) * 1.9;
-                      return (
-                        <g className="cursor-pointer" onClick={() => handleFocusZone(catRef.current.x, catRef.current.z)}>
-                          <circle cx={mcx} cy={mcy} r="4.2" fill="#ea580c" stroke="#ffffff" strokeWidth="1.2" />
-                          <circle cx={mcx} cy={mcy} r="6.5" fill="none" stroke="#ea580c" strokeWidth="0.8" opacity="0.6" />
-                          <text x={mcx} y={mcy - 5.5} fill="#fb923c" fontSize="6.5" textAnchor="middle" fontWeight="bold">
-                            🐱
-                          </text>
-                        </g>
-                      );
-                    })()}
-
-                    {/* Real-Time Agent Blips */}
-                    {agents.map((ag) => {
-                      const sx = 110 + (ag.currentPosition.x - ag.currentPosition.z) * 3.3;
-                      const sy = 63 + (ag.currentPosition.x + ag.currentPosition.z) * 1.9;
-                      const isSel = selectedAgentId === ag.id;
-
-                      return (
-                        <g
-                          key={ag.id}
-                          className="cursor-pointer group"
-                          onClick={() => {
-                            onSelectAgent(ag.id);
-                            handleFocusZone(ag.currentPosition.x, ag.currentPosition.z);
-                          }}
-                        >
-                          {isSel && (
-                            <circle
-                              cx={sx}
-                              cy={sy}
-                              r="8"
-                              fill="none"
-                              stroke={ag.avatarColor || '#38bdf8'}
-                              strokeWidth="1.5"
-                              strokeDasharray="2,2"
-                              className="animate-spin"
-                            />
-                          )}
-                          <circle
-                            cx={sx}
-                            cy={sy}
-                            r={isSel ? 4.8 : 3.8}
-                            fill={ag.avatarColor || '#f97316'}
-                            stroke="#ffffff"
-                            strokeWidth="1.5"
-                          />
-                          <title>{`${ag.name} (${ag.stateMessage || ag.state})`}</title>
-                        </g>
-                      );
-                    })}
-                  </svg>
-                </div>
-
-                {/* Quick Navigation Chips */}
-                <div className="flex items-center justify-between gap-1 pt-0.5">
-                  <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none text-[10px]">
-                    <button
-                      onClick={() => handleFocusZone(-11.8, 6.0)}
-                      className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#fdeed9] text-[#78350f] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Focus on Pantry & Coffee Bar"
-                    >
-                      ☕ Pantry
-                    </button>
-                    <button
-                      onClick={() => handleFocusZone(-11, -7)}
-                      className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#ede2d1] text-[#4c1d95] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Focus on Lounge & Arcade"
-                    >
-                      🎮 Lounge
-                    </button>
-                    <button
-                      onClick={() => handleFocusZone(0, -1)}
-                      className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#ede2d1] text-[#065f46] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Focus on Workstation Pods"
-                    >
-                      💻 Pods
-                    </button>
-                    <button
-                      onClick={() => handleFocusZone(11, 7)}
-                      className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#ede2d1] text-[#0e7490] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Focus on Sprint & QA"
-                    >
-                      📊 Sprint
-                    </button>
-                    <button
-                      onClick={() => handleFocusZone(11.5, 6.0)}
-                      className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#fdeed9] text-[#4f46e5] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Focus on Conference Room"
-                    >
-                      📅 Meeting
-                    </button>
-                    <button
-                      onClick={() => handleFocusZone(11, -7)}
-                      className="px-1.5 py-0.5 rounded-lg bg-[#fffdf9] hover:bg-[#ede2d1] text-[#4338ca] border border-[#d6c5ad] font-semibold transition-colors flex items-center gap-1 shrink-0"
-                      title="Focus on Lead Suite"
-                    >
-                      👑 Lead
-                    </button>
-                  </div>
-                  <button
-                    onClick={handleResetCamera}
-                    className="p-1 rounded-lg bg-[#fffdf9] hover:bg-[#ede2d1] text-[#786653] hover:text-[#2c231c] border border-[#d6c5ad] transition-colors shrink-0"
-                    title="Reset Camera to Origin"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* ========================================================= */}
       {/* HUD 4: BOTTOM-RIGHT UNIFIED GAME ACTION DOCK (MATCH TOPNAV)*/}
@@ -4808,10 +4600,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => {
-              setZoom(1.0);
-              setPan({ x: 0, y: 15 });
-            }}
+            onClick={handleResetCamera}
             className="p-1.5 text-[#786653] hover:text-[#2c231c] hover:bg-[#ede2d1] rounded-xl transition-colors"
             title="Reset Viewport"
           >

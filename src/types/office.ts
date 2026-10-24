@@ -361,7 +361,10 @@ export interface RegionalCompanyInfo {
   buildingType: string;
   specialization: string;
   reputation: number;
-  status: 'active' | 'in_meeting' | 'open_for_trade';
+  status: 'active' | 'in_meeting' | 'open_for_trade' | 'offline';
+  isLivePeer?: boolean;
+  peerEndpoint?: string;
+  peerNodeId?: string;
   openBounties: {
     id: string;
     title: string;
