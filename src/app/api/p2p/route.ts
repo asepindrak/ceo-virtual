@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     // A. Incoming Handshake from another Vigent Node
     if (action === 'handshake') {
-      const { senderNodeId, senderCompanyName, senderRegionalSector, senderHttpPort, employees, companyId, industry, officeLayoutTemplate } = body;
+      const { senderNodeId, senderCompanyName, senderRegionalSector, senderHttpPort, employees, companyId, industry, officeLayoutTemplate, senderPlotId, senderPlotCoords } = body;
       const identity = getOrCreateNodeIdentity();
       const localState = getLocalAgentsState();
 
@@ -45,7 +45,10 @@ export async function POST(req: NextRequest) {
         success: true,
         nodeId: identity.nodeId,
         companyName: identity.companyName,
-        regionalSector: identity.regionalSector,
+        regionalSector: identity.regionalSector || identity.regionId || 'apac-jakarta-1',
+        regionId: identity.regionId || identity.regionalSector || 'apac-jakarta-1',
+        plotId: identity.plotId || 'plot-nc',
+        plotCoords: identity.plotCoords || { cx: 0.0, cz: -1.0 },
         fingerprint: identity.fingerprint,
         companyId: localState.companyMeta.companyId,
         industry: localState.companyMeta.industry,
@@ -102,8 +105,8 @@ export async function POST(req: NextRequest) {
 
     // G. Update local company presence for P2P swarm broadcast
     if (action === 'update_presence') {
-      const { companyName, regionalSector } = body;
-      const updated = updateNodePresence(companyName, regionalSector);
+      const { companyName, regionalSector, plotId, plotCoords } = body;
+      const updated = updateNodePresence(companyName, regionalSector, plotId, plotCoords);
       return NextResponse.json({ success: true, identity: updated });
     }
 

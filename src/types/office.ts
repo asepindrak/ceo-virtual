@@ -266,6 +266,9 @@ export interface Company {
   globalLLMConfig?: CompanyGlobalLLMConfig;
   officeLayoutTemplate?: OfficeLayoutTemplateId;
   leaderAgentId?: string;
+  regionId?: string;
+  plotId?: string;
+  plotCoords?: { cx: number; cz: number };
 }
 
 export interface ActivityEvent {
@@ -500,6 +503,7 @@ export interface NodeRegion {
   };
   city?: string;
   distanceKm?: number;
+  claimedPlots?: Record<string, string>; // plotId -> companyName / nodeId
 }
 
 export interface NodeIdentity {
@@ -511,6 +515,8 @@ export interface NodeIdentity {
   companyName: string;
   industry: string;
   regionId: string;
+  plotId?: string; // One of 'plot-nc', 'plot-nw', 'plot-ne', 'plot-sw', 'plot-sc', 'plot-se'
+  plotCoords?: { cx: number; cz: number };
   genesisHash: string;
   genesisSignature: string;
   lastSyncedAt?: number;
@@ -534,6 +540,7 @@ export interface NodeSetupPayload {
   companyName: string;
   industry: string;
   regionId: string;
+  plotId?: string;
   autorun?: boolean;
   geoCoordinates?: {
     latitude: number;

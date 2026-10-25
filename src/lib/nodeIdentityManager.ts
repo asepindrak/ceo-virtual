@@ -284,6 +284,67 @@ export const DEFAULT_REGIONS: NodeRegion[] = [
   },
 ];
 
+export interface KavlingPlotDef {
+  id: string; // 'plot-nc', 'plot-nw', 'plot-ne', 'plot-sw', 'plot-sc', 'plot-se'
+  label: string;
+  shortLabel: string;
+  cx: number;
+  cz: number;
+  halfW: number;
+  halfD: number;
+}
+
+export const DISTRICT_OFFICE_PLOTS: KavlingPlotDef[] = [
+  { id: 'plot-nc', label: 'Kavling Sentral Utama', shortLabel: 'Sentral Utama', cx: 0.0, cz: -1.0, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-nw', label: 'Kavling Regional Barat #1', shortLabel: 'Barat #1', cx: -42.0, cz: -1.0, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-ne', label: 'Kavling Regional Timur #1', shortLabel: 'Timur #1', cx: 42.0, cz: -1.0, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-sw', label: 'Kavling Regional Barat #2', shortLabel: 'Barat #2', cx: -42.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-sc', label: 'Kavling Regional Selatan #1', shortLabel: 'Selatan #1', cx: 0.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-se', label: 'Kavling Regional Timur #2', shortLabel: 'Timur #2', cx: 42.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
+];
+
+/**
+ * Generate a new random/unique region ID when no live nodes exist or user creates a new shard
+ */
+export function generateUniqueRegionId(basePrefix = 'apac-custom'): string {
+  const rand = crypto.randomBytes(3).toString('hex');
+  return `${basePrefix}-${rand}`;
+}
+
+/**
+ * Find an unclaimed, empty kavling plot in the target region.
+ * Avoids any plot collision with existing active live peers.
+ */
+export function assignEmptyPlotInRegion(
+  regionId: string,
+  peerNodes: any[] = [],
+  preferredPlotId?: string
+): { plotId: string; plotCoords: { cx: number; cz: number } } {
+  // Collect all plots claimed by active peers in this region
+  const claimed = new Set<string>();
+  (peerNodes || []).forEach((p) => {
+    if (p && p.isOnline !== false && (p.regionId === regionId || p.regionalSector === regionId)) {
+      if (p.plotId) claimed.add(p.plotId);
+    }
+  });
+
+  // If preferred plot is specified and not claimed, use it
+  if (preferredPlotId && !claimed.has(preferredPlotId)) {
+    const match = DISTRICT_OFFICE_PLOTS.find((pl) => pl.id === preferredPlotId);
+    if (match) return { plotId: match.id, plotCoords: { cx: match.cx, cz: match.cz } };
+  }
+
+  // Otherwise, find the first plot that is not claimed
+  const freePlot = DISTRICT_OFFICE_PLOTS.find((pl) => !claimed.has(pl.id));
+  if (freePlot) {
+    return { plotId: freePlot.id, plotCoords: { cx: freePlot.cx, cz: freePlot.cz } };
+  }
+
+  // All 6 plots are claimed in this region!
+  // Fall back to plot-nc
+  return { plotId: 'plot-nc', plotCoords: { cx: 0.0, cz: -1.0 } };
+}
+
 /**
  * Calculate distance between two coordinates in kilometers using Haversine formula
  */
@@ -407,6 +468,7 @@ export function getAvailableRegions(): NodeRegion[] {
     currentSlots: 0,
     capacityPercentage: 0,
     status: 'available' as const,
+    claimedPlots: {},
   }));
 
   // 1. Check local node identity from keystore
@@ -425,43 +487,82 @@ export function getAvailableRegions(): NodeRegion[] {
     } catch {}
   }
 
-  // 3. Count real active nodes per region (No dummy data)
+  // Check for any custom regions created by local node or peers
+  const allKnownRegionIds = new Set<string>();
+  if (localRegionId) allKnownRegionIds.add(localRegionId);
+  peers.forEach((p) => {
+    if (p.regionId) allKnownRegionIds.add(p.regionId);
+    if (p.regionalSector) allKnownRegionIds.add(p.regionalSector);
+  });
+
+  allKnownRegionIds.forEach((cRegId) => {
+    if (!regions.some((r) => r.id === cRegId)) {
+      // Dynamic custom/spawned region
+      regions.push({
+        id: cRegId,
+        name: `Cluster ${cRegId.toUpperCase()}`,
+        countryCode: 'ID',
+        flag: '🌐',
+        pingMs: 15,
+        capacityPercentage: 0,
+        currentSlots: 0,
+        maxSlots: 6, // 6 office kavling plots per region
+        status: 'available',
+        city: 'Decentralized P2P Mesh',
+        claimedPlots: {},
+      });
+    }
+  });
+
+  // 3. Count real active nodes & claimed plots per region
   for (const reg of regions) {
     let count = 0;
+    const claimedPlots: Record<string, string> = {};
+
     if (localRegionId === reg.id) {
       count += 1;
+      const localPlot = localNode?.plotId || 'plot-nc';
+      claimedPlots[localPlot] = `${localNode?.companyName || 'My Office'} (Local)`;
     }
+
     const matchingPeers = peers.filter(
       (p) => p.regionalSector === reg.id || p.regionId === reg.id
     );
     count += matchingPeers.length;
 
+    matchingPeers.forEach((p) => {
+      const pPlot = p.plotId || 'plot-nw';
+      claimedPlots[pPlot] = p.companyName || p.nodeId || 'Peer Node';
+    });
+
     reg.currentSlots = count;
-    reg.capacityPercentage = Math.round((reg.currentSlots / reg.maxSlots) * 100);
-    reg.status = count === 0 ? 'available' : reg.capacityPercentage >= 90 ? 'high_load' : 'optimal';
+    reg.capacityPercentage = Math.round((reg.currentSlots / 6) * 100);
+    reg.status = count === 0 ? 'available' : reg.currentSlots >= 6 ? 'high_load' : 'optimal';
+    reg.claimedPlots = claimedPlots;
   }
 
-  // 4. Dynamic Auto-Sharding Rule (Only spawns if a region genuinely reaches >= 90% real utilization)
-  const highLoadRegion = regions.find((r) => r.capacityPercentage >= 90 && !r.isAutoSpawned);
-  if (highLoadRegion) {
-    const shard2Id = `${highLoadRegion.id.replace(/-1$/, '')}-2`;
+  // 4. Dynamic Auto-Sharding Rule (Only spawns if a region genuinely reaches >= 6 nodes full)
+  const fullRegion = regions.find((r) => r.currentSlots >= 6 && !r.isAutoSpawned);
+  if (fullRegion) {
+    const shard2Id = `${fullRegion.id.replace(/-1$/, '')}-2`;
     const alreadySpawned = regions.some((r) => r.id === shard2Id);
     if (!alreadySpawned) {
       const autoShard: NodeRegion = {
         id: shard2Id,
-        name: `${highLoadRegion.name.replace(/Shard-1$/, '')} Shard-2 (Auto-Spawned)`,
-        countryCode: highLoadRegion.countryCode,
-        flag: highLoadRegion.flag,
-        pingMs: highLoadRegion.pingMs + 2,
+        name: `${fullRegion.name.replace(/Shard-1$/, '')} Shard-2 (Auto-Spawned)`,
+        countryCode: fullRegion.countryCode,
+        flag: fullRegion.flag,
+        pingMs: fullRegion.pingMs + 2,
         capacityPercentage: 0,
         currentSlots: 0,
-        maxSlots: highLoadRegion.maxSlots,
+        maxSlots: 6,
         status: 'available',
         isAutoSpawned: true,
-        city: highLoadRegion.city,
-        coordinates: highLoadRegion.coordinates,
+        city: fullRegion.city,
+        coordinates: fullRegion.coordinates,
+        claimedPlots: {},
       };
-      const idx = regions.findIndex((r) => r.id === highLoadRegion.id);
+      const idx = regions.findIndex((r) => r.id === fullRegion.id);
       regions.splice(idx + 1, 0, autoShard);
     }
   }
@@ -494,6 +595,17 @@ export function setupNodeIdentity(payload: NodeSetupPayload): { success: boolean
     const companyId = `comp-${address.substring(2, 10).toLowerCase()}`;
     const createdAt = Date.now();
     
+    // Check known peers to auto-assign a free plot without collision
+    const peersFile = path.join(VIGENT_HOME, 'p2p_peers.json');
+    let peers: any[] = [];
+    if (fs.existsSync(peersFile)) {
+      try {
+        peers = JSON.parse(fs.readFileSync(peersFile, 'utf-8'));
+      } catch {}
+    }
+
+    const { plotId, plotCoords } = assignEmptyPlotInRegion(payload.regionId || 'apac-jakarta-1', peers, payload.plotId);
+
     // Create Genesis Block Payload
     const genesisData = {
       txType: 'COMPANY_GENESIS',
@@ -501,6 +613,8 @@ export function setupNodeIdentity(payload: NodeSetupPayload): { success: boolean
       name: payload.companyName || 'My Virtual Company',
       industry: payload.industry || 'Software Engineering',
       regionId: payload.regionId || 'apac-jakarta-1',
+      plotId,
+      plotCoords,
       ownerAddress: address,
       geoCoordinates: payload.geoCoordinates,
       createdAt,
@@ -518,6 +632,8 @@ export function setupNodeIdentity(payload: NodeSetupPayload): { success: boolean
       companyName: payload.companyName || 'My Virtual Company',
       industry: payload.industry || 'Software Engineering',
       regionId: payload.regionId || 'apac-jakarta-1',
+      plotId,
+      plotCoords,
       genesisHash,
       genesisSignature,
       geoCoordinates: payload.geoCoordinates,
@@ -526,6 +642,20 @@ export function setupNodeIdentity(payload: NodeSetupPayload): { success: boolean
     
     // Persist to ~/.ceo-virtual/keystore.json
     fs.writeFileSync(KEYSTORE_PATH, JSON.stringify(identity, null, 2), 'utf-8');
+
+    // Also sync to node_identity.json for P2P daemon
+    try {
+      const idPath = path.join(VIGENT_HOME, 'node_identity.json');
+      let idData: any = {};
+      if (fs.existsSync(idPath)) {
+        try { idData = JSON.parse(fs.readFileSync(idPath, 'utf-8')); } catch {}
+      }
+      idData.companyName = identity.companyName;
+      idData.regionalSector = identity.regionId;
+      idData.regionId = identity.regionId;
+      idData.plotId = identity.plotId;
+      fs.writeFileSync(idPath, JSON.stringify(idData, null, 2), 'utf-8');
+    } catch {}
     
     // Toggle system startup autorun if specified
     if (payload.autorun !== undefined) {
@@ -541,6 +671,59 @@ export function setupNodeIdentity(payload: NodeSetupPayload): { success: boolean
   } catch (err: any) {
     return { success: false, identity: null as any, error: err.message || 'Gagal menyimpan keystore' };
   }
+}
+
+/**
+ * Relocate office to another region and claim an empty, unassigned kavling plot
+ */
+export function relocateNodeRegion(
+  targetRegionId: string,
+  preferredPlotId?: string
+): { success: boolean; identity: NodeIdentity; error?: string } {
+  const currentIdentity = getNodeIdentity(true);
+  if (!currentIdentity) {
+    return { success: false, identity: null as any, error: 'Keystore belum diinisialisasi' };
+  }
+
+  // Load known live peers
+  const peersFile = path.join(VIGENT_HOME, 'p2p_peers.json');
+  let peers: any[] = [];
+  if (fs.existsSync(peersFile)) {
+    try {
+      peers = JSON.parse(fs.readFileSync(peersFile, 'utf-8'));
+    } catch {}
+  }
+
+  const { plotId, plotCoords } = assignEmptyPlotInRegion(targetRegionId, peers, preferredPlotId);
+
+  currentIdentity.regionId = targetRegionId;
+  currentIdentity.plotId = plotId;
+  currentIdentity.plotCoords = plotCoords;
+  currentIdentity.lastSyncedAt = Date.now();
+
+  try {
+    fs.writeFileSync(KEYSTORE_PATH, JSON.stringify(currentIdentity, null, 2), 'utf-8');
+    // Update node_identity.json for P2P daemon
+    const idPath = path.join(VIGENT_HOME, 'node_identity.json');
+    if (fs.existsSync(idPath)) {
+      try {
+        const idData = JSON.parse(fs.readFileSync(idPath, 'utf-8'));
+        idData.regionalSector = targetRegionId;
+        idData.regionId = targetRegionId;
+        idData.plotId = plotId;
+        fs.writeFileSync(idPath, JSON.stringify(idData, null, 2), 'utf-8');
+      } catch {}
+    }
+
+    // Refresh regions cache
+    try {
+      getAvailableRegions();
+    } catch {}
+  } catch (err: any) {
+    return { success: false, identity: null as any, error: err.message };
+  }
+
+  return { success: true, identity: currentIdentity };
 }
 
 /**

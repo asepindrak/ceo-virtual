@@ -125,19 +125,40 @@ export interface ExternalCompanyKavling {
   plotLabel?: string;
 }
 
-export const REGIONAL_PLOT_COORDINATES = [
-  { id: 'plot-nw', label: 'Kavling Regional Barat #1', cx: -42.0, cz: -1.0, halfW: 16.5, halfD: 11.0 },
-  { id: 'plot-ne', label: 'Kavling Regional Timur #1', cx: 42.0, cz: -1.0, halfW: 16.5, halfD: 11.0 },
-  { id: 'plot-sw', label: 'Kavling Regional Barat #2', cx: -42.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
-  { id: 'plot-sc', label: 'Kavling Regional Selatan #1', cx: 0.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
-  { id: 'plot-se', label: 'Kavling Regional Timur #2', cx: 42.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
+export const ALL_OFFICE_PLOTS = [
+  { id: 'plot-nc', label: 'Kavling Regional Utara (Pusat)', shortLabel: 'Utara #1', cx: 0.0, cz: -1.0, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-nw', label: 'Kavling Regional Barat #1', shortLabel: 'Barat #1', cx: -42.0, cz: -1.0, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-ne', label: 'Kavling Regional Timur #1', shortLabel: 'Timur #1', cx: 42.0, cz: -1.0, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-sw', label: 'Kavling Regional Barat #2', shortLabel: 'Barat #2', cx: -42.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-sc', label: 'Kavling Regional Selatan #1', shortLabel: 'Selatan #1', cx: 0.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
+  { id: 'plot-se', label: 'Kavling Regional Timur #2', shortLabel: 'Timur #2', cx: 42.0, cz: 39.5, halfW: 16.5, halfD: 11.0 },
 ];
 
-export function buildRegionalKavlings(peerNodes?: any[]): ExternalCompanyKavling[] {
-  const onlinePeers = (peerNodes || []).filter((p) => p && p.isOnline);
+export const REGIONAL_PLOT_COORDINATES = ALL_OFFICE_PLOTS;
 
-  return REGIONAL_PLOT_COORDINATES.map((plot, idx) => {
-    const peer = onlinePeers[idx];
+export function buildRegionalKavlings(peerNodes?: any[], localPlotId: string = 'plot-nc'): ExternalCompanyKavling[] {
+  const onlinePeers = (peerNodes || []).filter((p) => p && p.isOnline);
+  // Exclude the local office's claimed plot from external regional kavlings
+  const availablePlots = ALL_OFFICE_PLOTS.filter((plot) => plot.id !== localPlotId);
+
+  // Map peers to plots (matching claimed peer.plotId or next vacant plot)
+  const assignedPeers = new Map<string, any>();
+  const unassignedPeers: any[] = [];
+
+  onlinePeers.forEach((p) => {
+    if (p.plotId && availablePlots.some((pl) => pl.id === p.plotId) && !assignedPeers.has(p.plotId)) {
+      assignedPeers.set(p.plotId, p);
+    } else {
+      unassignedPeers.push(p);
+    }
+  });
+
+  return availablePlots.map((plot) => {
+    let peer = assignedPeers.get(plot.id);
+    if (!peer && unassignedPeers.length > 0) {
+      peer = unassignedPeers.shift();
+    }
+
     if (peer && peer.companyName) {
       // Real peer node company
       const employees: ExternalEmployee[] = Array.isArray(peer.employees)
@@ -159,7 +180,7 @@ export function buildRegionalKavlings(peerNodes?: any[]): ExternalCompanyKavling
         : [];
 
       return {
-        id: peer.nodeId || `peer-${idx}`,
+        id: peer.nodeId || `peer-${plot.id}`,
         name: peer.companyName,
         shortName: (peer.companyName || 'Peer').split(' ')[0],
         ownerName: peer.regionalSector || 'Node Rekan',
@@ -190,9 +211,9 @@ export function buildRegionalKavlings(peerNodes?: any[]): ExternalCompanyKavling
       id: `empty-${plot.id}`,
       name: `${plot.label} (Available)`,
       shortName: plot.label,
-      ownerName: 'Available',
+      ownerName: 'Tersedia',
       level: 1,
-      industry: 'Vacant Lot (Awaiting P2P Peer Connection)',
+      industry: 'Kavling Kosong (Menunggu Node Rekan Terhubung)',
       badgeIcon: '📍',
       layoutTemplate: 'tech_startup',
       cx: plot.cx,
@@ -206,7 +227,7 @@ export function buildRegionalKavlings(peerNodes?: any[]): ExternalCompanyKavling
       carpetColor: '#047857',
       pantryColor: '#d1fae5',
       accentColor: '#059669',
-      specialtyText: 'Vacant lot ready for new peer nodes on the P2P network.',
+      specialtyText: 'Kavling kosong tersedia untuk node baru pada jaringan P2P.',
       employees: [],
       isEmptyLot: true,
       plotLabel: plot.label,
@@ -297,8 +318,14 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const localPlotId = currentCompany?.plotId || 'plot-nc';
+  const officeCx = currentCompany?.plotCoords?.cx ?? 0.0;
+  const officeCz = currentCompany?.plotCoords?.cz ?? -1.0;
+  const officeOffX = officeCx - 0.0;
+  const officeOffZ = officeCz - (-1.0);
+
   // Dynamic regional kavlings: empty lots if no peers, or populated with live peer company data
-  const regionalKavlings = React.useMemo(() => buildRegionalKavlings(peerNodes), [peerNodes]);
+  const regionalKavlings = React.useMemo(() => buildRegionalKavlings(peerNodes, localPlotId), [peerNodes, localPlotId]);
 
   // Viewport Pan & Zoom (Spacious default zoom for grand expanded office)
   const [zoom, setZoom] = useState(1.0);
@@ -453,10 +480,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
   };
 
   const handleResetCamera = () => {
-    zoomRef.current = 1.0;
-    panRef.current = { x: 0, y: 15 };
-    setZoom(1.0);
-    setPan({ x: 0, y: 15 });
+    handleFocusCompany(officeCx, officeCz, 1.0);
   };
 
   // Daily Standup in Conference Room State & Handlers
@@ -517,7 +541,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     const width = canvasRef.current.width / (window.devicePixelRatio || 1);
     const height = canvasRef.current.height / (window.devicePixelRatio || 1);
 
-    // 1. Hit test against active user's ShadowMove agents
+    // 1. Hit test against active user's main office agents (with office offset)
     let foundAgent: Agent | null = null;
     for (const agent of agentsRef.current) {
       const isWalking = agent.state === 'walking' || simulation.getAgentPathState(agent.id);
@@ -525,7 +549,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       const wz = agent.currentPosition.z;
       const isBoss = agent.deskPosition && Math.hypot(agent.deskPosition.x - 11.5, agent.deskPosition.z - (-7.0)) < 0.5;
       const isAtDesk = !isWalking && agent.deskPosition && Math.hypot(wx - agent.deskPosition.x, wz - agent.deskPosition.z) < 0.5;
-      const { isoX, isoY } = worldToIso(wx, wz, width, height);
+      const { isoX, isoY } = worldToIso(wx + officeOffX, wz + officeOffZ, width, height);
       const anchorY = isAtDesk ? (isBoss ? isoY - 14 * zoom : isoY - 12 * zoom) : isoY;
       const dist = Math.hypot(clientX - isoX, clientY - (anchorY - 20 * zoom));
       if (dist < 32 * zoom) {
@@ -538,7 +562,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     // 2. Hit test against external employees in neighboring kavlings (Privacy shield applies)
     let foundExtEmp: ExternalEmployee | null = null;
     if (!foundAgent) {
-      for (const comp of OTHER_REGIONAL_COMPANIES) {
+      for (const comp of regionalKavlings) {
         for (const emp of comp.employees) {
           const { isoX, isoY } = worldToIso(emp.wx, emp.wz, width, height);
           const dist = Math.hypot(clientX - isoX, clientY - (isoY - 22 * zoom));
@@ -552,8 +576,8 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     }
     setHoveredExternalEmployee(foundExtEmp);
 
-    // 3. Hit test against roaming Cat Mochi
-    const catIso = worldToIso(catRef.current.x, catRef.current.z, width, height);
+    // 3. Hit test against roaming Cat Mochi (with office offset)
+    const catIso = worldToIso(catRef.current.x + officeOffX, catRef.current.z + officeOffZ, width, height);
     const catDist = Math.hypot(clientX - catIso.isoX, clientY - (catIso.isoY - 10 * zoom));
     setIsCatHovered(catDist < 25 * zoom);
 
@@ -581,10 +605,12 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     // 6. Hit test against City Landmarks (when zoomed out or near landmarks)
     let foundLm: typeof CITY_LANDMARKS[0] | null = null;
     for (const lm of CITY_LANDMARKS) {
-      const { isoX, isoY } = worldToIso(lm.wx, lm.wz, width, height);
+      const lmX = lm.id === 'company-main-hq' ? officeCx : lm.wx;
+      const lmZ = lm.id === 'company-main-hq' ? officeCz : lm.wz;
+      const { isoX, isoY } = worldToIso(lmX, lmZ, width, height);
       const dist = Math.hypot(clientX - isoX, clientY - (isoY - 30 * zoom));
       if (dist < lm.radius * zoom) {
-        foundLm = lm;
+        foundLm = { ...lm, wx: lmX, wz: lmZ, name: lm.id === 'company-main-hq' ? (currentCompany?.name || lm.name) : lm.name };
         break;
       }
     }
@@ -1107,15 +1133,18 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
       // BACK TREES ONLY (z < -16, rendered BEFORE office building)
       // Positioned cleanly behind panoramic windows so no wall clipping occurs
-      drawBigTree(-15.0, -18.5, 1.25, 1);
-      drawBigTree(-8.0, -19.0, 1.35, 2);
-      drawBigTree(0.0, -19.5, 1.40, 3);
-      drawBigTree(8.0, -19.0, 1.35, 4);
-      drawBigTree(15.0, -18.5, 1.25, 5);
+      drawBigTree(-15.0 + officeOffX, -18.5 + officeOffZ, 1.25, 1);
+      drawBigTree(-8.0 + officeOffX, -19.0 + officeOffZ, 1.35, 2);
+      drawBigTree(0.0 + officeOffX, -19.5 + officeOffZ, 1.40, 3);
+      drawBigTree(8.0 + officeOffX, -19.0 + officeOffZ, 1.35, 4);
+      drawBigTree(15.0 + officeOffX, -18.5 + officeOffZ, 1.25, 5);
 
       // =========================================================
       // 2. MAIN BUILDING FOUNDATION & 3D PLATFORM SLAB (EXPANDED)
+      // Dynamically localized to office plot coordinates (officeCx, officeCz)
       // =========================================================
+      {
+        const toIso = (wx: number, wz: number) => worldToIso(wx + officeOffX, wz + officeOffZ, width, height);
       const slabDepth = 10 * zoom;
       const fTL = toIso(-16.5, -12.0);
       const fTR = toIso(16.5, -12.0);
@@ -3630,6 +3659,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
         ctx.restore();
       });
+      } // End of localized main office rendering block
       // =========================================================
       // 7. KAVLING REGIONAL PERUSAHAAN LAIN (FULL OPEN OFFICE KAVLING)
       // Mengikuti layout template 3D yang dipilih (tech_startup, cloud_datacenter,
@@ -4558,8 +4588,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           ) : (
             <button
               onClick={() => {
-                setZoom(1.0);
-                setPan({ x: 0, y: 15 });
+                handleFocusCompany(officeCx, officeCz, 1.0);
               }}
               className="px-2.5 py-1.5 rounded-xl border border-[#f0c8a5] bg-[#fdeed9] hover:bg-[#fbdcb8] text-[#c85a2b] flex items-center gap-1.5 transition-colors text-xs font-bold shadow-2xs"
               title="Focus on Your Main Office"

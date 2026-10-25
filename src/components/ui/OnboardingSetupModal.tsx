@@ -63,6 +63,8 @@ export interface OnboardingCompletionData {
   companyName: string;
   industry: string;
   regionId: string;
+  plotId?: string;
+  plotCoords?: { cx: number; cz: number };
   address: string;
   globalLLMConfig?: CompanyGlobalLLMConfig;
   officeLayoutTemplate?: OfficeLayoutTemplateId;
@@ -99,6 +101,8 @@ export function OnboardingSetupModal({ isOpen, onComplete }: OnboardingSetupModa
   const [regions, setRegions] = useState<NodeRegion[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string>('apac-jakarta-1');
   const [isLoadingRegions, setIsLoadingRegions] = useState<boolean>(false);
+  const [livePeersCount, setLivePeersCount] = useState<number>(0);
+  const [noLiveNodes, setNoLiveNodes] = useState<boolean>(false);
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number; city?: string } | null>(null);
   const [isDetectingLocation, setIsDetectingLocation] = useState<boolean>(false);
   const [locationStatus, setLocationStatus] = useState<string>('');
@@ -216,16 +220,57 @@ export function OnboardingSetupModal({ isOpen, onComplete }: OnboardingSetupModa
       const res = await fetch('/api/node/regions');
       const data = await res.json();
       if (data.regions && data.regions.length > 0) {
-        setRegions(data.regions);
-        // Select optimal region by default
-        const optimal = data.regions.find((r: NodeRegion) => r.status === 'optimal') || data.regions[0];
-        setSelectedRegionId(optimal.id);
+        setLivePeersCount(data.livePeersCount || 0);
+        setNoLiveNodes(Boolean(data.noLiveNodes));
+
+        // If no live nodes exist across the network, auto-inject a unique dedicated shard ID
+        if (data.noLiveNodes && data.suggestedNewRegionId) {
+          const autoNewShard: NodeRegion = {
+            id: data.suggestedNewRegionId,
+            name: `Shard Mandiri (${data.suggestedNewRegionId})`,
+            countryCode: 'ID',
+            flag: '✨',
+            pingMs: 12,
+            capacityPercentage: 0,
+            currentSlots: 0,
+            maxSlots: 6,
+            status: 'available',
+            city: 'Custom Isolated Region',
+            claimedPlots: {},
+          };
+          setRegions([autoNewShard, ...data.regions]);
+          setSelectedRegionId(autoNewShard.id);
+        } else {
+          setRegions(data.regions);
+          // Select optimal region by default
+          const optimal = data.regions.find((r: NodeRegion) => r.status === 'optimal') || data.regions[0];
+          setSelectedRegionId(optimal.id);
+        }
       }
     } catch (err) {
       console.error('Failed to load regions:', err);
     } finally {
       setIsLoadingRegions(false);
     }
+  };
+
+  const handleCreateCustomRegion = () => {
+    const randId = `apac-shard-${Math.random().toString(36).substring(2, 7)}`;
+    const customShard: NodeRegion = {
+      id: randId,
+      name: `Custom Shard (${randId})`,
+      countryCode: 'ID',
+      flag: '🚀',
+      pingMs: 10,
+      capacityPercentage: 0,
+      currentSlots: 0,
+      maxSlots: 6,
+      status: 'available',
+      city: 'Custom Isolated Region',
+      claimedPlots: {},
+    };
+    setRegions((prev) => [customShard, ...prev]);
+    setSelectedRegionId(customShard.id);
   };
 
   const generateFreshIdentity = async () => {
@@ -470,6 +515,8 @@ IMPORTANT & CONFIDENTIAL:
         companyName: companyName.trim(),
         industry,
         regionId: selectedRegionId,
+        plotId: data.identity?.plotId,
+        plotCoords: data.identity?.plotCoords,
         address: data.identity?.ownerAddress || address || 'owner-node',
         globalLLMConfig: finalGlobalLLM,
         officeLayoutTemplate: generatedCompany?.officeLayoutTemplate || 'tech_startup',
@@ -753,13 +800,54 @@ IMPORTANT & CONFIDENTIAL:
           {/* ============================================================= */}
           {/* STEP 2: REGION SELECTION & AUTO-SHARDING                      */}
           {/* ============================================================= */}
+          {/* ============================================================= */}
+          {/* STEP 2: REGION SELECTION & AUTO-SHARDING                      */}
+          {/* ============================================================= */}
           {step === 2 && (
             <div className="space-y-4">
-              <div>
-                <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Select P2P Node Region Cluster</span>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Region determines the closest state synchronization cluster for ultra low-latency real-time P2P agent communication.
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Select P2P Node Region Cluster</span>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Region menentukan cluster sinkronisasi P2P antar node. Setiap region memiliki 6 kavling kantor mandiri.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCreateCustomRegion}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600/30 to-indigo-600/30 hover:from-purple-600/40 hover:to-indigo-600/40 border border-purple-500/40 text-purple-200 text-xs font-semibold transition-all shadow-xs shrink-0 self-start sm:self-auto cursor-pointer"
+                  title="Generate a brand new unique region ID"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+                  <span>✨ Buat ID Region Baru (Shard Sendiri)</span>
+                </button>
+              </div>
+
+              {/* 📡 Live Swarm Peer Status Notice */}
+              <div className={`p-3 rounded-xl border flex items-start gap-3 text-xs ${
+                livePeersCount > 0 
+                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200' 
+                  : 'bg-indigo-950/40 border-indigo-500/40 text-indigo-200'
+              }`}>
+                {livePeersCount > 0 ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                )}
+                <div className="space-y-0.5">
+                  <div className="font-semibold flex items-center gap-2">
+                    <span>{livePeersCount > 0 ? `Terdeteksi ${livePeersCount} Node Rekan Online` : 'Tidak Ada Node Rekan Online Terdeteksi'}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/40 font-mono">
+                      {livePeersCount > 0 ? 'P2P Swarm Active' : 'Isolated / Standalone Node'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] opacity-80 leading-relaxed">
+                    {livePeersCount > 0 
+                      ? 'Sistem telah mendownload data kavling terisi dari node rekan. Kantor Anda akan otomatis menempati kavling kosong tanpa bentrok.'
+                      : 'Data node hidup telah diperiksa via LAN & Relay Publik. Karena belum ada node aktif, ID Region Baru yang unik telah disiapkan agar kavling tidak bentrok saat PC lain bergabung.'}
+                  </p>
+                </div>
               </div>
 
               {/* 📍 GPS & Spatial Location Detection Bar */}
@@ -798,7 +886,7 @@ IMPORTANT & CONFIDENTIAL:
                 <div className="space-y-0.5">
                   <span className="font-semibold text-cyan-300 text-[11px]">Dynamic Auto-Sharding Protocol:</span>
                   <p className="text-gray-400 text-[11px] leading-relaxed">
-                    If a region reaches capacity $\ge 90\%$, the consensus protocol automatically spawns a new region shard (e.g., <span className="font-mono text-cyan-300">APAC Jakarta Shard-2</span>).
+                    Setiap region menampung maksimal 6 kavling kantor terisolasi. Jika terisi penuh (6/6), sharding otomatis memicu shard baru.
                   </p>
                 </div>
               </div>
@@ -860,9 +948,9 @@ IMPORTANT & CONFIDENTIAL:
                       {/* Capacity Progress Bar */}
                       <div className="space-y-1.5 mt-3">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-gray-400">Active P2P Nodes in Shard</span>
+                          <span className="text-gray-400">Kavling Kantor di Shard</span>
                           <span className={`font-mono font-medium ${isHighLoad ? 'text-amber-400' : 'text-cyan-400'}`}>
-                            {region.currentSlots} Active Nodes (Max Capacity: {region.maxSlots})
+                            {region.currentSlots ?? 0} / 6 Terisi ({Math.max(0, 6 - (region.currentSlots ?? 0))} Kosong)
                           </span>
                         </div>
                         <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
@@ -875,6 +963,17 @@ IMPORTANT & CONFIDENTIAL:
                             style={{ width: `${Math.min(region.capacityPercentage, 100)}%` }}
                           />
                         </div>
+
+                        {region.claimedPlots && Object.keys(region.claimedPlots).length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1 mt-1.5 text-[10px] text-gray-400">
+                            <span className="text-gray-500">Terisi:</span>
+                            {Object.entries(region.claimedPlots).map(([plot, name]) => (
+                              <span key={plot} className="px-1.5 py-0.5 rounded bg-gray-900 border border-gray-800 text-cyan-300 font-mono">
+                                {plot}: {name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

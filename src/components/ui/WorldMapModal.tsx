@@ -55,6 +55,7 @@ interface WorldMapModalProps {
   onViewCityScale?: () => void;
   onClaimBounty?: (bounty: any, company: RegionalCompanyInfo) => void;
   onBuyOffer?: (offer: any, company: RegionalCompanyInfo) => void;
+  onCompanyUpdated?: (updatedCompany: Company) => void;
 }
 
 export const WorldMapModal: React.FC<WorldMapModalProps> = ({
@@ -68,6 +69,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
   onViewCityScale,
   onClaimBounty,
   onBuyOffer,
+  onCompanyUpdated,
 }) => {
   const [activeTab, setActiveTab] = useState<'atlas' | 'dispatch' | 'missions' | 'p2p_mesh'>('atlas');
   const [districts, setDistricts] = useState<RegionalDistrict[]>([]);
@@ -75,8 +77,11 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
   const [missions, setMissions] = useState<TravelMission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // P2P Mesh Node State
+  // P2P Mesh Node & Relocation State
   const [p2pStatus, setP2pStatus] = useState<any>(null);
+  const [nodeRegions, setNodeRegions] = useState<any[]>([]);
+  const [isRelocating, setIsRelocating] = useState(false);
+  const [relocateNotice, setRelocateNotice] = useState('');
   const [manualPeerUrl, setManualPeerUrl] = useState('');
   const [isConnectingPeer, setIsConnectingPeer] = useState(false);
   const [p2pNotice, setP2pNotice] = useState('');
@@ -93,6 +98,54 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
       }
     } catch (e) {
       console.error('Error fetching P2P status:', e);
+    }
+  };
+
+  const fetchNodeRegions = async () => {
+    try {
+      const res = await fetch('/api/node/regions');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.regions)) {
+        setNodeRegions(data.regions);
+      }
+    } catch {}
+  };
+
+  const handleRelocateOffice = async (targetRegId?: string, isNewShard?: boolean) => {
+    setIsRelocating(true);
+    setRelocateNotice('Memproses pemindahan kantor & mencari kavling kosong...');
+    try {
+      const res = await fetch('/api/node/relocate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetRegionId: targetRegId,
+          isNewRegion: isNewShard,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.identity) {
+        setRelocateNotice(`✅ ${data.message}`);
+        fetchP2pData();
+        fetchNodeRegions();
+        if (onCompanyUpdated) {
+          onCompanyUpdated({
+            ...currentCompany,
+            regionId: data.identity.regionId,
+            plotId: data.identity.plotId,
+            plotCoords: data.identity.plotCoords,
+          });
+        }
+        setTimeout(() => setRelocateNotice(''), 6000);
+      } else {
+        setRelocateNotice(`❌ Gagal memindahkan kantor: ${data.error || 'Terjadi kesalahan'}`);
+        setTimeout(() => setRelocateNotice(''), 6000);
+      }
+    } catch (err: any) {
+      setRelocateNotice(`❌ Error: ${err.message}`);
+      setTimeout(() => setRelocateNotice(''), 6000);
+    } finally {
+      setIsRelocating(false);
     }
   };
 
@@ -284,10 +337,11 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
   useEffect(() => {
     fetchWorldData();
     fetchP2pData();
+    fetchNodeRegions();
     const interval = setInterval(() => {
       fetchWorldData();
       fetchP2pData();
-    }, 3000);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -446,6 +500,12 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
               <span>{actionNotice}</span>
             </div>
           )}
+          {relocateNotice && (
+            <div className="p-3 bg-[#fef3c7] border border-[#f59e0b] text-[#92400e] rounded-2xl text-xs font-medium flex items-center gap-2 animate-in fade-in shadow-xs">
+              <Sparkles className="w-4 h-4 shrink-0 text-[#f59e0b]" />
+              <span>{relocateNotice}</span>
+            </div>
+          )}
 
           {/* TAB 1: PETA MAKRO DUNIA */}
           {activeTab === 'atlas' && (
@@ -590,6 +650,49 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         Commute: <strong>~{activeDistrict.trainTravelSeconds}s Bullet Train</strong> •{' '}
                         <strong>~{activeDistrict.carTravelSeconds}s Highway</strong>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Office Relocation & Plot Management Action Bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-[#faf5eb] border border-[#d6c5ad] shadow-xs">
+                    <div className="text-xs">
+                      <div className="font-bold text-[#2c231c] flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-[#c85a2b]" />
+                        <span>Kavling Kantor Anda Saat Ini</span>
+                      </div>
+                      <div className="text-[11px] text-[#786653] font-mono mt-0.5">
+                        Region: <strong>{currentCompany.regionId || 'apac-jakarta-1'}</strong> • Kavling: <strong className="text-[#c85a2b]">{currentCompany.plotId || 'plot-nc'}</strong>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {currentCompany.regionId !== activeDistrict.id ? (
+                        <button
+                          type="button"
+                          onClick={() => handleRelocateOffice(activeDistrict.id, false)}
+                          disabled={isRelocating}
+                          className="px-3 py-1.5 rounded-xl bg-[#c85a2b] hover:bg-[#b04a20] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer active:scale-95"
+                          title="Pindahkan kantor Anda ke region ini dan otomatis klaim kavling kosong"
+                        >
+                          <ArrowRight className="w-3.5 h-3.5" />
+                          <span>{isRelocating ? 'Memindahkan...' : `Pindah Kantor ke ${activeDistrict.name}`}</span>
+                        </button>
+                      ) : (
+                        <span className="text-[11px] font-bold text-[#059669] bg-[#ecfdf5] border border-[#a7f3d0] px-2.5 py-1 rounded-xl flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Kantor Anda Berada di Region Ini</span>
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleRelocateOffice(undefined, true)}
+                        disabled={isRelocating}
+                        className="px-3 py-1.5 rounded-xl bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#784620] border border-[#d6c5ad] text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer active:scale-95"
+                        title="Buat ID Region Baru yang terisolasi dan pindahkan kantor ke kavling kosong di region baru"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-[#c85a2b]" />
+                        <span>✨ Buat ID Region Baru</span>
+                      </button>
                     </div>
                   </div>
 
@@ -1190,7 +1293,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                 </div>
 
                 {/* Node Metrics Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
                   <div className="bg-[#faf5eb] p-3 rounded-xl border border-[#d6c5ad]">
                     <div className="text-[10px] text-[#786653] font-medium">Cryptographic Node ID</div>
                     <div className="font-mono text-xs font-bold text-[#0284c7] mt-1 flex items-center justify-between">
@@ -1228,9 +1331,104 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                   <div className="bg-[#faf5eb] p-3 rounded-xl border border-[#d6c5ad]">
                     <div className="text-[10px] text-[#786653] font-medium">Local Regional Sector</div>
                     <div className="font-mono text-xs font-bold text-[#b45309] mt-1 truncate">
-                      {p2pStatus?.regionalSector || 'region-jakarta'}
+                      {p2pStatus?.regionalSector || currentCompany.regionId || 'apac-jakarta-1'}
                     </div>
                   </div>
+
+                  <div className="bg-[#faf5eb] p-3 rounded-xl border border-[#d6c5ad]">
+                    <div className="text-[10px] text-[#786653] font-medium">Kavling Kantor Anda</div>
+                    <div className="font-mono text-xs font-bold text-[#c85a2b] mt-1 truncate">
+                      {p2pStatus?.plotId || currentCompany.plotId || 'plot-nc'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 0: Region & Kavling Management (Conflict-Free Plot Relocation) */}
+              <div className="p-4 rounded-2xl bg-[#fffdf9] border-2 border-[#d6c5ad] shadow-sm space-y-3 text-[#2c231c]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#e8decb]">
+                  <div>
+                    <h3 className="font-bold text-xs tracking-wide text-[#2c231c] flex items-center gap-1.5">
+                      <span>🏙️ Manajemen Region & Kavling Kantor (Bebas Bentrok)</span>
+                    </h3>
+                    <p className="text-[11px] text-[#786653] mt-0.5">
+                      Setiap region cluster memiliki 6 kavling kantor terisolasi. Jika berpindah region, sistem otomatis mencari kavling kosong yang belum diklaim oleh node lain.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRelocateOffice(undefined, true)}
+                    disabled={isRelocating}
+                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>✨ Buat ID Region Baru (Shard Sendiri)</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {nodeRegions.map((reg) => {
+                    const isCurrent = (currentCompany.regionId || 'apac-jakarta-1') === reg.id;
+                    const occupiedCount = reg.currentSlots ?? 0;
+                    const isFull = occupiedCount >= 6;
+
+                    return (
+                      <div
+                        key={reg.id}
+                        className={`p-3 rounded-xl border flex flex-col justify-between gap-2 transition-all ${
+                          isCurrent 
+                            ? 'bg-[#fdeed9] border-2 border-[#c85a2b] shadow-xs' 
+                            : 'bg-[#faf5eb] border-[#d6c5ad] hover:border-[#c85a2b]'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <span>{reg.flag || '📍'}</span>
+                              <span className="font-bold text-xs text-[#2c231c]">{reg.name}</span>
+                            </div>
+                            <span className="text-[10px] font-mono text-[#786653]">{reg.pingMs || 10}ms</span>
+                          </div>
+                          <div className="text-[10px] text-[#786653] font-mono mt-1">
+                            ID: {reg.id}
+                          </div>
+                          <div className="text-[11px] font-medium text-[#2c231c] mt-1 flex items-center gap-1">
+                            <span>Kavling:</span>
+                            <strong className={isFull ? 'text-amber-600' : 'text-emerald-700'}>
+                              {occupiedCount} / 6 Terisi ({Math.max(0, 6 - occupiedCount)} Kosong)
+                            </strong>
+                          </div>
+                          {reg.claimedPlots && Object.keys(reg.claimedPlots).length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1 text-[9px]">
+                              {Object.entries(reg.claimedPlots).map(([plot, name]: [string, any]) => (
+                                <span key={plot} className="px-1.5 py-0.5 rounded bg-[#fffdf9] border border-[#d6c5ad] text-[#786653] font-mono">
+                                  {plot}: {name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="pt-2 border-t border-[#e8decb]/60 flex items-center justify-between">
+                          {isCurrent ? (
+                            <span className="text-[11px] font-bold text-[#c85a2b] flex items-center gap-1">
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Kantor Anda ({currentCompany.plotId || 'plot-nc'})</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleRelocateOffice(reg.id, false)}
+                              disabled={isRelocating || isFull}
+                              className="w-full py-1 px-2.5 rounded-lg bg-[#c85a2b] hover:bg-[#b04a20] text-white text-[11px] font-bold transition-all disabled:opacity-40 cursor-pointer text-center"
+                            >
+                              {isFull ? 'Kavling Penuh (6/6)' : 'Pindah Kantor ke Sini'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

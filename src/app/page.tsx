@@ -95,11 +95,18 @@ export default function RealAgent3DPage() {
           const realName = data.identity.companyName || 'My Virtual Company';
           const realIndustry = data.identity.industry || 'Software Engineering';
 
+          const realRegionId = data.identity.regionId || 'district-alpha';
+          const realPlotId = data.identity.plotId;
+          const realPlotCoords = data.identity.plotCoords;
+
           setCurrentCompany((prev) => ({
             ...prev,
             id: realCompanyId,
             name: realName,
             industry: realIndustry,
+            regionId: realRegionId,
+            plotId: realPlotId,
+            plotCoords: realPlotCoords,
           }));
 
           // Broadcast real presence immediately to P2P network
@@ -109,7 +116,10 @@ export default function RealAgent3DPage() {
             body: JSON.stringify({
               action: 'update_presence',
               companyName: realName,
-              regionalSector: data.identity.regionId,
+              regionalSector: realRegionId,
+              regionId: realRegionId,
+              plotId: realPlotId,
+              plotCoords: realPlotCoords,
             }),
           }).catch(() => {});
         }
@@ -1514,6 +1524,7 @@ export default function RealAgent3DPage() {
           agents={agents}
           userPoints={userAccount.pointsBalance}
           onClose={() => setIsWorldMapOpen(false)}
+          onCompanyUpdated={(updated) => setCurrentCompany(updated)}
           onDispatchMission={handleMissionDispatched}
           onMissionCompleted={handleMissionCompleted}
           onBuyItem={handleBuySupermarketItem}
@@ -1555,6 +1566,9 @@ export default function RealAgent3DPage() {
             name: data.companyName,
             industry: data.industry,
             description: data.description || `Company ${data.companyName} on regional shard ${data.regionId}`,
+            regionId: data.regionId,
+            plotId: data.plotId,
+            plotCoords: data.plotCoords,
             officeLayoutTemplate: data.officeLayoutTemplate || 'tech_startup',
             departments: data.departments || [],
             agents: finalAgents,

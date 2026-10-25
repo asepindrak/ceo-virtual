@@ -15,6 +15,7 @@ import os from 'os';
 import crypto from 'crypto';
 import dgram from 'dgram';
 import { VIGENT_HOME } from './workspaceManager';
+import { assignEmptyPlotInRegion } from './nodeIdentityManager';
 
 const VIGENT_DIR = VIGENT_HOME;
 const IDENTITY_FILE = path.join(VIGENT_DIR, 'node_identity.json');
@@ -29,6 +30,9 @@ export interface NodeIdentity {
   fingerprint: string;
   companyName: string;
   regionalSector: string;
+  regionId?: string;
+  plotId?: string;
+  plotCoords?: { cx: number; cz: number };
   httpPort: number;
   udpPort: number;
   createdAt: number;
@@ -38,6 +42,9 @@ export interface PeerNode {
   nodeId: string;
   companyName: string;
   regionalSector: string;
+  regionId?: string;
+  plotId?: string;
+  plotCoords?: { cx: number; cz: number };
   endpointUrl: string;
   ip: string;
   httpPort: number;
@@ -101,13 +108,41 @@ function ensureVigentDir() {
 export function getOrCreateNodeIdentity(companyName: string = 'ShadowMove Inc', sector: string = 'region-jakarta'): NodeIdentity {
   ensureVigentDir();
 
-  if (activeIdentity) return activeIdentity;
+  const KEYSTORE_FILE = path.join(VIGENT_DIR, 'keystore.json');
+  let ksData: any = null;
+  if (fs.existsSync(KEYSTORE_FILE)) {
+    try {
+      ksData = JSON.parse(fs.readFileSync(KEYSTORE_FILE, 'utf-8'));
+    } catch {}
+  }
+
+  if (activeIdentity) {
+    if (ksData) {
+      if (ksData.regionId) {
+        activeIdentity.regionId = ksData.regionId;
+        activeIdentity.regionalSector = ksData.regionId;
+      }
+      if (ksData.plotId) activeIdentity.plotId = ksData.plotId;
+      if (ksData.plotCoords) activeIdentity.plotCoords = ksData.plotCoords;
+      if (ksData.companyName) activeIdentity.companyName = ksData.companyName;
+    }
+    return activeIdentity;
+  }
 
   if (fs.existsSync(IDENTITY_FILE)) {
     try {
       const raw = fs.readFileSync(IDENTITY_FILE, 'utf-8');
       activeIdentity = JSON.parse(raw);
       if (activeIdentity && activeIdentity.nodeId) {
+        if (ksData) {
+          if (ksData.regionId) {
+            activeIdentity.regionId = ksData.regionId;
+            activeIdentity.regionalSector = ksData.regionId;
+          }
+          if (ksData.plotId) activeIdentity.plotId = ksData.plotId;
+          if (ksData.plotCoords) activeIdentity.plotCoords = ksData.plotCoords;
+          if (ksData.companyName) activeIdentity.companyName = ksData.companyName;
+        }
         return activeIdentity;
       }
     } catch {}
@@ -121,8 +156,11 @@ export function getOrCreateNodeIdentity(companyName: string = 'ShadowMove Inc', 
   activeIdentity = {
     nodeId,
     fingerprint: fingerprint.slice(0, 32),
-    companyName,
-    regionalSector: sector,
+    companyName: ksData?.companyName || companyName,
+    regionalSector: ksData?.regionId || sector,
+    regionId: ksData?.regionId || sector,
+    plotId: ksData?.plotId || 'plot-nc',
+    plotCoords: ksData?.plotCoords || { cx: 0.0, cz: -1.0 },
     httpPort: DEFAULT_HTTP_PORT,
     udpPort: UDP_DISCOVERY_PORT,
     createdAt: Date.now(),
@@ -140,13 +178,25 @@ export function getOrCreateNodeIdentity(companyName: string = 'ShadowMove Inc', 
 /**
  * Update local node's broadcasted company presence across P2P swarm
  */
-export function updateNodePresence(companyName?: string, regionalSector?: string): NodeIdentity {
+export function updateNodePresence(
+  companyName?: string,
+  regionalSector?: string,
+  plotId?: string,
+  plotCoords?: { cx: number; cz: number }
+): NodeIdentity {
   const identity = getOrCreateNodeIdentity();
   if (companyName && companyName.trim()) {
     identity.companyName = companyName.trim();
   }
   if (regionalSector && regionalSector.trim()) {
     identity.regionalSector = regionalSector.trim();
+    identity.regionId = regionalSector.trim();
+  }
+  if (plotId) {
+    identity.plotId = plotId;
+  }
+  if (plotCoords) {
+    identity.plotCoords = plotCoords;
   }
   activeIdentity = identity;
   try {
@@ -155,6 +205,53 @@ export function updateNodePresence(companyName?: string, regionalSector?: string
   broadcastBeacon();
   syncWithPublicRelay().catch(() => {});
   return identity;
+}
+
+/**
+ * Automatically resolve kavling plot collision:
+ * If another active live node in the same region is using the same plotId,
+ * find an unoccupied plot in this region, auto-relocate, update keystore & node_identity,
+ * and broadcast the update to avoid any kavling overlap.
+ */
+export function checkAndResolvePlotConflict(peer: PeerNode) {
+  if (!peer || !activeIdentity || peer.nodeId === activeIdentity.nodeId) return;
+
+  const myRegion = activeIdentity.regionId || activeIdentity.regionalSector || 'apac-jakarta-1';
+  const peerRegion = peer.regionId || peer.regionalSector || 'apac-jakarta-1';
+
+  if (myRegion !== peerRegion) return;
+
+  const myPlot = activeIdentity.plotId || 'plot-nc';
+  const peerPlot = peer.plotId || 'plot-nc';
+
+  if (myPlot !== peerPlot) return;
+
+  console.warn(`[Vigent P2P Conflict]: Kavling collision detected on "${myPlot}" in region "${myRegion}" with live peer ${peer.companyName} (${peer.nodeId}). Auto-resolving plot assignment...`);
+
+  const allPeers = Array.from(activePeers.values());
+  const { plotId: newPlotId, plotCoords: newCoords } = assignEmptyPlotInRegion(myRegion, allPeers, undefined);
+
+  if (newPlotId !== myPlot) {
+    console.log(`[Vigent P2P Conflict]: Successfully reassigned local node to empty kavling "${newPlotId}" at (${newCoords.cx}, ${newCoords.cz})`);
+    activeIdentity.plotId = newPlotId;
+    activeIdentity.plotCoords = newCoords;
+
+    try {
+      fs.writeFileSync(IDENTITY_FILE, JSON.stringify(activeIdentity, null, 2), 'utf-8');
+    } catch {}
+
+    const ksFile = path.join(VIGENT_DIR, 'keystore.json');
+    if (fs.existsSync(ksFile)) {
+      try {
+        const ks = JSON.parse(fs.readFileSync(ksFile, 'utf-8'));
+        ks.plotId = newPlotId;
+        ks.plotCoords = newCoords;
+        fs.writeFileSync(ksFile, JSON.stringify(ks, null, 2), 'utf-8');
+      } catch {}
+    }
+
+    broadcastBeacon();
+  }
 }
 
 
@@ -218,7 +315,10 @@ export function startP2PDiscoveryDaemon(): boolean {
           const peer: PeerNode = {
             nodeId: payload.nodeId,
             companyName: payload.companyName || 'Unknown Office',
-            regionalSector: payload.regionalSector || 'region-jakarta',
+            regionalSector: payload.regionalSector || payload.regionId || 'apac-jakarta-1',
+            regionId: payload.regionId || payload.regionalSector || 'apac-jakarta-1',
+            plotId: payload.plotId,
+            plotCoords: payload.plotCoords,
             endpointUrl: peerEndpoint,
             ip: rinfo.address,
             httpPort: payload.httpPort || DEFAULT_HTTP_PORT,
@@ -235,6 +335,7 @@ export function startP2PDiscoveryDaemon(): boolean {
 
           activePeers.set(payload.nodeId, peer);
           persistPeers();
+          checkAndResolvePlotConflict(peer);
         }
       } catch {
         // Ignore non-json udp packets
@@ -286,7 +387,10 @@ export function broadcastBeacon(): boolean {
     type: 'VIGENT_BEACON',
     nodeId: identity.nodeId,
     companyName: identity.companyName,
-    regionalSector: identity.regionalSector,
+    regionalSector: identity.regionalSector || identity.regionId || 'apac-jakarta-1',
+    regionId: identity.regionId || identity.regionalSector || 'apac-jakarta-1',
+    plotId: identity.plotId || 'plot-nc',
+    plotCoords: identity.plotCoords || { cx: 0.0, cz: -1.0 },
     httpPort: identity.httpPort,
     companyId: localCompanyMeta.companyId,
     industry: localCompanyMeta.industry,
@@ -327,7 +431,10 @@ export async function connectToPeerDirectly(peerUrl: string): Promise<{ success:
         action: 'handshake',
         senderNodeId: identity.nodeId,
         senderCompanyName: identity.companyName,
-        senderRegionalSector: identity.regionalSector,
+        senderRegionalSector: identity.regionalSector || identity.regionId || 'apac-jakarta-1',
+        senderRegionId: identity.regionId || identity.regionalSector || 'apac-jakarta-1',
+        senderPlotId: identity.plotId || 'plot-nc',
+        senderPlotCoords: identity.plotCoords || { cx: 0.0, cz: -1.0 },
         senderHttpPort: identity.httpPort,
         companyId: localCompanyMeta.companyId,
         industry: localCompanyMeta.industry,
@@ -347,7 +454,10 @@ export async function connectToPeerDirectly(peerUrl: string): Promise<{ success:
       const peer: PeerNode = {
         nodeId: data.nodeId,
         companyName: data.companyName || 'Remote Peer',
-        regionalSector: data.regionalSector || 'region-jakarta',
+        regionalSector: data.regionalSector || data.regionId || 'apac-jakarta-1',
+        regionId: data.regionId || data.regionalSector || 'apac-jakarta-1',
+        plotId: data.plotId,
+        plotCoords: data.plotCoords,
         endpointUrl: cleanUrl,
         ip: urlObj.hostname,
         httpPort: parseInt(urlObj.port || '28483', 10),
@@ -364,6 +474,7 @@ export async function connectToPeerDirectly(peerUrl: string): Promise<{ success:
 
       activePeers.set(data.nodeId, peer);
       persistPeers();
+      checkAndResolvePlotConflict(peer);
 
       return {
         success: true,
@@ -447,7 +558,10 @@ export async function syncWithPublicRelay(): Promise<{ success: boolean; totalPe
       body: JSON.stringify({
         nodeId: identity.nodeId,
         companyName: identity.companyName,
-        regionalSector: identity.regionalSector,
+        regionalSector: identity.regionalSector || identity.regionId || 'apac-jakarta-1',
+        regionId: identity.regionId || identity.regionalSector || 'apac-jakarta-1',
+        plotId: identity.plotId || 'plot-nc',
+        plotCoords: identity.plotCoords || { cx: 0.0, cz: -1.0 },
         httpPort: identity.httpPort,
       }),
       signal: AbortSignal.timeout(6000),
@@ -466,12 +580,17 @@ export async function syncWithPublicRelay(): Promise<{ success: boolean; totalPe
       const data = await peersRes.json();
       if (data.success && Array.isArray(data.peers)) {
         data.peers.forEach((p: PeerNode) => {
-          activePeers.set(p.nodeId, {
+          const peerObj: PeerNode = {
             ...p,
+            regionId: p.regionId || p.regionalSector || 'apac-jakarta-1',
+            plotId: p.plotId,
+            plotCoords: p.plotCoords,
             discoveredVia: 'public_relay',
             lastSeen: Date.now(),
             isOnline: true,
-          });
+          };
+          activePeers.set(p.nodeId, peerObj);
+          checkAndResolvePlotConflict(peerObj);
         });
         persistPeers();
         return {
@@ -523,7 +642,10 @@ export function getNodeStatus() {
     nodeId: identity.nodeId,
     fingerprint: identity.fingerprint,
     companyName: identity.companyName,
-    regionalSector: identity.regionalSector,
+    regionalSector: identity.regionalSector || identity.regionId || 'apac-jakarta-1',
+    regionId: identity.regionId || identity.regionalSector || 'apac-jakarta-1',
+    plotId: identity.plotId || 'plot-nc',
+    plotCoords: identity.plotCoords || { cx: 0.0, cz: -1.0 },
     httpPort: identity.httpPort,
     udpPort: identity.udpPort,
     isDaemonActive: isDaemonInitialized,
@@ -532,6 +654,25 @@ export function getNodeStatus() {
     totalKnownPeers: peersList.length,
     onlinePeersCount: onlinePeers.length,
     peers: peersList,
+  };
+}
+
+/**
+ * Proactively probe live peer nodes via UDP beacon & relay sync.
+ * Returns online peers and count.
+ */
+export async function probeAndSyncLiveNodes(): Promise<{ onlinePeersCount: number; peers: PeerNode[] }> {
+  startP2PDiscoveryDaemon();
+  broadcastBeacon();
+  try {
+    await syncWithPublicRelay();
+  } catch {}
+
+  const peersList = Array.from(activePeers.values());
+  const onlinePeers = peersList.filter((p) => p.isOnline);
+  return {
+    onlinePeersCount: onlinePeers.length,
+    peers: onlinePeers,
   };
 }
 
