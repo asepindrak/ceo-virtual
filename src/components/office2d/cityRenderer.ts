@@ -2168,13 +2168,6 @@ export const renderSentralTrainStation = (c: IsoCtx, cx: number, cz: number, hov
     }
     // Garis batas keselamatan putih
     line(c, P(c, cx - 15.5, cz - 3.1, 4.5), P(c, cx + 15.5, cz - 3.1, 4.5), '#ffffff', 1.5 * c.zoom);
-
-    // Platform Screen Doors (PSD) Pagar Kaca Pengaman di Tepi Peron
-    [-12.5, -5.5, 1.5, 8.5].forEach((gx) => {
-      // Pintu geser terbuka dengan indikator hijau
-      isoBox(c, gx, cz - 3.3, 1.8, 0.15, 6.5, '#22c55e', { elev: 4.5, alpha: 0.4 });
-      glow(c, gx, cz - 3.2, 11.5, 2.0, 'rgba(34,197,94,0.95)');
-    });
   }, -0.5);
 
   // Bangku Tunggu Stainless Steel & Teak Wood di Peron
@@ -2409,8 +2402,8 @@ export const renderDistrictGround = (c: IsoCtx) => {
     ctx.fill();
   }
   // jalan setapak dari tiap pintu kavling ke trotoar
-  [-84, -42, 42, 84].forEach((x) => isoRect(c, x - 2.2, D.northRowZ + D.plotHalfD, x + 2.2, 14.2, '#e7dccb', '#d6c8b2'));
-  [-42, 0, 42].forEach((x) => isoRect(c, x - 2.2, 24.8, x + 2.2, D.southRowZ - D.plotHalfD, '#e7dccb', '#d6c8b2'));
+  [-84, -42, 0, 42, 84].forEach((x) => isoRect(c, x - 2.2, D.northRowZ + D.plotHalfD, x + 2.2, 14.2, '#e7dccb', '#d6c8b2'));
+  [-84, -42, 0, 42, 84].forEach((x) => isoRect(c, x - 2.2, 24.8, x + 2.2, D.southRowZ - D.plotHalfD, '#e7dccb', '#d6c8b2'));
 };
 
 /** Baris pohon (hanya untuk area yang tidak tumpang tindih dengan kavling). */

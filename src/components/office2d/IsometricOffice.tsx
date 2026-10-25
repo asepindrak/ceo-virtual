@@ -3,6 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Agent, TaskTicket, ActivityEvent, Position3D, Company, OfficeLayoutTemplateId } from '@/types/office';
 import { OfficeSimulation } from '@/lib/simulationEngine';
+import { CONFERENCE_SEATS } from '@/lib/companyPresets';
 import { formatNumber } from '@/lib/utils';
 import {
   MAIN_OFFICE_THEMES,
@@ -10,6 +11,10 @@ import {
   renderCompanyKavling,
   renderSentralTrainStation,
   renderSuperMart,
+  renderPark,
+  renderGapTrees,
+  renderDistrictGround,
+  DISTRICT,
   applyTemplateSeats,
   IsoCtx,
 } from './cityRenderer';
@@ -219,7 +224,7 @@ export const CITY_LANDMARKS = [
     desc: 'Your active primary operational headquarters with full capabilities, open agent discussions, and task board.',
     icon: '🏢',
     wx: 0.0,
-    wz: 0.0,
+    wz: -1.0,
     radius: 45,
   },
   {
@@ -229,7 +234,7 @@ export const CITY_LANDMARKS = [
     desc: 'Grand station terminal featuring high-speed platforms, RFID ticket turnstiles, and digital departure schedule.',
     icon: '🚄',
     wx: 84.0,
-    wz: 0.0,
+    wz: -1.0,
     radius: 55,
   },
   {
@@ -248,9 +253,29 @@ export const CITY_LANDMARKS = [
     type: 'Regional Dining Hub',
     desc: 'Tech community food court where agents and developers relax for lunch and coffee breaks.',
     icon: '🍜',
-    wx: 20.0,
-    wz: 12.5,
+    wx: 21.0,
+    wz: 12.0,
     radius: 35,
+  },
+  {
+    id: 'landmark-park-west',
+    name: 'Taman Air Mancur Barat',
+    type: 'Public Park & Recreation Zone',
+    desc: 'Lush botanical park with multi-tier dancing water fountain and serene pedestrian walkways.',
+    icon: '⛲',
+    wx: -84.0,
+    wz: 39.5,
+    radius: 50,
+  },
+  {
+    id: 'landmark-park-east',
+    name: 'Taman Danau Teratai Timur',
+    type: 'Public Park & Nature Reserve',
+    desc: 'Scenic open lake park with lily pads, wooden viewing benches, and weeping willow trees.',
+    icon: '🌸',
+    wx: 84.0,
+    wz: 39.5,
+    radius: 50,
   },
 ];
 
@@ -495,8 +520,14 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
     // 1. Hit test against active user's ShadowMove agents
     let foundAgent: Agent | null = null;
     for (const agent of agentsRef.current) {
-      const { isoX, isoY } = worldToIso(agent.currentPosition.x, agent.currentPosition.z, width, height);
-      const dist = Math.hypot(clientX - isoX, clientY - (isoY - 22 * zoom));
+      const isWalking = agent.state === 'walking' || simulation.getAgentPathState(agent.id);
+      const wx = agent.currentPosition.x;
+      const wz = agent.currentPosition.z;
+      const isBoss = agent.deskPosition && Math.hypot(agent.deskPosition.x - 11.5, agent.deskPosition.z - (-7.0)) < 0.5;
+      const isAtDesk = !isWalking && agent.deskPosition && Math.hypot(wx - agent.deskPosition.x, wz - agent.deskPosition.z) < 0.5;
+      const { isoX, isoY } = worldToIso(wx, wz, width, height);
+      const anchorY = isAtDesk ? (isBoss ? isoY - 14 * zoom : isoY - 12 * zoom) : isoY;
+      const dist = Math.hypot(clientX - isoX, clientY - (anchorY - 20 * zoom));
       if (dist < 32 * zoom) {
         foundAgent = agent;
         break;
@@ -879,9 +910,11 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
       const toIso = (wx: number, wz: number) => worldToIso(wx, wz, width, height);
       const timeSec = currentTime * 0.001;
+      const labelQueue: Array<() => void> = [];
+      const isoCtx: IsoCtx = { ctx, toIso, zoom, t: timeSec, labelQueue };
 
       // =========================================================
-      // 1. GENTLE OUTDOOR NATURE SURROUNDINGS & FLOATING MEADOW
+      // 1. REGIONAL DISTRICT GROUND ISLAND (UNIFIED GREEN PLANE FOR ALL KAVLINGS)
       // =========================================================
       // Warm, sunny soft background sky
       const bgGrad = ctx.createLinearGradient(0, 0, width, height);
@@ -890,86 +923,19 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // Outer lush floating lawn with natural curved contours (Expanded for perimeter gardens)
-      const lawnPoly = [
-        toIso(-32.0, -22.0),
-        toIso(32.0, -22.0),
-        toIso(32.0, 26.0),
-        toIso(-32.0, 26.0),
-      ];
-      ctx.beginPath();
-      ctx.moveTo(lawnPoly[0].isoX, lawnPoly[0].isoY);
-      for (let i = 1; i < lawnPoly.length; i++) ctx.lineTo(lawnPoly[i].isoX, lawnPoly[i].isoY);
-      ctx.closePath();
-      // Rich vibrant spring green lawn (matching image_0.jpg)
-      ctx.fillStyle = '#9fd38d';
-      ctx.fill();
-
-      // Subtle grass shading texture rings
-      ctx.strokeStyle = '#8bc377';
-      ctx.lineWidth = 1.2;
-      for (let g = 0; g < 24; g++) {
-        const gx = -21 + (g * 7.7) % 42;
-        const gz = -16 + (g * 5.3) % 32;
-        const gIso = toIso(gx, gz);
-        ctx.beginPath();
-        ctx.moveTo(gIso.isoX - 3 * zoom, gIso.isoY);
-        ctx.lineTo(gIso.isoX, gIso.isoY - 4 * zoom);
-        ctx.lineTo(gIso.isoX + 3 * zoom, gIso.isoY);
-        ctx.stroke();
-      }
-
-      // Daisies & wildflowers on the lawn (matching image_0.jpg)
-      const flowerPositions = [
-        { x: -21, z: -14 }, { x: -18, z: -9 }, { x: -21.5, z: 2 }, { x: -19, z: 10 }, { x: -18, z: 15 },
-        { x: 19, z: -15 }, { x: 21.5, z: -7 }, { x: 20.5, z: 4 }, { x: 18.5, z: 13 }, { x: 21, z: 15 },
-        { x: -10, z: 16.5 }, { x: 8, z: 16.5 }, { x: -12, z: -16.5 }, { x: 12, z: -16.5 },
-      ];
-      flowerPositions.forEach((fp) => {
-        const fIso = toIso(fp.x, fp.z);
-        // Yellow center
-        ctx.fillStyle = '#fef08a';
-        ctx.beginPath();
-        ctx.arc(fIso.isoX, fIso.isoY, 2.5 * zoom, 0, Math.PI * 2);
-        ctx.fill();
-        // White daisy petals
-        ctx.fillStyle = '#ffffff';
-        for (let a = 0; a < 5; a++) {
-          const ang = (a * Math.PI * 2) / 5;
-          ctx.beginPath();
-          ctx.arc(
-            fIso.isoX + Math.cos(ang) * 4.2 * zoom,
-            fIso.isoY + Math.sin(ang) * 4.2 * zoom,
-            2.2 * zoom,
-            0,
-            Math.PI * 2
-          );
-          ctx.fill();
-        }
-      });
-
-      // Outdoor Stepping Stone Pavers leading into the central entrance
-      for (let sz = 11.2; sz <= 16.5; sz += 0.85) {
-        const stIso = toIso(0.0, sz);
-        ctx.fillStyle = '#dcd2c4';
-        ctx.beginPath();
-        ctx.ellipse(stIso.isoX, stIso.isoY, 16 * zoom, 8.5 * zoom, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#c4b6a4';
-        ctx.lineWidth = 1.4;
-        ctx.stroke();
-      }
+      // Render the unified, expansive green district island (spanning all kavlings equally)
+      renderDistrictGround(isoCtx);
 
       // =========================================================
       // REGIONAL BOULEVARD ROADWAY INFRASTRUCTURE (GROUND PLANE LAYER)
       // Digambar pada ground plane layer sebelum gedung, pohon, mobil, dan agent
       // agar tidak ada agent, mobil, maupun pohon yang tertutup permukaan jalan!
       // =========================================================
-      // 1. North Sidewalk & Curb (Promenade membentang penuh dari -95.0 ke +95.0)
-      const swTL = toIso(-95.0, 14.2);
-      const swTR = toIso(95.0, 14.2);
-      const swBR = toIso(95.0, 16.2);
-      const swBL = toIso(-95.0, 16.2);
+      // 1. North Sidewalk & Curb (Promenade membentang penuh sepanjang distrik)
+      const swTL = toIso(DISTRICT.roadMinX, 14.2);
+      const swTR = toIso(DISTRICT.roadMaxX, 14.2);
+      const swBR = toIso(DISTRICT.roadMaxX, 16.2);
+      const swBL = toIso(DISTRICT.roadMinX, 16.2);
 
       ctx.fillStyle = '#e2e8f0';
       ctx.beginPath();
@@ -991,11 +957,11 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.lineTo(swBR.isoX, swBR.isoY);
       ctx.stroke();
 
-      // 2. Highway Asphalt Surface (Avenue dua jalur membentang penuh: -95.0 s/d +95.0)
-      const roadTL = toIso(-95.0, 16.2);
-      const roadTR = toIso(95.0, 16.2);
-      const roadBR = toIso(95.0, 22.8);
-      const roadBL = toIso(-95.0, 22.8);
+      // 2. Highway Asphalt Surface (Avenue dua jalur membentang penuh sepanjang distrik)
+      const roadTL = toIso(DISTRICT.roadMinX, 16.2);
+      const roadTR = toIso(DISTRICT.roadMaxX, 16.2);
+      const roadBR = toIso(DISTRICT.roadMaxX, 22.8);
+      const roadBL = toIso(DISTRICT.roadMinX, 22.8);
 
       ctx.fillStyle = '#1e293b';
       ctx.beginPath();
@@ -1014,11 +980,11 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.lineTo(roadBR.isoX, roadBR.isoY);
       ctx.stroke();
 
-      // 3. South Sidewalk & Curb (Promenade membentang penuh: -95.0 s/d +95.0)
-      const sswTL = toIso(-95.0, 22.8);
-      const sswTR = toIso(95.0, 22.8);
-      const sswBR = toIso(95.0, 24.8);
-      const sswBL = toIso(-95.0, 24.8);
+      // 3. South Sidewalk & Curb (Promenade membentang penuh sepanjang distrik)
+      const sswTL = toIso(DISTRICT.roadMinX, 22.8);
+      const sswTR = toIso(DISTRICT.roadMaxX, 22.8);
+      const sswBR = toIso(DISTRICT.roadMaxX, 24.8);
+      const sswBL = toIso(DISTRICT.roadMinX, 24.8);
 
       ctx.fillStyle = '#e2e8f0';
       ctx.beginPath();
@@ -1032,12 +998,12 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.lineWidth = 1 * zoom;
       ctx.stroke();
 
-      // 4. Double Solid/Dashed Yellow Center Divider Line (wz = 19.5, membentang -95.0 s/d +95.0)
+      // 4. Double Solid/Dashed Yellow Center Divider Line (wz = 19.5)
       ctx.strokeStyle = '#facc15';
       ctx.lineWidth = 1.6 * zoom;
       ctx.setLineDash([8 * zoom, 6 * zoom]);
-      const divL = toIso(-95.0, 19.5);
-      const divR = toIso(95.0, 19.5);
+      const divL = toIso(DISTRICT.roadMinX, 19.5);
+      const divR = toIso(DISTRICT.roadMaxX, 19.5);
       ctx.beginPath();
       ctx.moveTo(divL.isoX, divL.isoY);
       ctx.lineTo(divR.isoX, divR.isoY);
@@ -1153,8 +1119,8 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       const slabDepth = 10 * zoom;
       const fTL = toIso(-16.5, -12.0);
       const fTR = toIso(16.5, -12.0);
-      const fBR = toIso(16.5, 12.0);
-      const fBL = toIso(-16.5, 12.0);
+      const fBR = toIso(16.5, 10.0);
+      const fBL = toIso(-16.5, 10.0);
 
       // Deep foundation drop shadow
       ctx.fillStyle = 'rgba(40, 25, 15, 0.18)';
@@ -1234,8 +1200,8 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       fillZone(
         { x: -16.2, z: 0.5 },
         { x: -7.2, z: 0.5 },
-        { x: -7.2, z: 11.8 },
-        { x: -16.2, z: 11.8 },
+        { x: -7.2, z: 9.8 },
+        { x: -16.2, z: 9.8 },
         mainTheme.cafe[0],
         mainTheme.cafe[1]
       );
@@ -1244,7 +1210,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.lineWidth = 1;
       for (let tx = -15.6; tx <= -7.8; tx += 1.6) {
         const t1 = toIso(tx, 0.5);
-        const t2 = toIso(tx, 11.8);
+        const t2 = toIso(tx, 9.8);
         ctx.beginPath();
         ctx.moveTo(t1.isoX, t1.isoY);
         ctx.lineTo(t2.isoX, t2.isoY);
@@ -1255,14 +1221,14 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       fillZone(
         { x: -4.5, z: 7.2 },
         { x: 4.5, z: 7.2 },
-        { x: 4.5, z: 11.8 },
-        { x: -4.5, z: 11.8 },
+        { x: 4.5, z: 9.8 },
+        { x: -4.5, z: 9.8 },
         mainTheme.lobby[0],
         mainTheme.lobby[1]
       );
       // Checkered pattern squares
       for (let cx = -4.2; cx < 4.2; cx += 1.6) {
-        for (let cz = 7.4; cz < 11.6; cz += 1.5) {
+        for (let cz = 7.4; cz < 9.6; cz += 1.5) {
           if ((Math.round(cx) + Math.round(cz)) % 2 === 0) {
             fillZone(
               { x: cx, z: cz },
@@ -1306,33 +1272,13 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         ctx.stroke();
       }
 
-      // ZONE 5: Open Workspace Pod Carpets (Center Zone - Ergonomic & Spacious)
-      // Left Wing Pod
-      fillZone(
-        { x: -5.8, z: -10.5 },
-        { x: -1.4, z: -10.5 },
-        { x: -1.4, z: 7.2 },
-        { x: -5.8, z: 7.2 },
-        mainTheme.podL[0],
-        mainTheme.podL[1]
-      );
-
-      // Right Wing Pod
-      fillZone(
-        { x: 1.4, z: -10.5 },
-        { x: 5.8, z: -10.5 },
-        { x: 5.8, z: 7.2 },
-        { x: 1.4, z: 7.2 },
-        mainTheme.podR[0],
-        mainTheme.podR[1]
-      );
 
       // ZONE 6: Sprint Station (Bottom-Right Cyan Glass Pavilion)
       fillZone(
         { x: 6.8, z: 0.5 },
         { x: 16.2, z: 0.5 },
-        { x: 16.2, z: 11.8 },
-        { x: 6.8, z: 11.8 },
+        { x: 16.2, z: 9.8 },
+        { x: 6.8, z: 9.8 },
         mainTheme.sprint[0],
         mainTheme.sprint[1]
       );
@@ -1391,9 +1337,9 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       // Top-right window bay (behind Lead Suite)
       drawWindowBay({ x: 6.8, z: -11.8 }, { x: 16.2, z: -11.8 }, 44 * zoom);
       // Far right window bay (behind Sprint Station)
-      drawWindowBay({ x: 16.2, z: 0.5 }, { x: 16.2, z: 11.8 }, 44 * zoom);
+      drawWindowBay({ x: 16.2, z: 0.5 }, { x: 16.2, z: 9.8 }, 44 * zoom);
       // Far left window bay (behind Cafe)
-      drawWindowBay({ x: -16.2, z: 0.5 }, { x: -16.2, z: 11.8 }, 44 * zoom);
+      drawWindowBay({ x: -16.2, z: 0.5 }, { x: -16.2, z: 9.8 }, 44 * zoom);
 
       // Themed signature back-wall plaque and installation for active company
       renderMainOfficeSignature({ ctx, toIso, zoom, t: timeSec }, activeLayoutTemplate);
@@ -1470,7 +1416,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       // C. Sprint Station Cyan Glass Balustrade Wall
       const ssCorner1 = toIso(6.8, 0.5);
       const ssCorner2 = toIso(16.2, 0.5);
-      const ssCorner3 = toIso(6.8, 11.8);
+      const ssCorner3 = toIso(6.8, 9.8);
       // Top glass rail
       ctx.fillStyle = 'rgba(6, 182, 212, 0.22)';
       ctx.beginPath();
@@ -2828,11 +2774,17 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       // High-back Executive Leather Swivel Chair behind desk
       ctx.fillStyle = '#1e1b4b';
       ctx.beginPath();
-      ctx.roundRect(bossDeskIso.isoX - 12 * zoom, bossDeskIso.isoY - 32 * zoom, 24 * zoom, 24 * zoom, 6);
+      ctx.roundRect(bossDeskIso.isoX - 12 * zoom, bossDeskIso.isoY - 26 * zoom, 24 * zoom, 20 * zoom, 6 * zoom);
       ctx.fill();
       ctx.strokeStyle = '#6366f1';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.5 * zoom;
       ctx.stroke();
+
+      // Executive Seat cushion
+      ctx.fillStyle = '#312e81';
+      ctx.beginPath();
+      ctx.ellipse(bossDeskIso.isoX, bossDeskIso.isoY - 14 * zoom, 12 * zoom, 6 * zoom, 0, 0, Math.PI * 2);
+      ctx.fill();
 
       // Potted Luxury Monstera in Window Corner (Replacing old brown containers with fresh greenery)
       const plantIso = toIso(15.0, -11.0);
@@ -3082,7 +3034,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         // High-back ergonomic backrest behind agent
         ctx.fillStyle = '#1e293b';
         ctx.beginPath();
-        ctx.roundRect(dIso.isoX - 11 * zoom, dIso.isoY - 28 * zoom, 22 * zoom, 18 * zoom, 5 * zoom);
+        ctx.roundRect(dIso.isoX - 11 * zoom, dIso.isoY - 26 * zoom, 22 * zoom, 18 * zoom, 5 * zoom);
         ctx.fill();
         ctx.strokeStyle = isOccupied ? (dp.pod === 'green' ? '#10b981' : '#a855f7') : '#475569';
         ctx.lineWidth = 1.4 * zoom;
@@ -3114,15 +3066,22 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.lineWidth = 2.4 * zoom;
       ctx.stroke();
 
-      // Ergonomic Swivel Chairs around Conference Table
-      const chairAngles = [0, 0.7, 1.4, 2.1, 2.8, 3.5, 4.2, 4.9, 5.6];
-      chairAngles.forEach((ang) => {
-        const cx = confIso.isoX + Math.cos(ang) * 46 * zoom;
-        const cy = confIso.isoY + Math.sin(ang) * 24 * zoom;
+      // Ergonomic Swivel Chairs around Conference Table matching exact CONFERENCE_SEATS
+      CONFERENCE_SEATS.forEach((seat) => {
+        const csIso = toIso(seat.x, seat.z);
+        // Base & shadow
+        ctx.fillStyle = 'rgba(25, 30, 45, 0.22)';
+        ctx.beginPath();
+        ctx.ellipse(csIso.isoX, csIso.isoY, 7 * zoom, 4.2 * zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Swivel seat cushion
         ctx.fillStyle = '#1e293b';
         ctx.beginPath();
-        ctx.ellipse(cx, cy, 6 * zoom, 3.8 * zoom, 0, 0, Math.PI * 2);
+        ctx.ellipse(csIso.isoX, csIso.isoY - 1 * zoom, 6.2 * zoom, 3.8 * zoom, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 1.2 * zoom;
+        ctx.stroke();
       });
 
       // Glowing Circular Holographic Emitter in Center of Table
@@ -3198,23 +3157,17 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         ctx.fillRect(sx, sy, 9 * zoom, 8 * zoom);
       }
       // =========================================================
-      // SIDE & FRONT PERIMETER TREES (rendered AFTER office building)
-      // These render on top of/beside the office, correct z-layering.
-      // Pushed further out from building walls to avoid foliage covering office.
+      // BUFFER TREES IN GREEN GAPS (rendered AFTER office building)
+      // Placed centrally in the 9-unit buffer gaps between kavlings so they never overlap any kavling
       // =========================================================
-      // B. Left Flank Perimeter (outside left wall, generous lawn spacing)
-      drawBigTree(-25.5, -9.0, 1.15, 6);
-      drawBigTree(-26.0, 0.0, 1.20, 7);
-      drawBigTree(-25.5, 9.0, 1.15, 8);
-
-      // C. Right Flank Perimeter (outside right wall, generous lawn spacing)
-      drawBigTree(25.5, -9.0, 1.15, 10);
-      drawBigTree(26.0, 0.0, 1.20, 11);
-      drawBigTree(25.5, 9.0, 1.15, 12);
-
-      // D. Front Meadow Framing Corners (on sidewalk lawn corners)
-      drawBigTree(-18.5, 15.5, 1.10, 14);
-      drawBigTree(18.5, 15.5, 1.10, 15);
+      renderGapTrees(isoCtx, -63.0, -1.0);
+      renderGapTrees(isoCtx, -21.0, -1.0);
+      renderGapTrees(isoCtx, 21.0, -1.0);
+      renderGapTrees(isoCtx, 63.0, -1.0);
+      renderGapTrees(isoCtx, -63.0, 39.5);
+      renderGapTrees(isoCtx, -21.0, 39.5);
+      renderGapTrees(isoCtx, 21.0, 39.5);
+      renderGapTrees(isoCtx, 63.0, 39.5);
 
       // =========================================================
       // 7. WALKING TRACK & FOOTPRINTS
@@ -3252,13 +3205,31 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
       // =========================================================
       // 8. RENDER AGENT CHARACTERS (CHIBI ANIME & ROBOT AGENTS)
+      // Follows identical coordinate anchoring as Mochi the cat so characters never drift or float on zoom
       // =========================================================
       const screenAgents = updatedAgents.map((agent) => {
-        const { isoX, isoY } = toIso(agent.currentPosition.x, agent.currentPosition.z);
+        const isWalking = agent.state === 'walking' || simulation.getAgentPathState(agent.id);
+        const wx = agent.currentPosition.x;
+        const wz = agent.currentPosition.z;
+        const isBoss = agent.deskPosition && Math.hypot(agent.deskPosition.x - 11.5, agent.deskPosition.z - (-7.0)) < 0.5;
+        const isAtDesk = !isWalking && agent.deskPosition && Math.hypot(wx - agent.deskPosition.x, wz - agent.deskPosition.z) < 0.5;
+        const isMeeting = agent.state === 'meeting';
+        const isSeated = !isWalking && (isAtDesk || isMeeting);
+
+        const { isoX, isoY } = toIso(wx, wz);
+        let anchorX = isoX;
+        let anchorY = isoY;
+
+        if (isSeated && isAtDesk) {
+          // Seat agent naturally in their desk chair cushion behind desk
+          anchorY = isBoss ? isoY - 14 * zoom : isoY - 12 * zoom;
+        }
+
         return {
           agent,
-          renderX: isoX,
-          renderY: isoY,
+          renderX: anchorX,
+          renderY: anchorY,
+          isSeated,
           facing: agent.facingDirection || 'front',
         };
       });
@@ -3266,24 +3237,38 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       // Sort by isometric Y depth so foreground agents render in front
       screenAgents.sort((a, b) => a.renderY - b.renderY);
 
-      screenAgents.forEach(({ agent, renderX, renderY, facing }) => {
+      screenAgents.forEach(({ agent, renderX, renderY, isSeated, facing }) => {
         const isSelected = agent.id === selectedAgentId;
         const isHovered = hoveredAgent?.id === agent.id;
 
-        // Ground shadow (Always firmly planted on the floor at renderY for all agents)
-        ctx.fillStyle = 'rgba(40, 25, 15, 0.22)';
-        ctx.beginPath();
-        ctx.ellipse(renderX, renderY, 15 * zoom, 7.5 * zoom, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Bouncy movement & gestures
+        const isWalking = agent.state === 'walking';
+        const isTalking = agent.state === 'talking';
+        const walkBounce = isWalking ? Math.abs(Math.sin(timeSec * 7)) * 3.8 * zoom : 0;
+        const walkSway = isWalking ? Math.sin(timeSec * 7) * 0.08 : 0;
+        const talkBounce = isTalking ? Math.sin(timeSec * 5) * 1.2 * zoom : 0;
+        const sitBreath = isSeated ? Math.sin(timeSec * 2.5) * 0.8 * zoom : 0;
 
-        // Selected / Hovered pulse ring (Anchored at floor level renderY)
+        // Translate directly to anchor point, identically to Mochi the cat
+        ctx.save();
+        ctx.translate(renderX, renderY);
+
+        // Ground shadow (anchored at floor level (0, 0))
+        if (!isSeated) {
+          ctx.fillStyle = 'rgba(40, 25, 15, 0.22)';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 15 * zoom, 7.5 * zoom, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Selected / Hovered pulse ring (anchored at (0, 0))
         if (isSelected || isHovered) {
           ctx.strokeStyle = isSelected ? '#ec4899' : '#0284c7';
           ctx.lineWidth = 2.5 * zoom;
           ctx.beginPath();
           ctx.ellipse(
-            renderX,
-            renderY,
+            0,
+            0,
             (18 + Math.sin(timeSec * 4) * 2.5) * zoom,
             (9 + Math.sin(timeSec * 4) * 1.2) * zoom,
             0,
@@ -3293,19 +3278,6 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           ctx.stroke();
         }
 
-        // Bouncy movement & gestures
-        const isWalking = agent.state === 'walking';
-        const isTalking = agent.state === 'talking';
-        const walkBounce = isWalking ? Math.abs(Math.sin(timeSec * 7)) * 3.8 * zoom : 0;
-        const walkSway = isWalking ? Math.sin(timeSec * 7) * 0.08 : 0;
-        const talkBounce = isTalking ? Math.sin(timeSec * 5) * 1.2 * zoom : 0;
-        const workTyping = agent.state === 'working' ? Math.sin(timeSec * 8) * 0.8 * zoom : 0;
-
-        // Grounded character vertical anchor: shoes rest directly on floor shadow at renderY across ALL agents
-        const charY = renderY - 12 * zoom - walkBounce + talkBounce;
-
-        ctx.save();
-        ctx.translate(renderX, charY);
         ctx.rotate(walkSway);
 
         // Gender & Styling
@@ -3318,53 +3290,73 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         const hairColor = agent.hairColor || (isFemale ? '#ec4899' : '#0f172a');
         const eyeColor = agent.eyeColor || (isFemale ? '#9333ea' : '#1e293b');
         const headShift = facing === 'right' ? 1.5 * zoom : facing === 'left' ? -1.5 * zoom : 0;
-        const headY = -25 * zoom;
+        const headY = isSeated ? -32 * zoom + sitBreath : -37 * zoom - walkBounce + talkBounce;
 
-        // Female Hair Behind Body (Graceful long/medium hair, statis & rapi, tidak gerak-gerak seperti tangan)
+        // Female Hair Behind Body (Graceful long/medium hair, static & elegant)
         if (isFemale) {
           ctx.fillStyle = hairColor;
-          // Rambut belakang mengalir anggun di belakang kepala dan bahu
           ctx.beginPath();
           ctx.ellipse(headShift, headY + 4 * zoom, 13.5 * zoom, 15 * zoom, 0, 0, Math.PI * 2);
           ctx.fill();
 
-          // Sisi rambut jatuh alami membingkai wajah (side bangs - statis dan elegan)
           ctx.beginPath();
           ctx.ellipse(-10 * zoom + headShift, headY + 5 * zoom, 3.2 * zoom, 8 * zoom, 0.08, 0, Math.PI * 2);
           ctx.ellipse(10 * zoom + headShift, headY + 5 * zoom, 3.2 * zoom, 8 * zoom, -0.08, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        // Cute Grounded Chibi Legs & Shoes (Firmly planted on floor shadow at renderY for ALL agents)
-        const legSwing = isWalking ? Math.sin(timeSec * 8) * 2.2 * zoom : 0;
-        // Modern dark trousers / skirt
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath();
-        ctx.roundRect(-6.5 * zoom, 0 - legSwing, 4.8 * zoom, 10.5 * zoom + legSwing, 2 * zoom);
-        ctx.roundRect(1.7 * zoom, 0 + legSwing, 4.8 * zoom, 10.5 * zoom - legSwing, 2 * zoom);
-        ctx.fill();
+        if (!isSeated) {
+          // Walking / Standing Legs & Shoes (firmly planted on floor at 0)
+          const legSwing = isWalking ? Math.sin(timeSec * 8) * 2.2 * zoom : 0;
+          ctx.fillStyle = '#1e293b';
+          ctx.beginPath();
+          ctx.roundRect(-6.5 * zoom, -12 * zoom - walkBounce - legSwing, 4.8 * zoom, 11 * zoom + legSwing, 2 * zoom);
+          ctx.roundRect(1.7 * zoom, -12 * zoom - walkBounce + legSwing, 4.8 * zoom, 11 * zoom - legSwing, 2 * zoom);
+          ctx.fill();
 
-        // Dark leather shoes touching floor shadow at renderY
-        ctx.fillStyle = '#0f172a';
-        ctx.beginPath();
-        ctx.ellipse(-4.1 * zoom, 11 * zoom - legSwing * 0.4, 3.4 * zoom, 1.9 * zoom, 0, 0, Math.PI * 2);
-        ctx.ellipse(4.1 * zoom, 11 * zoom + legSwing * 0.4, 3.4 * zoom, 1.9 * zoom, 0, 0, Math.PI * 2);
-        ctx.fill();
+          // Dark leather shoes touching floor at 0
+          ctx.fillStyle = '#0f172a';
+          ctx.beginPath();
+          ctx.ellipse(-4.1 * zoom, 0 - walkBounce - legSwing * 0.4, 3.4 * zoom, 1.9 * zoom, 0, 0, Math.PI * 2);
+          ctx.ellipse(4.1 * zoom, 0 - walkBounce + legSwing * 0.4, 3.4 * zoom, 1.9 * zoom, 0, 0, Math.PI * 2);
+          ctx.fill();
 
-        // Chibi Torso
-        ctx.fillStyle = agent.shirtColor || '#3b82f6';
-        ctx.beginPath();
-        ctx.roundRect(-11 * zoom, -14 * zoom, 22 * zoom, 16 * zoom, 6 * zoom);
-        ctx.fill();
+          // Chibi Torso
+          ctx.fillStyle = agent.shirtColor || '#3b82f6';
+          ctx.beginPath();
+          ctx.roundRect(-11 * zoom, -26 * zoom - walkBounce + talkBounce, 22 * zoom, 16 * zoom, 6 * zoom);
+          ctx.fill();
 
-        // White collar
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.moveTo(-4 * zoom, -14 * zoom);
-        ctx.lineTo(0, -9 * zoom);
-        ctx.lineTo(4 * zoom, -14 * zoom);
-        ctx.closePath();
-        ctx.fill();
+          // White collar
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(-4 * zoom, -26 * zoom - walkBounce + talkBounce);
+          ctx.lineTo(0, -21 * zoom - walkBounce + talkBounce);
+          ctx.lineTo(4 * zoom, -26 * zoom - walkBounce + talkBounce);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          // Seated posture: seated cushion shadow & folded trousers
+          ctx.fillStyle = '#1e293b';
+          ctx.beginPath();
+          ctx.roundRect(-8 * zoom, -6 * zoom, 16 * zoom, 6 * zoom, 3 * zoom);
+          ctx.fill();
+
+          // Torso seated comfortably in chair
+          ctx.fillStyle = agent.shirtColor || '#3b82f6';
+          ctx.beginPath();
+          ctx.roundRect(-10.5 * zoom, -21 * zoom + sitBreath, 21 * zoom, 16 * zoom, 5 * zoom);
+          ctx.fill();
+
+          // White collar
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(-4 * zoom, -21 * zoom + sitBreath);
+          ctx.lineTo(0, -16 * zoom + sitBreath);
+          ctx.lineTo(4 * zoom, -21 * zoom + sitBreath);
+          ctx.closePath();
+          ctx.fill();
+        }
 
         // Chibi Head
         ctx.fillStyle = agent.skinColor || '#fcd34d';
@@ -3399,26 +3391,26 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         ctx.fill();
 
         if (isFemale) {
-          // Poni depan wanita melengkung manis (Cute Chibi Bangs)
+          // Cute anime front bangs
           ctx.beginPath();
           ctx.arc(headShift - 3.5 * zoom, headY - 3 * zoom, 7.5 * zoom, 0, Math.PI * 0.7);
           ctx.arc(headShift + 3.5 * zoom, headY - 3 * zoom, 7.5 * zoom, Math.PI * 0.3, Math.PI);
           ctx.fill();
 
-          // Jepit rambut mungil (Hairpin)
+          // Hairpin
           ctx.fillStyle = '#f43f5e';
           ctx.beginPath();
           ctx.roundRect(-8 * zoom + headShift, headY - 6.5 * zoom, 4.2 * zoom, 2 * zoom, 1 * zoom);
           ctx.fill();
 
-          // Highlight rambut anime (Hair gloss)
+          // Hair gloss highlight
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
           ctx.lineWidth = 1.5 * zoom;
           ctx.beginPath();
           ctx.arc(headShift, headY - 4 * zoom, 9.5 * zoom, Math.PI * 1.2, Math.PI * 1.5);
           ctx.stroke();
         } else {
-          // Poni pria rapi
+          // Neat male front hair
           ctx.beginPath();
           ctx.arc(headShift, headY - 3 * zoom, 10.5 * zoom, Math.PI * 0.9, Math.PI * 1.9);
           ctx.fill();
@@ -3427,45 +3419,44 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         // Hands & typing animation
         ctx.fillStyle = agent.skinColor || '#fcd34d';
         if (agent.state === 'working') {
+          const workTyping = Math.sin(timeSec * 8) * 1.2 * zoom;
+          const handY = isSeated ? -3 * zoom : -10 * zoom - walkBounce;
           ctx.beginPath();
-          ctx.arc(-7 * zoom, 2 * zoom + workTyping, 2.8 * zoom, 0, Math.PI * 2);
-          ctx.arc(7 * zoom, 2 * zoom - workTyping, 2.8 * zoom, 0, Math.PI * 2);
+          ctx.arc(-7 * zoom, handY + workTyping, 2.8 * zoom, 0, Math.PI * 2);
+          ctx.arc(7 * zoom, handY - workTyping, 2.8 * zoom, 0, Math.PI * 2);
           ctx.fill();
         } else if (agent.state === 'coffee_break') {
-          // Holding coffee mug
+          const cupY = isSeated ? -7 * zoom : -14 * zoom - walkBounce;
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.roundRect(-4 * zoom, -2 * zoom, 8 * zoom, 7 * zoom, 2);
+          ctx.roundRect(-4 * zoom, cupY, 8 * zoom, 7 * zoom, 2 * zoom);
           ctx.fill();
           ctx.fillStyle = '#92400e';
-          ctx.fillRect(-3 * zoom, -1 * zoom, 6 * zoom, 2 * zoom);
+          ctx.fillRect(-3 * zoom, cupY + 1 * zoom, 6 * zoom, 2 * zoom);
         } else if (agent.state === 'playing_game') {
-          // Rapid arcade joystick & button pressing
           const arcadeTapping = Math.sin(timeSec * 16) * 1.5 * zoom;
-          ctx.fillStyle = '#ef4444'; // Red joystick ball in hand
+          const joyY = isSeated ? -4 * zoom : -11 * zoom - walkBounce;
+          ctx.fillStyle = '#ef4444';
           ctx.beginPath();
-          ctx.arc(-6 * zoom, 1 * zoom + arcadeTapping, 2.5 * zoom, 0, Math.PI * 2);
+          ctx.arc(-6 * zoom, joyY + arcadeTapping, 2.5 * zoom, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = agent.skinColor || '#fcd34d';
           ctx.beginPath();
-          ctx.arc(6 * zoom, 1 * zoom - arcadeTapping, 2.8 * zoom, 0, Math.PI * 2);
+          ctx.arc(6 * zoom, joyY - arcadeTapping, 2.8 * zoom, 0, Math.PI * 2);
           ctx.fill();
         } else {
-          // Calm resting hands on desk
+          const restY = isSeated ? -3.5 * zoom : -10 * zoom - walkBounce;
           ctx.beginPath();
-          ctx.arc(-7 * zoom, 2.5 * zoom, 2.5 * zoom, 0, Math.PI * 2);
-          ctx.arc(7 * zoom, 2.5 * zoom, 2.5 * zoom, 0, Math.PI * 2);
+          ctx.arc(-7 * zoom, restY, 2.5 * zoom, 0, Math.PI * 2);
+          ctx.arc(7 * zoom, restY, 2.5 * zoom, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        ctx.restore();
-
-        // --- CUTE NAME BADGE PILL (Tampil Rapi & Terikat Erat dengan Karakter di Semua Level Zoom) ---
+        // --- CUTE NAME BADGE PILL (Tightly anchored with character at all zoom levels) ---
         const tagH = 14 * zoom;
-        const tagY = charY - 37 * zoom - tagH;
+        const tagY = headY - 14 * zoom - tagH;
 
         if (zoom >= 0.40) {
-          ctx.save();
           const genderSymbol = isFemale ? '♀' : '♂';
           const nameText = `${agent.name.split(' ')[0]} ${genderSymbol}`;
           const badgeFontSize = Math.max(6.5, 8.8 * zoom);
@@ -3490,25 +3481,24 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           // Badge shadow & pill
           ctx.fillStyle = 'rgba(40, 25, 15, 0.16)';
           ctx.beginPath();
-          ctx.roundRect(renderX - tagW / 2, tagY + 1 * zoom, tagW, tagH, 4 * zoom);
+          ctx.roundRect(-tagW / 2, tagY + 1 * zoom, tagW, tagH, 4 * zoom);
           ctx.fill();
 
           ctx.fillStyle = isSelected ? '#ec4899' : '#ffffff';
           ctx.strokeStyle = isSelected ? '#db2777' : '#e2d5c3';
           ctx.lineWidth = Math.max(0.8, 1.2 * zoom);
           ctx.beginPath();
-          ctx.roundRect(renderX - tagW / 2, tagY, tagW, tagH, 4 * zoom);
+          ctx.roundRect(-tagW / 2, tagY, tagW, tagH, 4 * zoom);
           ctx.fill();
           ctx.stroke();
 
-          ctx.fillStyle = isSelected ? '#ffffff' : (isFemale ? '#831843' : '#1e293b');
+          ctx.fillStyle = isSelected ? '#ffffff' : isFemale ? '#831843' : '#1e293b';
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
-          ctx.fillText(nameText, renderX - tagW / 2 + 4 * zoom, tagY + tagH / 2);
+          ctx.fillText(nameText, -tagW / 2 + 4 * zoom, tagY + tagH / 2);
 
           ctx.font = `${Math.max(6, 8 * zoom)}px sans-serif`;
-          ctx.fillText(roleEmoji, renderX + tagW / 2 - 10 * zoom, tagY + tagH / 2);
-          ctx.restore();
+          ctx.fillText(roleEmoji, tagW / 2 - 10 * zoom, tagY + tagH / 2);
         }
 
         // --- PLAYFUL ACTIVITY BUBBLE ---
@@ -3529,7 +3519,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           const actBubbleY = tagY - 9 * zoom;
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(renderX, actBubbleY, 6.5 * zoom, 0, Math.PI * 2);
+          ctx.arc(0, actBubbleY, 6.5 * zoom, 0, Math.PI * 2);
           ctx.fill();
           ctx.strokeStyle = activityEmoji === '!' ? '#ef4444' : '#6366f1';
           ctx.lineWidth = Math.max(0.8, 1.2 * zoom);
@@ -3537,7 +3527,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           ctx.fillStyle = activityEmoji === '!' ? '#ef4444' : '#4f46e5';
           ctx.font = `bold ${Math.max(6, 7.5 * zoom)}px sans-serif`;
           ctx.textAlign = 'center';
-          ctx.fillText(activityEmoji, renderX, actBubbleY + 2.5 * zoom);
+          ctx.fillText(activityEmoji, 0, actBubbleY + 2.5 * zoom);
         }
 
         // --- ACTIVE TASK PROGRESS PILL ---
@@ -3551,12 +3541,12 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
 
             ctx.fillStyle = '#064e3b';
             ctx.beginPath();
-            ctx.roundRect(renderX - pillW / 2, pillY, pillW, pillH, 4 * zoom);
+            ctx.roundRect(-pillW / 2, pillY, pillW, pillH, 4 * zoom);
             ctx.fill();
             ctx.fillStyle = '#10b981';
             ctx.beginPath();
             ctx.roundRect(
-              renderX - pillW / 2 + 1 * zoom,
+              -pillW / 2 + 1 * zoom,
               pillY + 1 * zoom,
               Math.max(2 * zoom, (pillW - 2 * zoom) * (pct / 100)),
               pillH - 2 * zoom,
@@ -3566,7 +3556,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
             ctx.fillStyle = '#ffffff';
             ctx.font = `bold ${Math.max(6, 7 * zoom)}px monospace`;
             ctx.textAlign = 'center';
-            ctx.fillText(`⚡ ${pct}%`, renderX, pillY + pillH / 2 + 0.8 * zoom);
+            ctx.fillText(`⚡ ${pct}%`, 0, pillY + pillH / 2 + 0.8 * zoom);
           }
         }
 
@@ -3591,7 +3581,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           const msgW = Math.max(tagW + 22 * zoom, textW + 22 * zoom);
 
           const bubbleOffsetX = facing === 'right' ? -22 * zoom : facing === 'left' ? 22 * zoom : 0;
-          const bubbleCenterX = renderX + bubbleOffsetX;
+          const bubbleCenterX = bubbleOffsetX;
           const bubbleY = tagY - (catTag ? 36 * zoom : 24 * zoom);
 
           // Shadow
@@ -3624,9 +3614,9 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           // Tail
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.moveTo(renderX - 4 * zoom, bubbleY + bubbleH);
-          ctx.lineTo(renderX + 4 * zoom, bubbleY + bubbleH);
-          ctx.lineTo(renderX, bubbleY + bubbleH + 5 * zoom);
+          ctx.moveTo(-4 * zoom, bubbleY + bubbleH);
+          ctx.lineTo(4 * zoom, bubbleY + bubbleH);
+          ctx.lineTo(0, bubbleY + bubbleH + 5 * zoom);
           ctx.closePath();
           ctx.fill();
 
@@ -3646,8 +3636,6 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       // cafe_agency, fintech_trading, creative_genai, robotics_hardware)
       // dengan kualitas visual setara kantor utama.
       // =========================================================
-      const labelQueue: Array<() => void> = [];
-      const isoCtx: IsoCtx = { ctx, toIso, zoom, t: timeSec, labelQueue };
       const sortedKavlings = [...regionalKavlings].sort((a, b) => (a.cx + a.cz) - (b.cx + b.cz));
       sortedKavlings.forEach((kavling) => {
         const isKavlingHovered = hoveredCompanyKavling?.id === kavling.id;
@@ -3655,36 +3643,35 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       });
 
       // =========================================================
-      // 7.5. KAVLING FASILITAS PUBLIK MANDIRI: SUPERMARKET & STASIUN KERETA
-      // SuperMart 24/7 Mega Store & Sentral Aerorail Station Terminal
-      // Memiliki Kavling Mandiri Penuh (33 x 24 units) & Desain Interior Khusus
+      // 7.5. KAVLING FASILITAS PUBLIK MANDIRI: SUPERMARKET, STASIUN & TAMAN
+      // Memiliki ukuran kavling presisi yang sama dengan kavling kantor (33 x 22 units)
       // =========================================================
 
       // A. KAVLING MANDIRI: SUPERMART 24/7 MEGA STORE (Barat Boulevard: cx = -84.0, cz = -1.0)
-      // Menggunakan true 3D isometric renderer (lorong rak 3D besar, kulkas chiller kaca es, pulau buah segar, meja kasir POS, dan troli belanja).
       const isSmHovered = hoveredCompanyKavling?.id === 'landmark-supermart' || hoveredCityLandmark?.id === 'landmark-supermart';
       renderSuperMart(isoCtx, isSmHovered);
 
-
-      // B. KAVLING MANDIRI: SENTRAL AERORAIL STATION TERMINAL (Timur Boulevard: cx = 84.0, cz = 0.0)
-      // Menggunakan true 3D isometric renderer (100% sejajar rel & peron, multi-car Whoosh 350 km/h,
-      // moncong aerodinamis, lampu sorot LED, peron bertingkat, gerbang RFID, dan kanopi melengkung).
+      // B. KAVLING MANDIRI: SENTRAL AERORAIL STATION TERMINAL (Timur Boulevard: cx = 84.0, cz = -1.0)
       const stCx = 84.0;
-      const stCz = 0.0;
+      const stCz = -1.0;
       const isStHovered = isStationHovered || hoveredCompanyKavling?.id === 'landmark-train-station' || hoveredCityLandmark?.id === 'landmark-train-station';
       renderSentralTrainStation(isoCtx, stCx, stCz, isStHovered);
+
+      // C. KAVLING FASILITAS PUBLIK: TAMAN REGIONAL BARAT & TIMUR (South Row: cx = -84.0 & cx = 84.0, cz = 39.5)
+      renderPark(isoCtx, DISTRICT.parkWest.cx, DISTRICT.parkWest.cz, 'fountain');
+      renderPark(isoCtx, DISTRICT.parkEast.cx, DISTRICT.parkEast.cz, 'pond');
 
       // =========================================================
       // 8. FRONT BOULEVARD: AMENITIES & CARS
       // Street amenities, streetlights, parked cars and moving traffic
-      // (Roadway surface already rendered on ground plane layer)
       // =========================================================
 
       // 6. Fasilitas Kuliner Boulevard: Cyber Pujasera 24 Jam & Street Furniture
-      const pjTL = toIso(17.0, 11.0);
-      const pjTR = toIso(23.0, 11.0);
-      const pjBR = toIso(23.0, 14.0);
-      const pjBL = toIso(17.0, 14.0);
+      // Ditempatkan di zona buffer (X: 18.0 s/d 24.0, Z: 10.5 s/d 13.5), tidak menimpa kavling manapun
+      const pjTL = toIso(18.0, 10.5);
+      const pjTR = toIso(24.0, 10.5);
+      const pjBR = toIso(24.0, 13.5);
+      const pjBL = toIso(18.0, 13.5);
       ctx.fillStyle = '#fef3c7';
       ctx.beginPath();
       ctx.moveTo(pjTL.isoX, pjTL.isoY - 12 * zoom);
@@ -3697,7 +3684,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
       ctx.lineWidth = 1.2 * zoom;
       ctx.stroke();
       // Payung kuliner jingga & banner Pujasera (Bebas overflow saat zoom out, defer ke labelQueue)
-      const pjKanopi = toIso(20.0, 14.0);
+      const pjKanopi = toIso(21.0, 13.5);
       labelQueue.push(() => {
         if (zoom >= 0.58) {
           const pjText = '🍜 PUJASERA 24 JAM';
@@ -3723,8 +3710,8 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
         }
       });
 
-      // Modern Solar LED Streetlights sepanjang trotoar
-      [-60.0, -30.0, -5.0, 25.0, 60.0].forEach((slx) => {
+      // Modern Solar LED Streetlights sepanjang celah trotoar
+      [-63.0, -21.0, 21.0, 63.0].forEach((slx) => {
         const slIso = toIso(slx, 16.0);
         ctx.fillStyle = '#475569';
         ctx.beginPath();
@@ -4666,7 +4653,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           </div>
 
           <button
-            onClick={() => handleFocusCompany(0, 0, 1.0)}
+            onClick={() => handleFocusCompany(0, -1, 1.0)}
             className="px-2.5 py-1 rounded-xl bg-[#fdeed9] hover:bg-[#fbdcb8] text-[#c85a2b] border border-[#f0c8a5] font-bold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
             title="Your Main Office"
           >
@@ -4674,7 +4661,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           </button>
 
           <button
-            onClick={() => handleFocusCompany(-42, 0, 1.0)}
+            onClick={() => handleFocusCompany(-42, -1, 1.0)}
             className="px-2 py-1 rounded-xl bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#0284c7] border border-[#d6c5ad] font-semibold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
             title="NusaNova Cloud Systems"
           >
@@ -4682,7 +4669,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           </button>
 
           <button
-            onClick={() => handleFocusCompany(42, 0, 1.0)}
+            onClick={() => handleFocusCompany(42, -1, 1.0)}
             className="px-2 py-1 rounded-xl bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#78350f] border border-[#d6c5ad] font-semibold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
             title="Kopi & Koding Labs"
           >
@@ -4690,7 +4677,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           </button>
 
           <button
-            onClick={() => handleFocusCompany(-42, 36, 1.0)}
+            onClick={() => handleFocusCompany(-42, 39.5, 1.0)}
             className="px-2 py-1 rounded-xl bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#059669] border border-[#d6c5ad] font-semibold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
             title="CyberFin Quantitative Asset"
           >
@@ -4698,7 +4685,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           </button>
 
           <button
-            onClick={() => handleFocusCompany(0, 36, 1.0)}
+            onClick={() => handleFocusCompany(0, 39.5, 1.0)}
             className="px-2 py-1 rounded-xl bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#d97706] border border-[#d6c5ad] font-semibold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
             title="BatikPixel Creative & GenAI"
           >
@@ -4706,7 +4693,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           </button>
 
           <button
-            onClick={() => handleFocusCompany(42, 36, 1.0)}
+            onClick={() => handleFocusCompany(42, 39.5, 1.0)}
             className="px-2 py-1 rounded-xl bg-[#fffdf9] hover:bg-[#f4ebe1] text-[#0891b2] border border-[#d6c5ad] font-semibold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
             title="GarudaLogix Robotics & Drone"
           >
@@ -4716,7 +4703,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           <div className="h-4 w-px bg-[#d6c5ad] shrink-0 mx-0.5" />
 
           <button
-            onClick={() => handleFocusCompany(-80, 19, 1.0)}
+            onClick={() => handleFocusCompany(-84, -1, 1.0)}
             className="px-2 py-1 rounded-xl bg-[#f0fdf4] hover:bg-[#dcfce7] text-[#16a34a] border border-[#bbf7d0] font-semibold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
             title="SuperMart 24/7 Mega Store"
           >
@@ -4724,7 +4711,7 @@ export const IsometricOffice: React.FC<IsometricOfficeProps> = ({
           </button>
 
           <button
-            onClick={() => handleFocusCompany(80, 19, 1.0)}
+            onClick={() => handleFocusCompany(84, -1, 1.0)}
             className="px-2 py-1 rounded-xl bg-[#fff7ed] hover:bg-[#ffedd5] text-[#ea580c] border border-[#fed7aa] font-semibold shrink-0 transition-colors flex items-center gap-1 text-[11px]"
             title="Central Aerorail Station Terminal"
           >
